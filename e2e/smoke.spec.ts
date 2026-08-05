@@ -8,7 +8,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 const openLevelOne = async (page: Page) => {
   await page.goto('/');
-  await expect(page.getByText('Automata Lab')).toBeVisible();
+  await expect(page.getByText('automata-k')).toBeVisible();
   await page.getByTestId('level-dfa-ends-in-1').click();
   await expect(page.getByTestId('canvas-card')).toBeVisible();
 };

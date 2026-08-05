@@ -1,21 +1,21 @@
 {
   "expo": {
-    "name": "Automata Lab",
-    "slug": "automata-lab",
+    "name": "automata-k",
+    "slug": "automata-k",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "automatalab",
+    "scheme": "automatak",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "backgroundColor": "#E9EBEF",
+    "backgroundColor": "#FBFAF7",
     "splash": {
-      "backgroundColor": "#E9EBEF",
+      "backgroundColor": "#FBFAF7",
       "resizeMode": "contain"
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "io.plotflow.automatalab",
+      "bundleIdentifier": "io.plotflow.automatak",
       "buildNumber": "1",
       "requireFullScreen": false,
       "infoPlist": {
@@ -26,10 +26,10 @@
     "web": {
       "bundler": "metro",
       "output": "single",
-      "name": "Automata Lab",
-      "shortName": "Automata Lab",
-      "backgroundColor": "#E9EBEF",
-      "themeColor": "#2A50D8",
+      "name": "automata-k",
+      "shortName": "automata-k",
+      "backgroundColor": "#FBFAF7",
+      "themeColor": "#22252A",
       "description": "A puzzle game for formal language theory. Draw a machine, watch it run, read it as a tuple."
     },
     "plugins": ["expo-router"],

@@ -1,4 +1,4 @@
-# Automata Lab
+# automata-k
 
 A puzzle game for formal language theory. You draw a machine on a canvas and
 the app grades it by running that machine against a fixed suite of test

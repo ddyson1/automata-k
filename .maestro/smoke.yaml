@@ -7,12 +7,12 @@
 #
 # Needs a simulator with the app installed:
 #   npx expo run:ios --configuration Release
-appId: io.plotflow.automatalab
+appId: io.plotflow.automatak
 ---
 - launchApp:
     clearState: true
 
-- assertVisible: 'Automata Lab'
+- assertVisible: 'automata-k'
 - assertVisible: 'Draw a machine. Watch it run. Read it as a tuple.'
 - assertVisible: '0 of 12 solved'
 

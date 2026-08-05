@@ -46,7 +46,7 @@ export default function LevelSelect() {
     >
       <Text style={{ ...TYPE.label, color: palette.muted }}>FORMAL LANGUAGE THEORY</Text>
       <Text style={{ ...TYPE.display, color: palette.ink, marginTop: SPACE.sm, fontSize: 32 }}>
-        Automata Lab
+        automata-k
       </Text>
       <Text style={{ ...TYPE.body, color: palette.muted, marginTop: SPACE.xs }}>
         Draw a machine. Watch it run. Read it as a tuple.
