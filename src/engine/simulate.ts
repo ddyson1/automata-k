@@ -405,6 +405,36 @@ export function run(m: Machine, level: Level, input: string): RunResult {
   }
 }
 
+/**
+ * The shortest string on which a machine disagrees with the level's language.
+ *
+ * Shown when a test fails, so the player gets the actual distinguishing string
+ * rather than only the failing row. Searches shortest first and returns null if
+ * the machine agrees everywhere up to `maxLength`.
+ */
+export function shortestCounterexample(
+  m: Machine,
+  level: Level,
+  maxLength = 7,
+): { input: string; expected: boolean; actual: boolean } | null {
+  let frontier: string[] = [''];
+  for (let len = 0; len <= maxLength; len++) {
+    for (const w of frontier) {
+      const result = run(m, level, w);
+      if (result.error) return null;
+      const expected = level.accepts(w);
+      if (result.accepted !== expected) {
+        return { input: w, expected, actual: result.accepted };
+      }
+    }
+    const next: string[] = [];
+    for (const w of frontier) for (const a of level.alphabet) next.push(w + a);
+    frontier = next;
+    if (frontier.length > 60_000) break;
+  }
+  return null;
+}
+
 export interface TestRow {
   input: string;
   expected: boolean;

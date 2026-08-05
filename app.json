@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "Automata Lab",
+    "slug": "automata-lab",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "automatalab",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "backgroundColor": "#E9EBEF",
+    "splash": {
+      "backgroundColor": "#E9EBEF",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "io.plotflow.automatalab",
+      "buildNumber": "1",
+      "requireFullScreen": false,
+      "infoPlist": {
+        "UIViewControllerBasedStatusBarAppearance": true,
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "name": "Automata Lab",
+      "shortName": "Automata Lab",
+      "backgroundColor": "#E9EBEF",
+      "themeColor": "#2A50D8",
+      "description": "A puzzle game for formal language theory. Draw a machine, watch it run, read it as a tuple."
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

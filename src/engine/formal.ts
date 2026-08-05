@@ -19,6 +19,7 @@ import {
   type Machine,
   type MachineKind,
   type StateId,
+  type Transition,
   type TransitionId,
 } from './types';
 
@@ -208,6 +209,66 @@ export function deltaLines(m: Machine, level: Level): DeltaLine[] {
     });
   }
   return lines;
+}
+
+/**
+ * The label on an arrow, one chip per transition.
+ *
+ *   DFA, NFA  a
+ *   PDA       a, X → Y
+ *   TM        a → X, R
+ */
+export function transitionChip(t: Transition, kind: MachineKind): string {
+  switch (kind) {
+    case 'DFA':
+    case 'NFA':
+      return t.read;
+    case 'PDA':
+      return `${t.read}, ${t.pop ?? EPSILON} → ${t.push ?? EPSILON}`;
+    case 'TM':
+      return `${t.read} → ${t.write ?? t.read}, ${t.move ?? 'R'}`;
+  }
+}
+
+/** The same rule, spelled out for a screen reader. */
+export function transitionSpeech(t: Transition, kind: MachineKind, m: Machine): string {
+  const from = labelOf(m, t.from);
+  const to = labelOf(m, t.to);
+  const read = t.read === EPSILON ? 'empty move' : `reading ${t.read}`;
+  switch (kind) {
+    case 'DFA':
+    case 'NFA':
+      return `From ${from} to ${to}, ${read}.`;
+    case 'PDA': {
+      const pop = t.pop ?? EPSILON;
+      const push = t.push ?? EPSILON;
+      const popPart = pop === EPSILON ? 'popping nothing' : `popping ${pop}`;
+      const pushPart = push === EPSILON ? 'pushing nothing' : `pushing ${push}`;
+      return `From ${from} to ${to}, ${read}, ${popPart}, ${pushPart}.`;
+    }
+    case 'TM':
+      return `From ${from} to ${to}, ${read}, writing ${t.write ?? t.read}, moving ${
+        t.move === 'L' ? 'left' : 'right'
+      }.`;
+  }
+}
+
+/** A text alternative to the whole diagram, driven by the δ list. Section 10.8. */
+export function machineSpeech(m: Machine, level: Level): string {
+  if (m.states.length === 0) return 'The canvas is empty.';
+  const startLabel = m.start === null ? 'none' : labelOf(m, m.start);
+  const parts = [
+    `${m.states.length} ${m.states.length === 1 ? 'state' : 'states'}: ${m.states
+      .map((s) => s.label)
+      .join(', ')}.`,
+    `Start state ${startLabel}.`,
+    m.accepting.length === 0
+      ? 'No accepting states.'
+      : `Accepting: ${m.accepting.map((id) => labelOf(m, id)).join(', ')}.`,
+    `${m.transitions.length} ${m.transitions.length === 1 ? 'arrow' : 'arrows'}.`,
+    ...m.transitions.map((t) => transitionSpeech(t, level.type, m)),
+  ];
+  return parts.join(' ');
 }
 
 export interface DeltaSummary {
