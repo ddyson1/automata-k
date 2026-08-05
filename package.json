@@ -11,8 +11,9 @@
     "test:watch": "vitest",
     "test:web": "playwright test",
     "typecheck": "tsc --noEmit",
-    "verify": "vitest run && tsc --noEmit",
-    "build:single": "expo export --platform web && node scripts/build-single-file.mjs"
+    "verify": "vitest run && tsc --noEmit && node scripts/check-swift-shape.mjs",
+    "build:single": "expo export --platform web && node scripts/build-single-file.mjs",
+    "check:swift": "node scripts/check-swift-shape.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
