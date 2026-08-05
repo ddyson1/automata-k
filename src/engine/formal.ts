@@ -88,7 +88,7 @@ export function machineTuple(m: Machine, level: Level): TupleLine[] {
     lines.push({ symbol: `Z${SUB0}`, gloss: 'bottom of stack', value: STACK_BOTTOM });
   }
   if (level.type === 'TM') {
-    lines.push({ symbol: '␣', gloss: 'blank symbol', value: BLANK });
+    lines.push({ symbol: '⊔', gloss: 'blank symbol', value: BLANK });
   }
 
   lines.push({
@@ -110,7 +110,7 @@ export function deltaSignature(kind: MachineKind): string {
     case 'PDA':
       return 'δ : Q × (Σ ∪ {ε}) × (Γ ∪ {ε}) → P(Q × (Γ ∪ {ε}))';
     case 'TM':
-      return 'δ : Q × Γ ⇀ Q × Γ × {L, R}';
+      return 'δ : Q × Γ → Q × Γ × {L, R}';
   }
 }
 
@@ -286,7 +286,11 @@ export function deltaSummary(m: Machine, level: Level): DeltaSummary {
   const pairs = m.states.length * level.alphabet.length;
 
   let note: string;
-  if (level.type === 'DFA') {
+  if (m.states.length === 0) {
+    // "δ is total: all 0 pairs defined" is true and useless. An empty canvas
+    // has not gone wrong, it has not started.
+    note = 'Nothing drawn yet. δ has no domain to be defined on.';
+  } else if (level.type === 'DFA') {
     note =
       gaps.length === 0
         ? `δ is total: all ${pairs} ${pairs === 1 ? 'pair' : 'pairs'} defined.`
@@ -373,7 +377,7 @@ export const MACHINE_CLASS: Record<MachineKind, ClassCopy> = {
   TM: {
     kind: 'TM',
     name: 'Turing machine',
-    definition: `M = (Q, Σ, Γ, δ, q${SUB0}, ␣, F) with ${deltaSignature('TM')}`,
+    definition: `M = (Q, Σ, Γ, δ, q${SUB0}, ⊔, F) with ${deltaSignature('TM')}`,
     acceptance:
       'M accepts w when the run from q₀ on w enters a state of F. It may reject by halting with no applicable rule, or never halt at all.',
     power:

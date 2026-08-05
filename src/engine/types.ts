@@ -10,7 +10,7 @@
 export const EPSILON = 'ε';
 
 /** The blank tape symbol. A distinct tape symbol, never an input symbol. */
-export const BLANK = '␣';
+export const BLANK = '⊔';
 
 /** Bottom-of-stack marker a PDA stack is initialised with. */
 export const STACK_BOTTOM = '$';
