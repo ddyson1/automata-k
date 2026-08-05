@@ -49,10 +49,14 @@ const DRAG_SLOP = 4;
 /** How close to the rim a press must start to mean "pull a new arrow". */
 const RIM_BAND = 11;
 /** Margin fit leaves around the machine. The top clears the view controls. */
-const FIT_PAD = 10;
-const FIT_PAD_TOP = 46;
-
-export type DiagramMode = 'select' | 'connect';
+const FIT_PAD = 18;
+const FIT_PAD_TOP = 54;
+/**
+ * Logical units per CSS pixel at scale 1. Chosen so the whole 340 unit sheet
+ * fits across a phone; anything wider than that is extra room rather than
+ * magnification.
+ */
+const BASE_ZOOM = 1.1;
 
 export interface DiagramCallbacks {
   onSelectState: (id: StateId | null) => void;
@@ -61,12 +65,18 @@ export interface DiagramCallbacks {
   onConnect: (from: StateId, to: StateId) => void;
   onRename: (id: StateId) => void;
   onBackgroundTap: (x: number, y: number) => void;
+  /** Double click on empty canvas. The only way to make a state. */
+  onPlaceState: (x: number, y: number) => void;
+  /**
+   * The selected state has moved on screen, because it was dragged or the view
+   * changed. The controls attached to it follow.
+   */
+  onAnchorMoved: () => void;
 }
 
 export interface DiagramState {
   machine: Machine;
   kind: MachineKind;
-  mode: DiagramMode;
   selectedState: StateId | null;
   selectedEdge: string | null;
   /** States lit by the trace player, or by a highlighted delta line. */
@@ -89,6 +99,8 @@ export interface Diagram {
   fit(): void;
   zoomBy(factor: number): void;
   resetView(): void;
+  /** Where a state currently sits, in client coordinates. */
+  screenPointOf(id: StateId): { x: number; y: number; r: number } | null;
   destroy(): void;
 }
 
@@ -105,6 +117,29 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
     tabindex: '0',
   });
 
+  // The dot grid belongs to the sheet, not the window onto it, so the bounded
+  // play area is visible and the space around it reads as space.
+  const dotsId = `dots-${Math.random().toString(36).slice(2, 9)}`;
+  const defs = svg('defs');
+  const pattern = svg('pattern', {
+    id: dotsId,
+    width: 20,
+    height: 20,
+    patternUnits: 'userSpaceOnUse',
+  });
+  pattern.appendChild(svg('circle', { cx: 1, cy: 1, r: 1, class: 'dot' }));
+  defs.appendChild(pattern);
+
+  const sheet = svg('rect', {
+    class: 'sheet',
+    x: 0,
+    y: 0,
+    width: CANVAS_W,
+    height: CANVAS_H,
+    rx: 4,
+    fill: `url(#${dotsId})`,
+  });
+
   const viewport = svg('g', { class: 'viewport' });
   const edgeStrokes = svg('path', { class: 'edge-stroke', d: '', fill: 'none' });
   const edgeHeads = svg('path', { class: 'edge-head', d: '' });
@@ -117,8 +152,17 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
   const pending = svg('path', { class: 'pending', d: '', fill: 'none' });
 
   startMarker.append(startShaft, startHead);
-  viewport.append(edgeStrokes, edgeHeads, chipLayer, startMarker, stateLayer, edgeHitLayer, pending);
-  root.append(viewport);
+  viewport.append(
+    sheet,
+    edgeStrokes,
+    edgeHeads,
+    chipLayer,
+    startMarker,
+    stateLayer,
+    edgeHitLayer,
+    pending,
+  );
+  root.append(defs, viewport);
 
   const el = h('div', { class: 'diagram-wrap' }, root);
 
@@ -127,7 +171,6 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
   let model: DiagramState = {
     machine: { states: [], transitions: [], start: null, accepting: [] },
     kind: 'DFA',
-    mode: 'select',
     selectedState: null,
     selectedEdge: null,
     activeStates: [],
@@ -143,23 +186,20 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
   // -- coordinate mapping ---------------------------------------------------
 
   /**
-   * The visible region, which is the logical canvas grown on whichever axis the
-   * card has room to spare. Letterboxing a 340 x 460 box into a wide card would
-   * waste most of it; growing the viewBox instead hands that space to the
-   * player. Authored coordinates stay put because the logical box is always
-   * centred inside the visible one, and dragging still clamps to it.
+   * The visible region. It is sized from the element in pixels rather than
+   * anchored to the 340 x 460 sheet, so a taller window shows more of the world
+   * instead of magnifying the same part of it. The sheet stays centred in it,
+   * and a drag still clamps to the sheet, so authored coordinates and the iOS
+   * port are unaffected.
    */
   let box = { x: 0, y: 0, w: CANVAS_W, h: CANVAS_H };
 
   function syncViewBox(): void {
     const rect = root.getBoundingClientRect();
     if (rect.width < 1 || rect.height < 1) return;
-    const aspect = rect.width / rect.height;
-    let w = CANVAS_W;
-    let hgt = CANVAS_H;
-    if (aspect > CANVAS_W / CANVAS_H) w = CANVAS_H * aspect;
-    else hgt = CANVAS_W / aspect;
-    box = { x: (CANVAS_W - w) / 2, y: (CANVAS_H - hgt) / 2, w, h: hgt };
+    const w = rect.width / BASE_ZOOM;
+    const hgt = rect.height / BASE_ZOOM;
+    box = { x: CANVAS_W / 2 - w / 2, y: CANVAS_H / 2 - hgt / 2, w, h: hgt };
     setAttr(
       root,
       'viewBox',
@@ -190,7 +230,12 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
   }
 
   function applyView(): void {
-    setAttr(viewport, 'transform', `translate(${view.tx.toFixed(2)} ${view.ty.toFixed(2)}) scale(${view.scale.toFixed(4)})`);
+    setAttr(
+      viewport,
+      'transform',
+      `translate(${view.tx.toFixed(2)} ${view.ty.toFixed(2)}) scale(${view.scale.toFixed(4)})`,
+    );
+    callbacks.onAnchorMoved();
   }
 
   // -- drawing --------------------------------------------------------------
@@ -302,6 +347,15 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
             'text-anchor': 'middle',
             'dominant-baseline': 'middle',
             'font-size': 14,
+          }),
+          // Dragging anywhere on the rim draws an arrow, but nothing on screen
+          // says so. On the selected state that gesture gets a visible grip.
+          svg('circle', {
+            class: 'state-grip',
+            r: 6,
+            cx: STATE_RADIUS,
+            cy: 0,
+            'data-grip': state.id,
           }),
         );
         stateNodes.set(state.id, node);
@@ -446,7 +500,6 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
   let rimDrag: { from: StateId; to: Pt } | null = null;
   let panFrom: { view: View; client: Pt } | null = null;
   let pinch: { distance: number; centre: Pt } | null = null;
-  let connectFrom: StateId | null = null;
 
   function stateAt(p: Pt): StateId | null {
     // Later states are drawn on top, so hit test in reverse.
@@ -465,22 +518,6 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
       clearTimeout(drag.longPress);
       drag.longPress = null;
     }
-  }
-
-  function beginConnect(id: StateId): void {
-    if (connectFrom === null) {
-      connectFrom = id;
-      highlightPendingSource();
-      return;
-    }
-    const from = connectFrom;
-    connectFrom = null;
-    highlightPendingSource();
-    callbacks.onConnect(from, id);
-  }
-
-  function highlightPendingSource(): void {
-    for (const [id, node] of stateNodes) node.classList.toggle('is-pending', id === connectFrom);
   }
 
   function drawPendingArrow(): void {
@@ -540,6 +577,14 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
         return;
       }
 
+      // The grip on the selected state is a rim drag with a visible target.
+      const grip = (e.target as Element).getAttribute?.('data-grip');
+      if (grip) {
+        rimDrag = { from: grip, to: p };
+        drawPendingArrow();
+        return;
+      }
+
       const hit = stateAt(p);
       if (hit === null) {
         panFrom = { view: { ...view }, client: { x: e.clientX, y: e.clientY } };
@@ -548,11 +593,6 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
 
       const at = positions[hit] as Pt;
       const distance = Math.hypot(p.x - at.x, p.y - at.y);
-
-      if (model.mode === 'connect') {
-        beginConnect(hit);
-        return;
-      }
 
       // Pressing near the rim pulls a new arrow instead of moving the state.
       if (distance > STATE_RADIUS - RIM_BAND) {
@@ -629,6 +669,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
         const node = stateNodes.get(drag.state);
         if (node) setAttr(node, 'transform', `translate(${x.toFixed(2)} ${y.toFixed(2)})`);
         drawEdges();
+        callbacks.onAnchorMoved();
         return;
       }
 
@@ -693,11 +734,6 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
       panFrom = null;
       if (travelled <= DRAG_SLOP) {
         const p = toCanvas(e.clientX, e.clientY);
-        if (connectFrom !== null) {
-          connectFrom = null;
-          highlightPendingSource();
-          return;
-        }
         callbacks.onBackgroundTap(p.x, p.y);
       }
       return;
@@ -735,6 +771,14 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
       },
       { passive: false },
     ),
+    on(root as unknown as HTMLElement, 'dblclick', (event) => {
+      const e = event as MouseEvent;
+      const target = e.target as Element;
+      if (target.closest?.('.chip') || target.closest?.('.state')) return;
+      const p = toCanvas(e.clientX, e.clientY);
+      callbacks.onPlaceState(p.x, p.y);
+      tap();
+    }),
     // Keyboard reaches the same actions as touch, for anyone not using a pointer.
     on(root as unknown as HTMLElement, 'keydown', (event) => {
       const e = event as KeyboardEvent;
@@ -742,9 +786,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
       if ((e.key === 'Enter' || e.key === ' ') && focused) {
         e.preventDefault();
         const id = focused.getAttribute('data-id');
-        if (!id) return;
-        if (model.mode === 'connect') beginConnect(id);
-        else callbacks.onSelectState(id);
+        if (id) callbacks.onSelectState(id);
         return;
       }
       const chip = (e.target as Element).closest?.('.chip');
@@ -781,17 +823,24 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
         drawStates();
         drawChips();
       }
-      el.classList.toggle('is-connect', next.mode === 'connect');
-      if (next.mode !== 'connect' && connectFrom !== null) {
-        connectFrom = null;
-        highlightPendingSource();
-      }
+      callbacks.onAnchorMoved();
     },
     fit,
     zoomBy(factor) {
       zoomAbout(factor, { x: box.x + box.w / 2, y: box.y + box.h / 2 });
     },
     resetView,
+    screenPointOf(id) {
+      const at = positions[id];
+      if (!at) return null;
+      const rect = root.getBoundingClientRect();
+      const s = (rect.width / box.w || 1) * view.scale;
+      return {
+        x: rect.left + (at.x * view.scale + view.tx - box.x) * (rect.width / box.w || 1),
+        y: rect.top + (at.y * view.scale + view.ty - box.y) * (rect.width / box.w || 1),
+        r: STATE_RADIUS * s,
+      };
+    },
     destroy() {
       for (const off of cleanups) off();
       cleanups.length = 0;

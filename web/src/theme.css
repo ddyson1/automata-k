@@ -33,6 +33,7 @@
   --fail: #a32d18;
   --fail-tint: #f8efec;
   --scrim: rgb(20 22 26 / 32%);
+  --dot: #e3e3df;
 
   --serif: 'Automata Serif', ui-serif, Georgia, serif;
   --sans: 'Automata Sans', ui-sans-serif, system-ui, sans-serif;
@@ -70,6 +71,7 @@
     --fail: #dd9276;
     --fail-tint: #261915;
     --scrim: rgb(0 0 0 / 58%);
+    --dot: #24262a;
   }
 }
 
@@ -93,6 +95,7 @@
   --fail: #a32d18;
   --fail-tint: #f8efec;
   --scrim: rgb(20 22 26 / 32%);
+  --dot: #e3e3df;
 }
 
 :root[data-theme='dark'] {
@@ -114,6 +117,7 @@
   --fail: #dd9276;
   --fail-tint: #261915;
   --scrim: rgb(0 0 0 / 58%);
+  --dot: #24262a;
 }
 
 /* --------------------------------------------------------------------------

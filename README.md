@@ -55,7 +55,7 @@ sensitive grammar for a^n b^n c^n.
 
 Alongside those: validation tests, simulation cap tests, a property test
 determinising random NFAs, Hopcroft minimisation against par, state
-elimination checked against every level language, and 38 Playwright tests over
+elimination checked against every level language, and 36 Playwright tests over
 two viewports.
 
 ## Layout
@@ -75,9 +75,11 @@ two viewports.
     geometry.ts  edge geometry, shared by the web app and its tests
 /web             the web app: DOM and SVG, no framework
   /src
+    brief.ts     the question, the two lists, and the live marks
     diagram.ts   the canvas
+    overlay.ts   the formal layer, over the brief
     ledger.ts    tuple and transition function
-    suite.ts     live grading
+    theory.ts    grammar, hierarchy, class, and the hint
     trace.ts     the stepper
     fonts/       the three bundled families, subset from the originals
 /ios             the Swift package: the same engine, held to a golden fixture
@@ -119,22 +121,31 @@ are capped at 400 but simulation always runs to the real limit.
 
 ## Interface
 
-**Two permanent panes.** The diagram and the transition function are both
-always on screen: side by side on a wide window, stacked on a phone. Neither is
-a preview of the other. Pointing at a rule lights the arrow it came from,
-selecting an arrow lights and scrolls to its rule. δ is never behind a toggle,
-so reading and building stop competing, and on a deterministic class the
-unwired pairs are listed in red with a running count.
+Two things are on screen: the brief, and the canvas.
 
-**No Run button.** The suite re-grades on every edit after a short pause. When
-it fails it names the shortest string the machine and the language disagree on,
-which is usually the whole diagnosis. Tapping a test plays its trace, with the
-stack or the tape. A blank canvas is neutral: it has not gone wrong, it has not
-started.
+**The brief is the puzzle and the grader at once.** The question in plain
+English, the language under it, and then the two lists that actually define the
+level: these must be accepted, these must be rejected. Those lists are the
+grader. A tick appears beside a string the moment the machine agrees with it, so
+there is no results band to read and no score to translate into a diagnosis.
+When it fails it names the shortest string the machine and the language disagree
+on. Tapping a string runs it.
 
-**A dock that never changes.** Its contents are fixed so a finger already on
-its way to a button finds that button. Anything contextual floats inside the
-diagram card instead, next to the thing it acts on.
+**The canvas has no dock.** A state is placed by double clicking, an arrow is
+drawn by dragging off a rim, and a state's controls appear attached to that
+state when it is selected. The selected state grows a visible grip for the arrow
+gesture, because a canvas with no toolbar has to say somewhere that you can draw
+on it, and so does an empty sheet.
+
+Four quiet icons in one corner do the things with nothing to attach to: undo,
+redo, tidy, fit. Everything formal is one disclosure away: **The machine** slides
+a panel over the brief with the tuple, δ, the theory and the analyses. Pointing
+at a rule lights the arrow it came from; selecting an arrow lights its rule.
+
+On a phone the canvas is the screen and the brief is a sheet that peeks, showing
+the verdict, and pulls up for the lists. Anything that turns attention to the
+machine, taking the worked solution or starting a trace, drops it back to
+peeking.
 
 ## Design
 
