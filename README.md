@@ -131,11 +131,12 @@ there is no results band to read and no score to translate into a diagnosis.
 When it fails it names the shortest string the machine and the language disagree
 on. Tapping a string runs it.
 
-**The canvas has no dock.** A state is placed by double clicking, an arrow is
-drawn by dragging off a rim, and a state's controls appear attached to that
-state when it is selected. The selected state grows a visible grip for the arrow
-gesture, because a canvas with no toolbar has to say somewhere that you can draw
-on it, and so does an empty sheet.
+**The canvas has no dock, and it is the whole right side of the window.** A
+state is placed by double clicking. Dragging inside a state moves it; dragging
+from the band just outside it pulls an arrow, and the state under the pointer
+grows four grips that say so. The state you would land on lights up while you
+drag. A state's own controls appear attached to it when it is selected, and an
+empty canvas says what to do in the middle of itself.
 
 Four quiet icons in one corner do the things with nothing to attach to: undo,
 redo, tidy, fit. Everything formal is one disclosure away: **The machine** slides
@@ -171,7 +172,9 @@ Two things the diagram gets right on purpose.
 
 **Arrows.** No SVG markers. Each head is a filled triangle placed at the
 curve's tangent so it lands on the target circle with about 3px clearance, at
-any angle, distance or bend. Every edge has a slight bend by default and a
+any angle, distance or bend, and the stroke stops a fixed distance back along
+the curve from that tip rather than a fixed distance from the target, which is
+only the same thing on a straight edge. Every edge has a slight bend by default and a
 wider one when a reverse edge exists, so parallel arrows separate. Self loops
 are true circular arcs aimed away from the average direction of that state's
 other connections, and away from a near canvas edge so their labels stay on the
@@ -181,9 +184,11 @@ card. Several transitions on one pair stack as separate rounded chips.
 straight onto the SVG nodes and recomputes the batched edge paths in place;
 one commit lands on release, so one undo takes it back.
 
-The canvas grows its own visible region to whatever shape the card has, so a
-wide window means more room rather than two grey bars, while the logical
-340 x 460 box stays centred and authored coordinates stay put.
+The canvas grows its visible region from the size of the window in pixels, so a
+taller window shows more of the world rather than magnifying the same part of
+it, and the grid runs edge to edge because the pane is the canvas. The logical
+340 x 460 box is where authored solutions live and what the iOS port shares; on
+screen it is only a starting frame, and a drag is bounded by what is visible.
 
 ## The Swift port
 

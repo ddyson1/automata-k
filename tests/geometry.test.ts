@@ -113,6 +113,34 @@ describe('arrow heads', () => {
     );
   });
 
+  it('the stroke ends exactly at the head, whatever the bend', () => {
+    // The complaint this guards: on a bent edge the head looked pasted on at
+    // the wrong angle, because the stroke stopped a fixed distance from the
+    // target rather than a fixed distance back along the curve from the tip.
+    for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 5) {
+      for (const bend of [BEND_DEFAULT, BEND_PARALLEL, -BEND_PARALLEL, 60]) {
+        const at: Positions = {
+          a: { x: 170, y: 230 },
+          b: { x: 170 + Math.cos(angle) * 140, y: 230 + Math.sin(angle) * 140 },
+        };
+        const g = edgeGeometry(edge({ bend }), at);
+        const tip = tipOf(g.arrow);
+        const strokeEnd = lastPointOf(g.path);
+        // Where the triangle's base sits, from the head path itself.
+        const corners = [...g.arrow.matchAll(/L(-?[\d.]+) (-?[\d.]+)/g)].map((m) => ({
+          x: Number(m[1]),
+          y: Number(m[2]),
+        }));
+        const base = {
+          x: ((corners[0] as { x: number }).x + (corners[1] as { x: number }).x) / 2,
+          y: ((corners[0] as { y: number }).y + (corners[1] as { y: number }).y) / 2,
+        };
+        expect(dist(strokeEnd, base), `bend ${bend} angle ${angle.toFixed(2)}`).toBeLessThan(1.5);
+        expect(dist(strokeEnd, tip)).toBeGreaterThan(6);
+      }
+    }
+  });
+
   it('the stroke starts on the source rim', () => {
     const g = edgeGeometry(edge(), positions);
     const m = /^M(-?[\d.]+) (-?[\d.]+)/.exec(g.path);

@@ -33,12 +33,15 @@ async function place(page: Page, fx: number, fy: number): Promise<void> {
   await canvas.dblclick({ position: { x: box.width * fx, y: box.height * fy } });
 }
 
-/** Drag from a state's grip to another state, which is how an arrow is made. */
+/**
+ * Drag from a state's grip to another state, which is how an arrow is made.
+ * The grips appear on hover, so the pointer goes to the state first.
+ */
 async function drawArrow(page: Page, fromLabel: string, toLabel: string): Promise<void> {
   const from = page.getByRole('button', { name: new RegExp(`^State ${fromLabel}`) });
   await from.scrollIntoViewIfNeeded();
-  await from.click();
-  const grip = page.locator('.state.is-selected .state-grip');
+  await from.hover();
+  const grip = from.locator('.state-grip').first();
   const gripBox = await grip.boundingBox();
   const target = page.getByRole('button', { name: new RegExp(`^State ${toLabel}`) });
   const targetBox = await target.boundingBox();

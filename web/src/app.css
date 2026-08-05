@@ -488,9 +488,8 @@
    svg
    -------------------------------------------------------------------------- */
 
-.sheet {
-  stroke: var(--hairline);
-  stroke-width: 1;
+.grid {
+  stroke: none;
 }
 
 .dot {
@@ -510,10 +509,11 @@
 }
 
 .pending {
-  stroke: var(--muted);
-  stroke-width: 1.4;
-  stroke-dasharray: 5 4;
+  stroke: var(--ink);
+  stroke-width: 1.6;
+  stroke-dasharray: 6 4;
   fill: none;
+  opacity: 0.65;
 }
 
 .start-shaft {
@@ -533,6 +533,12 @@
 .state-hit {
   fill: transparent;
 }
+
+/*
+ * Anywhere in the band just outside the rim starts an arrow. The grips are what
+ * says so: four of them, on the state under the pointer, gone again when it
+ * leaves, so a diagram at rest is only the diagram.
+ */
 
 .state-ring {
   fill: var(--surface);
@@ -564,15 +570,22 @@
   opacity: 0;
   pointer-events: none;
   cursor: crosshair;
+  transition: opacity 0.12s ease;
 }
 
 .state.is-selected .state-ring {
   stroke-width: 2.6;
 }
 
+.state.is-hover .state-grip,
 .state.is-selected .state-grip {
   opacity: 1;
   pointer-events: auto;
+}
+
+.state.is-target .state-ring {
+  stroke-width: 2.6;
+  fill: var(--accent-tint);
 }
 
 .state.is-active .state-ring {

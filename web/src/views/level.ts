@@ -87,10 +87,11 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     onRename: (id) => openRename(id),
     onPlaceState: (x, y) => {
       const pad = CANVAS.stateRadius;
+      const b = diagram.visibleBounds();
       selectedState = game.addState(
         levelId,
-        Math.min(CANVAS.width - pad, Math.max(pad, x)),
-        Math.min(CANVAS.height - pad, Math.max(pad, y)),
+        Math.min(b.x + b.w - pad, Math.max(b.x + pad, x)),
+        Math.min(b.y + b.h - pad, Math.max(b.y + pad, y)),
       );
       render();
     },
@@ -144,9 +145,10 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     const w = stateBar.offsetWidth || 240;
     const hgt = stateBar.offsetHeight || 34;
     const x = Math.min(box.width - w - 10, Math.max(10, at.x - box.left - w / 2));
-    let y = at.y - box.top + at.r + 12;
-    if (y + hgt > box.height - 40) y = at.y - box.top - at.r - hgt - 12;
-    stateBar.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(8, y).toFixed(1)}px)`;
+    // Above the state by preference: below is where the next arrow usually goes.
+    let y = at.y - box.top - at.r - hgt - 16;
+    if (y < 8) y = at.y - box.top + at.r + 16;
+    stateBar.style.transform = `translate(${x.toFixed(1)}px, ${Math.min(box.height - hgt - 8, y).toFixed(1)}px)`;
   }
 
   // -- corner controls ------------------------------------------------------

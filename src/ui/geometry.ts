@@ -144,6 +144,26 @@ function tAtDistanceFromEnd(p0: Pt, c: Pt, p1: Pt, target: Pt, d: number): numbe
   return lo;
 }
 
+/**
+ * Largest t at or below `tMax` whose point is at least `d` from `origin`.
+ *
+ * Used to end the stroke exactly where the arrow triangle's base is. Measuring
+ * that distance from the target state instead, which is what this used to do,
+ * is only the same thing on a straight edge: on a bent one the two points are
+ * different and the head reads as pasted on at the wrong angle.
+ */
+function tBackFrom(p0: Pt, c: Pt, p1: Pt, tMax: number, origin: Pt, d: number): number {
+  let lo = 0;
+  let hi = tMax;
+  for (let i = 0; i < 22; i++) {
+    const mid = (lo + hi) / 2;
+    const p = quadAt(p0, c, p1, mid);
+    if (Math.hypot(p.x - origin.x, p.y - origin.y) >= d) lo = mid;
+    else hi = mid;
+  }
+  return lo;
+}
+
 /** Smallest t whose point is at least `d` away from `origin`. Distance grows with t. */
 function tAtDistanceFromStart(p0: Pt, c: Pt, p1: Pt, origin: Pt, d: number): number {
   let lo = 0;
@@ -195,11 +215,11 @@ function betweenStates(from: Pt, to: Pt, bend: number, radius: number): EdgeGeom
   if (len <= radius + tipDistance + 2) return EMPTY;
 
   const tTip = tAtDistanceFromEnd(from, ctrl, to, to, tipDistance);
-  const tBase = tAtDistanceFromEnd(from, ctrl, to, to, tipDistance + ARROW_LEN * 0.92);
-  const tStart = tAtDistanceFromStart(from, ctrl, to, from, radius);
-
   const tip = quadAt(from, ctrl, to, tTip);
   const dir = quadTangent(from, ctrl, to, tTip);
+
+  const tBase = tBackFrom(from, ctrl, to, tTip, tip, ARROW_LEN * 0.92);
+  const tStart = tAtDistanceFromStart(from, ctrl, to, from, radius);
 
   const a = Math.min(tStart, tBase);
   const b = Math.max(tStart, tBase);
@@ -228,13 +248,27 @@ function chipHalfWidth(chips: readonly string[]): number {
   return (longest * CHIP_CHAR_W) / 2 + CHIP_PAD_X;
 }
 
-/** How far a box centred at `c` pokes outside the logical canvas. */
-function outsideBy(c: Pt, halfW: number, halfH: number): number {
+/**
+ * The region a diagram has to stay inside. The logical canvas by default, which
+ * is what the authored solutions and the iOS port use; the web app passes the
+ * region actually on screen, which is larger and moves with the window.
+ */
+export interface Bounds {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export const CANVAS_BOUNDS: Bounds = { x: 0, y: 0, w: CANVAS_W, h: CANVAS_H };
+
+/** How far a box centred at `c` pokes outside `bounds`. */
+function outsideBy(c: Pt, halfW: number, halfH: number, bounds: Bounds): number {
   let out = 0;
-  if (c.x - halfW < 0) out += halfW - c.x;
-  if (c.x + halfW > CANVAS_W) out += c.x + halfW - CANVAS_W;
-  if (c.y - halfH < 0) out += halfH - c.y;
-  if (c.y + halfH > CANVAS_H) out += c.y + halfH - CANVAS_H;
+  if (c.x - halfW < bounds.x) out += bounds.x - (c.x - halfW);
+  if (c.x + halfW > bounds.x + bounds.w) out += c.x + halfW - (bounds.x + bounds.w);
+  if (c.y - halfH < bounds.y) out += bounds.y - (c.y - halfH);
+  if (c.y + halfH > bounds.y + bounds.h) out += c.y + halfH - (bounds.y + bounds.h);
   return out;
 }
 
@@ -268,6 +302,7 @@ function awayDirection(
   startMarker: boolean,
   chips: readonly string[],
   radius: number,
+  bounds: Bounds,
 ): Pt {
   const rows = Math.max(1, chips.length);
   const halfW = chipHalfWidth(chips);
@@ -285,7 +320,7 @@ function awayDirection(
     const centre: Pt = { x: at.x + dir.x * out, y: at.y + dir.y * out };
 
     let score = UP_BIAS * -dir.y;
-    score -= OUT_WEIGHT * outsideBy(centre, halfW, halfH);
+    score -= OUT_WEIGHT * outsideBy(centre, halfW, halfH, bounds);
 
     // The start marker comes in from the left, so treat that side as occupied.
     if (startMarker) score -= (1 - dir.x) * 0.5;
@@ -359,6 +394,7 @@ export function edgeGeometry(
   spec: EdgeSpec,
   positions: Positions,
   radius: number = STATE_RADIUS,
+  bounds: Bounds = CANVAS_BOUNDS,
 ): EdgeGeometry {
   const from = positions[spec.from];
   if (!from) return EMPTY;
@@ -370,6 +406,7 @@ export function edgeGeometry(
       spec.startMarker,
       spec.chips,
       radius,
+      bounds,
     );
     return selfLoop(from, away, radius);
   }
@@ -383,11 +420,12 @@ export function edgesPathData(
   specs: EdgeSpec[],
   positions: Positions,
   radius: number = STATE_RADIUS,
+  bounds: Bounds = CANVAS_BOUNDS,
 ): { strokes: string; heads: string } {
   let strokes = '';
   let heads = '';
   for (let i = 0; i < specs.length; i++) {
-    const g = edgeGeometry(specs[i] as EdgeSpec, positions, radius);
+    const g = edgeGeometry(specs[i] as EdgeSpec, positions, radius, bounds);
     if (g.path) strokes += g.path;
     if (g.arrow) heads += g.arrow;
   }
@@ -399,8 +437,9 @@ export function chipAnchor(
   spec: EdgeSpec,
   positions: Positions,
   radius: number = STATE_RADIUS,
+  bounds: Bounds = CANVAS_BOUNDS,
 ): Pt {
-  const g = edgeGeometry(spec, positions, radius);
+  const g = edgeGeometry(spec, positions, radius, bounds);
   const rows = Math.max(1, spec.chips.length);
   // A self loop's anchor already sits out past the rim, so it needs less push.
   const gap = spec.selfLoop ? CHIP_GAP_LOOP : CHIP_GAP;

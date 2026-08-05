@@ -24,7 +24,6 @@ import {
   CHIP_CHAR_W,
   CHIP_PAD_X,
   CHIP_ROW_HEIGHT,
-  HIT_RADIUS,
   STATE_RADIUS,
   buildEdges,
   chipAnchor,
@@ -46,8 +45,13 @@ const MAX_SCALE = 3.2;
 const LONG_PRESS_MS = 480;
 /** Pointer travel that turns a tap into a drag. */
 const DRAG_SLOP = 4;
-/** How close to the rim a press must start to mean "pull a new arrow". */
-const RIM_BAND = 11;
+/**
+ * Pressing inside the circle moves the state; pressing in the halo just outside
+ * it pulls an arrow. Putting the connect zone outside rather than inside is the
+ * whole difference between "grab the edge and pull" and a hidden mode you
+ * trigger by clicking too close to the rim.
+ */
+const CONNECT_OUTER = 46;
 /** Margin fit leaves around the machine. The top clears the view controls. */
 const FIT_PAD = 18;
 const FIT_PAD_TOP = 54;
@@ -101,6 +105,8 @@ export interface Diagram {
   resetView(): void;
   /** Where a state currently sits, in client coordinates. */
   screenPointOf(id: StateId): { x: number; y: number; r: number } | null;
+  /** The region on screen, in logical units. Placement clamps to it. */
+  visibleBounds(): { x: number; y: number; w: number; h: number };
   destroy(): void;
 }
 
@@ -117,8 +123,11 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
     tabindex: '0',
   });
 
-  // The dot grid belongs to the sheet, not the window onto it, so the bounded
-  // play area is visible and the space around it reads as space.
+  /**
+   * The grid covers the whole element and its pattern is transformed with the
+   * view, so it reads as one unbounded surface that pans and zooms with what is
+   * drawn on it. There is no card: the pane is the canvas.
+   */
   const dotsId = `dots-${Math.random().toString(36).slice(2, 9)}`;
   const defs = svg('defs');
   const pattern = svg('pattern', {
@@ -130,15 +139,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
   pattern.appendChild(svg('circle', { cx: 1, cy: 1, r: 1, class: 'dot' }));
   defs.appendChild(pattern);
 
-  const sheet = svg('rect', {
-    class: 'sheet',
-    x: 0,
-    y: 0,
-    width: CANVAS_W,
-    height: CANVAS_H,
-    rx: 4,
-    fill: `url(#${dotsId})`,
-  });
+  const grid = svg('rect', { class: 'grid', fill: `url(#${dotsId})` });
 
   const viewport = svg('g', { class: 'viewport' });
   const edgeStrokes = svg('path', { class: 'edge-stroke', d: '', fill: 'none' });
@@ -153,7 +154,6 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
 
   startMarker.append(startShaft, startHead);
   viewport.append(
-    sheet,
     edgeStrokes,
     edgeHeads,
     chipLayer,
@@ -162,7 +162,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
     edgeHitLayer,
     pending,
   );
-  root.append(defs, viewport);
+  root.append(defs, grid, viewport);
 
   const el = h('div', { class: 'diagram-wrap' }, root);
 
@@ -182,6 +182,8 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
   const positions: Positions = {};
   const stateNodes = new Map<StateId, SVGGElement>();
   const cleanups: (() => void)[] = [];
+  let hovered: StateId | null = null;
+  let dropTarget: StateId | null = null;
 
   // -- coordinate mapping ---------------------------------------------------
 
@@ -200,6 +202,10 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
     const w = rect.width / BASE_ZOOM;
     const hgt = rect.height / BASE_ZOOM;
     box = { x: CANVAS_W / 2 - w / 2, y: CANVAS_H / 2 - hgt / 2, w, h: hgt };
+    setAttr(grid, 'x', box.x.toFixed(2));
+    setAttr(grid, 'y', box.y.toFixed(2));
+    setAttr(grid, 'width', box.w.toFixed(2));
+    setAttr(grid, 'height', box.h.toFixed(2));
     setAttr(
       root,
       'viewBox',
@@ -235,13 +241,19 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
       'transform',
       `translate(${view.tx.toFixed(2)} ${view.ty.toFixed(2)}) scale(${view.scale.toFixed(4)})`,
     );
+    // The grid is outside that transform, so its pattern carries it instead.
+    setAttr(
+      pattern,
+      'patternTransform',
+      `translate(${view.tx.toFixed(2)} ${view.ty.toFixed(2)}) scale(${view.scale.toFixed(4)})`,
+    );
     callbacks.onAnchorMoved();
   }
 
   // -- drawing --------------------------------------------------------------
 
   function drawEdges(): void {
-    const { strokes, heads } = edgesPathData(edges, positions);
+    const { strokes, heads } = edgesPathData(edges, positions, STATE_RADIUS, box);
     setAttr(edgeStrokes, 'd', strokes);
     setAttr(edgeHeads, 'd', heads);
     drawChips();
@@ -257,7 +269,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
     edgeHitLayer.textContent = '';
 
     for (const edge of edges) {
-      const anchor = chipAnchor(edge, positions);
+      const anchor = chipAnchor(edge, positions, STATE_RADIUS, box);
       const rows = edge.chips.length;
       const lit = edge.transitionIds.some((id) => model.activeTransitions.includes(id));
       const selected = model.selectedEdge === edge.key;
@@ -337,7 +349,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
           tabindex: '0',
         });
         node.append(
-          svg('circle', { class: 'state-hit', r: HIT_RADIUS, cx: 0, cy: 0 }),
+          svg('circle', { class: 'state-hit', r: CONNECT_OUTER, cx: 0, cy: 0 }),
           svg('circle', { class: 'state-ring', r: STATE_RADIUS, cx: 0, cy: 0 }),
           svg('circle', { class: 'state-accept', r: STATE_RADIUS - 4.5, cx: 0, cy: 0 }),
           svg('text', {
@@ -348,14 +360,18 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
             'dominant-baseline': 'middle',
             'font-size': 14,
           }),
-          // Dragging anywhere on the rim draws an arrow, but nothing on screen
-          // says so. On the selected state that gesture gets a visible grip.
-          svg('circle', {
-            class: 'state-grip',
-            r: 6,
-            cx: STATE_RADIUS,
-            cy: 0,
-            'data-grip': state.id,
+          // Dragging anywhere in the band just outside the rim draws an arrow,
+          // but nothing on screen says so. Four grips say it, on whichever
+          // state the pointer is over, and vanish again when it leaves.
+          ...[0, 90, 180, 270].map((deg) => {
+            const a = (deg * Math.PI) / 180;
+            return svg('circle', {
+              class: 'state-grip',
+              r: 4.5,
+              cx: (Math.cos(a) * (STATE_RADIUS + 7)).toFixed(2),
+              cy: (Math.sin(a) * (STATE_RADIUS + 7)).toFixed(2),
+              'data-grip': state.id,
+            });
           }),
         );
         stateNodes.set(state.id, node);
@@ -365,14 +381,9 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
       const pos = positions[state.id] ?? { x: state.x, y: state.y };
       setAttr(node, 'transform', `translate(${pos.x.toFixed(2)} ${pos.y.toFixed(2)})`);
 
-      const accepting = model.machine.accepting.includes(state.id);
       const isStart = model.machine.start === state.id;
-      const selected = model.selectedState === state.id;
-      const active = model.activeStates.includes(state.id);
-      node.setAttribute(
-        'class',
-        `state${accepting ? ' is-accepting' : ''}${selected ? ' is-selected' : ''}${active ? ' is-active' : ''}`,
-      );
+      const accepting = model.machine.accepting.includes(state.id);
+      paintStateClass(state.id, node);
       const label = node.querySelector('.state-label') as SVGTextElement;
       if (label.textContent !== state.label) label.textContent = state.label;
       node.setAttribute(
@@ -387,6 +398,25 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
         stateNodes.delete(id);
       }
     }
+  }
+
+  /**
+   * One place that decides a state's classes, because hover and drop target are
+   * set by the pointer while selection and the trace are set by the model, and
+   * whichever wrote last used to win.
+   */
+  function paintStateClass(id: StateId, node: SVGGElement): void {
+    const classes = ['state'];
+    if (model.machine.accepting.includes(id)) classes.push('is-accepting');
+    if (model.selectedState === id) classes.push('is-selected');
+    if (model.activeStates.includes(id)) classes.push('is-active');
+    if (hovered === id) classes.push('is-hover');
+    if (dropTarget === id) classes.push('is-target');
+    setAttr(node, 'class', classes.join(' '));
+  }
+
+  function paintStateClasses(): void {
+    for (const [id, node] of stateNodes) paintStateClass(id, node);
   }
 
   function rebuild(): void {
@@ -431,7 +461,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
       if (at) grow(at.x - STATE_RADIUS - START_MARKER_LEN, at.y, 4, 4);
     }
     for (const edge of edges) {
-      const a = chipAnchor(edge, positions);
+      const a = chipAnchor(edge, positions, STATE_RADIUS, box);
       const chars = Math.max(...edge.chips.map((c) => c.length), 1);
       grow(
         a.x,
@@ -508,9 +538,23 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
       if (!s) continue;
       const at = positions[s.id];
       if (!at) continue;
-      if (Math.hypot(p.x - at.x, p.y - at.y) <= HIT_RADIUS) return s.id;
+      if (Math.hypot(p.x - at.x, p.y - at.y) <= CONNECT_OUTER) return s.id;
     }
     return null;
+  }
+
+  /** The state under the pointer: its grips show, so the gesture is visible. */
+  function setHover(id: StateId | null): void {
+    if (hovered === id) return;
+    hovered = id;
+    paintStateClasses();
+  }
+
+  /** While an arrow is being pulled, the state it would land on. */
+  function setDropTarget(id: StateId | null): void {
+    if (dropTarget === id) return;
+    dropTarget = id;
+    paintStateClasses();
   }
 
   function cancelLongPress(): void {
@@ -594,8 +638,8 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
       const at = positions[hit] as Pt;
       const distance = Math.hypot(p.x - at.x, p.y - at.y);
 
-      // Pressing near the rim pulls a new arrow instead of moving the state.
-      if (distance > STATE_RADIUS - RIM_BAND) {
+      // Outside the circle but inside the halo: pull a new arrow.
+      if (distance > STATE_RADIUS) {
         rimDrag = { from: hit, to: p };
         drawPendingArrow();
         return;
@@ -660,8 +704,8 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
         if (!drag.moved) return;
 
         const p = toCanvas(e.clientX, e.clientY);
-        const x = clamp(p.x - drag.grabDx, STATE_RADIUS, CANVAS_W - STATE_RADIUS);
-        const y = clamp(p.y - drag.grabDy, STATE_RADIUS, CANVAS_H - STATE_RADIUS);
+        const x = clamp(p.x - drag.grabDx, box.x + STATE_RADIUS, box.x + box.w - STATE_RADIUS);
+        const y = clamp(p.y - drag.grabDy, box.y + STATE_RADIUS, box.y + box.h - STATE_RADIUS);
         // Straight into the geometry. Nothing here reaches the store.
         const at = positions[drag.state] as Pt;
         at.x = x;
@@ -676,6 +720,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
       if (rimDrag) {
         rimDrag.to = toCanvas(e.clientX, e.clientY);
         drawPendingArrow();
+        setDropTarget(stateAt(rimDrag.to));
         return;
       }
 
@@ -713,6 +758,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
       const to = rimDrag.to;
       rimDrag = null;
       drawPendingArrow();
+      setDropTarget(null);
       const target = stateAt(to);
       const origin = positions[from] as Pt;
       const travelled = Math.hypot(to.x - origin.x, to.y - origin.y);
@@ -742,6 +788,12 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
   }
 
   cleanups.push(
+    on(root as unknown as HTMLElement, 'pointermove', (event) => {
+      const e = event as PointerEvent;
+      if (drag || rimDrag || panFrom || pinch || e.pointerType === 'touch') return;
+      setHover(stateAt(toCanvas(e.clientX, e.clientY)));
+    }),
+    on(root as unknown as HTMLElement, 'pointerleave', () => setHover(null)),
     on(root as unknown as HTMLElement, 'pointerup', (e) => endPointer(e as PointerEvent)),
     on(root as unknown as HTMLElement, 'pointercancel', (e) => {
       const event = e as PointerEvent;
@@ -751,6 +803,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
       rimDrag = null;
       panFrom = null;
       pinch = null;
+      setDropTarget(null);
       drawPendingArrow();
     }),
     on(
@@ -830,6 +883,9 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
       zoomAbout(factor, { x: box.x + box.w / 2, y: box.y + box.h / 2 });
     },
     resetView,
+    visibleBounds() {
+      return { ...box };
+    },
     screenPointOf(id) {
       const at = positions[id];
       if (!at) return null;
