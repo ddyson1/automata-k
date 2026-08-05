@@ -1,9 +1,13 @@
 /**
  * Design tokens.
  *
- * Cool plaster ground, white surfaces, cobalt for anything the player is doing
- * right now, green and red only for verdicts. Monospace is reserved for machine
- * notation so the formal layer reads as a different register from the UI.
+ * Notebook: warm paper, hairline rules, almost no fill. Structure comes from
+ * dividers and space rather than from cards and shadows, so the permanent δ
+ * list reads as part of one document instead of a stack of panels.
+ *
+ * Serif for level titles, sans for interface text, mono for anything that is
+ * machine notation. The accent is a muted ochre, which sits on paper without
+ * shouting and leaves green and red free to mean pass and fail.
  */
 
 import { Platform } from 'react-native';
@@ -15,6 +19,8 @@ export interface Palette {
   ink: string;
   muted: string;
   hairline: string;
+  /** A heavier rule, for the divisions that matter. */
+  rule: string;
   accent: string;
   accentTint: string;
   accentTintStrong: string;
@@ -28,49 +34,50 @@ export interface Palette {
 }
 
 export const LIGHT: Palette = {
-  ground: '#E9EBEF',
+  ground: '#FBFAF7',
   surface: '#FFFFFF',
-  surfaceSunken: '#F4F5F8',
-  ink: '#1D2430',
-  muted: '#5A6272',
-  hairline: '#DCDFE6',
-  accent: '#2A50D8',
-  accentTint: '#EAEFFD',
-  accentTintStrong: '#DDE5FD',
-  accentInk: '#1B3AA6',
-  pass: '#12876A',
-  passTint: '#DFF3EC',
-  fail: '#C0392B',
-  failTint: '#FCE3DE',
-  scrim: 'rgba(29, 36, 48, 0.34)',
-  shadow: '#1D2430',
+  surfaceSunken: '#F4F2EC',
+  ink: '#22252A',
+  muted: '#71756F',
+  hairline: '#E4E1D8',
+  rule: '#CFCBBE',
+  accent: '#6E5A24',
+  accentTint: '#F5F1E3',
+  accentTintStrong: '#E9E2CB',
+  accentInk: '#54441A',
+  pass: '#3B6B4C',
+  passTint: '#F0F6F1',
+  fail: '#9A3E1F',
+  failTint: '#FBF1ED',
+  scrim: 'rgba(34, 37, 42, 0.3)',
+  shadow: '#22252A',
 };
 
-/** Section 10.8. Same hues, re-grounded so the plaster reads as slate. */
 export const DARK: Palette = {
-  ground: '#14171D',
-  surface: '#1E222A',
-  surfaceSunken: '#191D24',
-  ink: '#EEF1F6',
-  muted: '#9AA3B2',
-  hairline: '#2C323C',
-  accent: '#7C97F5',
-  accentTint: '#232B44',
-  accentTintStrong: '#2C3757',
-  accentInk: '#C3D0FB',
-  pass: '#4FD1A5',
-  passTint: '#17322B',
-  fail: '#F0836F',
-  failTint: '#37211E',
+  ground: '#1A1A18',
+  surface: '#212220',
+  surfaceSunken: '#1D1E1C',
+  ink: '#ECEAE3',
+  muted: '#9A9A92',
+  hairline: '#33342F',
+  rule: '#43443D',
+  accent: '#C9AE6A',
+  accentTint: '#2A2820',
+  accentTintStrong: '#3A3626',
+  accentInk: '#DFC98B',
+  pass: '#6FA57F',
+  passTint: '#1B2A20',
+  fail: '#D3805F',
+  failTint: '#2E1F1A',
   scrim: 'rgba(0, 0, 0, 0.55)',
   shadow: '#000000',
 };
 
 export const RADIUS = {
-  chip: 8,
-  control: 12,
-  card: 20,
-  sheet: 24,
+  chip: 5,
+  control: 8,
+  card: 4,
+  sheet: 16,
   pill: 999,
 } as const;
 
@@ -79,11 +86,11 @@ export const SPACE = {
   sm: 8,
   md: 12,
   lg: 16,
-  xl: 24,
+  xl: 22,
   xxl: 32,
 } as const;
 
-/** Minimum touch target, per section 7. */
+/** Minimum touch target. */
 export const TAP = 44;
 
 export const MONO = Platform.select({
@@ -92,26 +99,34 @@ export const MONO = Platform.select({
   default: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
 }) as string;
 
+export const SERIF = Platform.select({
+  ios: 'Georgia',
+  android: 'serif',
+  default: 'ui-serif, "Iowan Old Style", Palatino, Georgia, serif',
+}) as string;
+
 export const TYPE = {
-  display: { fontSize: 26, lineHeight: 32, fontWeight: '700' as const, letterSpacing: -0.4 },
-  title: { fontSize: 19, lineHeight: 25, fontWeight: '600' as const, letterSpacing: -0.2 },
+  /** Level titles. The one place the serif appears. */
+  display: { fontSize: 25, lineHeight: 30, fontFamily: SERIF },
+  title: { fontSize: 20, lineHeight: 25, fontFamily: SERIF },
   body: { fontSize: 15, lineHeight: 21, fontWeight: '400' as const },
   bodyStrong: { fontSize: 15, lineHeight: 21, fontWeight: '600' as const },
   small: { fontSize: 13, lineHeight: 18, fontWeight: '400' as const },
-  label: { fontSize: 11, lineHeight: 14, fontWeight: '700' as const, letterSpacing: 0.8 },
+  /** Mono uppercase section labels, the Notebook structural device. */
+  label: { fontSize: 10, lineHeight: 13, fontWeight: '500' as const, letterSpacing: 1.4, fontFamily: MONO },
   mono: { fontSize: 13, lineHeight: 20, fontFamily: MONO },
   monoSmall: { fontSize: 11.5, lineHeight: 17, fontFamily: MONO },
 } as const;
 
-/** Soft shadow for raised surfaces. Web gets a box shadow, native gets the real thing. */
+/**
+ * Notebook keeps its surfaces flat. Only things that genuinely float above the
+ * page get a shadow, and even then a soft one.
+ */
 export const elevation = (level: 1 | 2 | 3, palette: Palette) => {
-  const spec = { 1: [2, 6, 0.06], 2: [6, 16, 0.1], 3: [12, 32, 0.16] }[level] as [
-    number,
-    number,
-    number,
-  ];
+  if (level === 1) return {};
+  if (Platform.OS === 'android') return { elevation: level * 2 };
+  const spec = { 2: [3, 10, 0.07], 3: [8, 22, 0.12] }[level] as [number, number, number];
   const [offset, blur, opacity] = spec;
-  if (Platform.OS === 'android') return { elevation: level * 3 };
   return {
     shadowColor: palette.shadow,
     shadowOffset: { width: 0, height: offset },
@@ -120,6 +135,8 @@ export const elevation = (level: 1 | 2 | 3, palette: Palette) => {
   };
 };
 
-/** Spring used for every press and sheet. One curve, applied everywhere. */
-export const SPRING = { damping: 18, stiffness: 220, mass: 0.7 } as const;
-export const SPRING_SNAPPY = { damping: 22, stiffness: 340, mass: 0.6 } as const;
+export const SPRING = { damping: 20, stiffness: 220, mass: 0.7 } as const;
+export const SPRING_SNAPPY = { damping: 24, stiffness: 340, mass: 0.6 } as const;
+
+/** How long after the last edit the suite re-grades. */
+export const GRADE_DEBOUNCE_MS = 180;

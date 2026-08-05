@@ -1,6 +1,9 @@
 /**
- * Level select. Twelve levels, unlocked in order, grouped by machine class so
- * the climb up the hierarchy is visible before you play it.
+ * Level select.
+ *
+ * One document: twelve levels grouped by machine class, divided by hairlines
+ * rather than boxed into cards, so the climb up the hierarchy is legible
+ * before you play it.
  */
 
 import { useMemo } from 'react';
@@ -12,14 +15,13 @@ import { hierarchyRow, MACHINE_CLASS } from '../src/engine/formal';
 import { LEVELS, isUnlocked } from '../src/engine/levels';
 import type { Level, MachineKind } from '../src/engine/types';
 import { useGame } from '../src/store/game';
-import { Card, Label } from '../src/ui/components/Controls';
-import { elevation, RADIUS, SPACE, TAP, TYPE, type Palette } from '../src/ui/theme';
+import { SPACE, TAP, TYPE, type Palette } from '../src/ui/theme';
 import { usePalette } from '../src/ui/usePalette';
 
 const GROUPS: { kind: MachineKind; caption: string }[] = [
-  { kind: 'DFA', caption: 'Regular languages, one state per fact' },
+  { kind: 'DFA', caption: 'One state per fact worth remembering' },
   { kind: 'NFA', caption: 'Same power, fewer states, empty moves' },
-  { kind: 'PDA', caption: 'Context free, one unbounded stack' },
+  { kind: 'PDA', caption: 'One unbounded stack, last in first out' },
   { kind: 'TM', caption: 'A tape you can read and write anywhere' },
 ];
 
@@ -38,15 +40,18 @@ export default function LevelSelect() {
       style={{ backgroundColor: palette.ground }}
       contentContainerStyle={[
         styles.page,
-        { paddingTop: insets.top + SPACE.lg, paddingBottom: insets.bottom + SPACE.xxl },
+        { paddingTop: insets.top + SPACE.xl, paddingBottom: insets.bottom + SPACE.xxl },
       ]}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={{ ...TYPE.display, color: palette.ink }}>Automata Lab</Text>
+      <Text style={{ ...TYPE.label, color: palette.muted }}>FORMAL LANGUAGE THEORY</Text>
+      <Text style={{ ...TYPE.display, color: palette.ink, marginTop: SPACE.sm, fontSize: 32 }}>
+        Automata Lab
+      </Text>
       <Text style={{ ...TYPE.body, color: palette.muted, marginTop: SPACE.xs }}>
         Draw a machine. Watch it run. Read it as a tuple.
       </Text>
-      <Text style={{ ...TYPE.small, color: palette.muted, marginTop: SPACE.sm }}>
+      <Text style={{ ...TYPE.monoSmall, color: palette.muted, marginTop: SPACE.md }}>
         {done.size} of {LEVELS.length} solved
       </Text>
 
@@ -54,9 +59,11 @@ export default function LevelSelect() {
         const levels = LEVELS.filter((l) => l.type === group.kind);
         return (
           <View key={group.kind} style={styles.group}>
-            <View style={styles.groupHead}>
-              <Label text={MACHINE_CLASS[group.kind].name} palette={palette} />
-              <Text style={{ ...TYPE.small, color: palette.muted, marginTop: 2 }}>
+            <View style={[styles.groupHead, { borderTopColor: palette.rule }]}>
+              <Text style={{ ...TYPE.label, color: palette.accentInk }}>
+                {MACHINE_CLASS[group.kind].name.toUpperCase()}
+              </Text>
+              <Text style={{ ...TYPE.small, color: palette.muted, marginTop: 3 }}>
                 {group.caption}
               </Text>
             </View>
@@ -75,14 +82,14 @@ export default function LevelSelect() {
         );
       })}
 
-      <Card palette={palette} style={styles.footer}>
-        <Label text="The hierarchy" palette={palette} />
-        <View style={{ height: SPACE.sm }} />
+      <View style={[styles.group, styles.hierarchy, { borderTopColor: palette.rule }]}>
+        <Text style={{ ...TYPE.label, color: palette.muted }}>THE HIERARCHY</Text>
+        <View style={{ height: SPACE.md }} />
         {[3, 2, 1, 0].map((t) => {
           const row = hierarchyRow(t as 0 | 1 | 2 | 3);
           return (
             <View key={row.type} style={styles.hierarchyRow}>
-              <Text style={{ ...TYPE.monoSmall, color: palette.accentInk, width: 46 }}>
+              <Text style={{ ...TYPE.monoSmall, color: palette.accentInk, width: 52 }}>
                 type {row.type}
               </Text>
               <Text style={{ ...TYPE.small, color: palette.ink, flex: 1 }}>
@@ -92,7 +99,7 @@ export default function LevelSelect() {
             </View>
           );
         })}
-      </Card>
+      </View>
     </ScrollView>
   );
 }
@@ -122,36 +129,20 @@ function LevelRow({
       accessibilityRole="button"
       accessibilityState={{ disabled: locked }}
       accessibilityLabel={`Level ${level.index}, ${level.title}. ${level.goal} ${status}.`}
-      style={[
-        styles.row,
-        {
-          backgroundColor: palette.surface,
-          borderColor: solved ? palette.pass : palette.hairline,
-          opacity: locked ? 0.45 : 1,
-        },
-        elevation(1, palette),
-      ]}
+      style={[styles.row, { borderTopColor: palette.hairline, opacity: locked ? 0.4 : 1 }]}
     >
-      <View
-        style={[
-          styles.index,
-          {
-            backgroundColor: solved ? palette.passTint : palette.surfaceSunken,
-          },
-        ]}
+      <Text
+        style={{
+          ...TYPE.monoSmall,
+          color: solved ? palette.pass : palette.muted,
+          width: 22,
+          paddingTop: 3,
+        }}
       >
-        <Text
-          style={{
-            ...TYPE.monoSmall,
-            fontWeight: '700',
-            color: solved ? palette.pass : palette.muted,
-          }}
-        >
-          {level.index}
-        </Text>
-      </View>
+        {level.index}
+      </Text>
       <View style={styles.rowBody}>
-        <Text style={{ ...TYPE.bodyStrong, color: palette.ink }}>{level.title}</Text>
+        <Text style={{ ...TYPE.title, fontSize: 17, color: palette.ink }}>{level.title}</Text>
         <Text numberOfLines={2} style={{ ...TYPE.small, color: palette.muted, marginTop: 1 }}>
           {level.goal}
         </Text>
@@ -159,9 +150,9 @@ function LevelRow({
       <View style={styles.rowMeta}>
         <Text style={{ ...TYPE.monoSmall, color: palette.muted }}>par {level.par}</Text>
         {locked ? (
-          <Text style={{ ...TYPE.monoSmall, color: palette.muted }}>locked</Text>
+          <Text style={{ ...TYPE.label, color: palette.muted }}>LOCKED</Text>
         ) : solved ? (
-          <Text style={{ ...TYPE.monoSmall, color: palette.pass }}>{shown ? 'shown' : 'done'}</Text>
+          <Text style={{ ...TYPE.label, color: palette.pass }}>{shown ? 'SHOWN' : 'DONE'}</Text>
         ) : null}
       </View>
     </Pressable>
@@ -170,50 +161,35 @@ function LevelRow({
 
 const styles = StyleSheet.create({
   page: {
-    paddingHorizontal: SPACE.lg,
+    paddingHorizontal: SPACE.xl,
     maxWidth: 640,
     width: '100%',
     alignSelf: 'center',
   },
   group: {
-    marginTop: SPACE.xl,
-    gap: SPACE.sm,
+    marginTop: SPACE.xxl,
   },
   groupHead: {
-    marginBottom: SPACE.xs,
+    borderTopWidth: 1,
+    paddingTop: SPACE.md,
+    paddingBottom: SPACE.md,
   },
   row: {
-    minHeight: TAP + 20,
+    minHeight: TAP + 18,
     flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: RADIUS.card,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: SPACE.md,
+    alignItems: 'flex-start',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingVertical: SPACE.md,
     gap: SPACE.md,
     ...Platform.select({ web: { cursor: 'pointer' as const }, default: {} }),
   },
-  index: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowBody: {
-    flex: 1,
-  },
-  rowMeta: {
-    alignItems: 'flex-end',
-    gap: 2,
-  },
-  footer: {
-    marginTop: SPACE.xxl,
-    padding: SPACE.lg,
-  },
+  rowBody: { flex: 1 },
+  rowMeta: { alignItems: 'flex-end', gap: 3, paddingTop: 3 },
+  hierarchy: { borderTopWidth: 1, paddingTop: SPACE.lg },
   hierarchyRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.sm,
-    minHeight: 24,
+    minHeight: 26,
   },
 });

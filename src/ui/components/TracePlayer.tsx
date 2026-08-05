@@ -1,14 +1,16 @@
 /**
- * Step through one run. Floats inside the canvas card, so the canvas itself
- * never resizes or reflows.
+ * Step through one run, in place.
+ *
+ * Not an overlay and not a sheet: a band between the diagram and the ledger,
+ * so the states lighting up above it are the same states you were just
+ * editing.
  */
 
 import { useEffect, useRef } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { BLANK, type Frame, type Level, type RunResult } from '../../engine/types';
-import { elevation, RADIUS, SPACE, TYPE, type Palette } from '../theme';
-import { Button } from './Controls';
+import { BLANK, EPSILON, type Frame, type Level, type RunResult } from '../../engine/types';
+import { RADIUS, SPACE, TYPE, type Palette } from '../theme';
 
 export interface TracePlayerProps {
   level: Level;
@@ -25,7 +27,7 @@ export interface TracePlayerProps {
 export function TracePlayer(props: TracePlayerProps) {
   const { level, input, result, index, playing, onIndex, onTogglePlay, onClose, palette } = props;
   const frame = result.frames[index] as Frame | undefined;
-  const last = result.frames.length - 1;
+  const last = Math.max(0, result.frames.length - 1);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export function TracePlayer(props: TracePlayerProps) {
     timer.current = setInterval(() => {
       onIndex(Math.min(last, index + 1));
       if (index + 1 >= last) onTogglePlay();
-    }, 520);
+    }, 500);
     return () => {
       if (timer.current) clearInterval(timer.current);
     };
@@ -45,210 +47,204 @@ export function TracePlayer(props: TracePlayerProps) {
 
   const verdict =
     result.outcome === 'accept'
-      ? { text: 'accepted', fg: palette.pass, bg: palette.passTint }
+      ? { text: 'ACCEPTED', color: palette.pass }
       : result.outcome === 'nonhalting'
-        ? { text: 'did not halt', fg: palette.fail, bg: palette.failTint }
+        ? { text: 'DID NOT HALT', color: palette.fail }
         : result.outcome === 'error'
-          ? { text: 'not a valid machine', fg: palette.fail, bg: palette.failTint }
-          : { text: 'rejected', fg: palette.fail, bg: palette.failTint };
+          ? { text: 'NOT A MACHINE', color: palette.fail }
+          : { text: 'REJECTED', color: palette.fail };
 
   return (
     <View
-      style={[
-        styles.wrap,
-        { backgroundColor: palette.surface, borderColor: palette.hairline },
-        elevation(2, palette),
-      ]}
+      testID="trace-band"
+      style={[styles.wrap, { borderTopColor: palette.hairline, backgroundColor: palette.surfaceSunken }]}
       accessibilityLabel={`Trace of ${input === '' ? 'the empty string' : input}, step ${
         index + 1
-      } of ${result.frames.length}, ${verdict.text}`}
+      } of ${result.frames.length}, ${verdict.text.toLowerCase()}`}
     >
-      <View style={styles.headRow}>
+      <View style={styles.head}>
         <Text style={{ ...TYPE.label, color: palette.muted }}>TRACE</Text>
-        <View style={[styles.pill, { backgroundColor: verdict.bg }]}>
-          <Text style={{ ...TYPE.small, color: verdict.fg, fontWeight: '700' }}>
-            {verdict.text}
-          </Text>
-        </View>
+        <Text style={{ ...TYPE.label, color: verdict.color }}>{verdict.text}</Text>
         <View style={{ flex: 1 }} />
         <Text style={{ ...TYPE.monoSmall, color: palette.muted }}>
           {index + 1}/{result.frames.length}
         </Text>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.strip}>
-        <View style={styles.cells}>
-          {input.length === 0 ? (
-            <Text style={{ ...TYPE.mono, color: palette.muted }}>ε (empty input)</Text>
-          ) : (
-            [...input].map((ch, i) => {
-              const read = frame ? i < frame.pos : false;
-              const here = frame ? i === frame.pos : false;
-              return (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cells}>
+        {input.length === 0 ? (
+          <Text style={{ ...TYPE.mono, color: palette.muted }}>{EPSILON} empty input</Text>
+        ) : (
+          [...input].map((ch, i) => {
+            const read = frame ? i < frame.pos : false;
+            const here = frame ? i === frame.pos : false;
+            return (
+              <View
+                key={i}
+                style={[
+                  styles.cell,
+                  {
+                    borderColor: here ? palette.accent : palette.hairline,
+                    backgroundColor: here ? palette.accentTintStrong : 'transparent',
+                  },
+                ]}
+              >
+                <Text style={{ ...TYPE.mono, color: read && !here ? palette.muted : palette.ink }}>
+                  {ch}
+                </Text>
+              </View>
+            );
+          })
+        )}
+      </ScrollView>
+
+      {level.type === 'PDA' && frame?.stack ? (
+        <Aux label="STACK" palette={palette}>
+          {frame.stack.length === 0
+            ? [
+                <Text key="e" style={{ ...TYPE.mono, color: palette.muted }}>
+                  empty
+                </Text>,
+              ]
+            : [...frame.stack].reverse().map((sym, i) => (
                 <View
                   key={i}
                   style={[
                     styles.cell,
                     {
-                      borderColor: here ? palette.accent : palette.hairline,
-                      backgroundColor: here
-                        ? palette.accentTintStrong
-                        : read
-                          ? palette.surfaceSunken
-                          : palette.surface,
+                      borderColor: i === 0 ? palette.accent : palette.hairline,
+                      backgroundColor: i === 0 ? palette.accentTint : 'transparent',
                     },
                   ]}
                 >
-                  <Text
-                    style={{
-                      ...TYPE.mono,
-                      color: read && !here ? palette.muted : palette.ink,
-                    }}
-                  >
-                    {ch}
-                  </Text>
+                  <Text style={{ ...TYPE.mono, color: palette.ink }}>{sym}</Text>
                 </View>
-              );
-            })
-          )}
-        </View>
-      </ScrollView>
-
-      {level.type === 'PDA' && frame?.stack ? (
-        <View style={styles.auxRow}>
-          <Text style={{ ...TYPE.label, color: palette.muted, marginRight: SPACE.sm }}>STACK</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.cells}>
-              {frame.stack.length === 0 ? (
-                <Text style={{ ...TYPE.mono, color: palette.muted }}>empty</Text>
-              ) : (
-                // Top of the stack first, which is how a player reads it.
-                [...frame.stack].reverse().map((sym, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      styles.cell,
-                      {
-                        borderColor: i === 0 ? palette.accent : palette.hairline,
-                        backgroundColor: i === 0 ? palette.accentTint : palette.surface,
-                      },
-                    ]}
-                  >
-                    <Text style={{ ...TYPE.mono, color: palette.ink }}>{sym}</Text>
-                  </View>
-                ))
-              )}
-            </View>
-          </ScrollView>
-        </View>
+              ))}
+        </Aux>
       ) : null}
 
       {level.type === 'TM' && frame?.tape ? (
-        <View style={styles.auxRow}>
-          <Text style={{ ...TYPE.label, color: palette.muted, marginRight: SPACE.sm }}>TAPE</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.cells}>
-              {frame.tape.map((sym, i) => {
-                const here = i === frame.head;
-                return (
-                  <View
-                    key={i}
-                    style={[
-                      styles.cell,
-                      {
-                        borderColor: here ? palette.accent : palette.hairline,
-                        backgroundColor: here ? palette.accentTintStrong : palette.surface,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={{
-                        ...TYPE.mono,
-                        color: sym === BLANK ? palette.muted : palette.ink,
-                      }}
-                    >
-                      {sym}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-          </ScrollView>
-        </View>
+        <Aux label="TAPE" palette={palette}>
+          {frame.tape.map((sym, i) => {
+            const here = i === frame.head;
+            return (
+              <View
+                key={i}
+                style={[
+                  styles.cell,
+                  {
+                    borderColor: here ? palette.accent : palette.hairline,
+                    backgroundColor: here ? palette.accentTintStrong : 'transparent',
+                  },
+                ]}
+              >
+                <Text style={{ ...TYPE.mono, color: sym === BLANK ? palette.muted : palette.ink }}>
+                  {sym}
+                </Text>
+              </View>
+            );
+          })}
+        </Aux>
       ) : null}
 
       {result.note ? (
-        <Text style={{ ...TYPE.small, color: palette.muted, marginTop: SPACE.xs }}>
-          {result.note}
-        </Text>
+        <Text style={[styles.note, { color: palette.muted }]}>{result.note}</Text>
       ) : null}
 
       <View style={styles.controls}>
-        <Button
-          label="Back"
-          palette={palette}
-          compact
-          grow
-          disabled={index === 0}
-          onPress={() => onIndex(Math.max(0, index - 1))}
-        />
-        <Button
+        <Step label="Back" palette={palette} disabled={index === 0} onPress={() => onIndex(Math.max(0, index - 1))} />
+        <Step
           label={playing ? 'Pause' : 'Play'}
           palette={palette}
-          tone="accent"
-          compact
-          grow
+          strong
           disabled={last === 0}
           onPress={onTogglePlay}
         />
-        <Button
-          label="Next"
-          palette={palette}
-          compact
-          grow
-          disabled={index >= last}
-          onPress={() => onIndex(Math.min(last, index + 1))}
-        />
-        <Button label="Close" palette={palette} tone="quiet" compact onPress={onClose} />
+        <Step label="Next" palette={palette} disabled={index >= last} onPress={() => onIndex(Math.min(last, index + 1))} />
+        <View style={{ flex: 1 }} />
+        <Step label="Close" palette={palette} onPress={onClose} />
       </View>
     </View>
   );
 }
 
+function Aux({
+  label,
+  palette,
+  children,
+}: {
+  label: string;
+  palette: Palette;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.auxRow}>
+      <Text style={{ ...TYPE.label, color: palette.muted, width: 42 }}>{label}</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cells}>
+        {children}
+      </ScrollView>
+    </View>
+  );
+}
+
+function Step({
+  label,
+  palette,
+  onPress,
+  disabled,
+  strong,
+}: {
+  label: string;
+  palette: Palette;
+  onPress: () => void;
+  disabled?: boolean;
+  strong?: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: Boolean(disabled) }}
+      disabled={disabled}
+      onPress={onPress}
+      style={[styles.step, { opacity: disabled ? 0.35 : 1 }]}
+    >
+      <Text
+        style={{
+          ...TYPE.small,
+          fontWeight: strong ? '700' : '500',
+          color: strong ? palette.accentInk : palette.ink,
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   wrap: {
-    position: 'absolute',
-    left: SPACE.sm,
-    right: SPACE.sm,
-    bottom: SPACE.sm,
-    borderRadius: RADIUS.control,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: SPACE.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingVertical: SPACE.sm,
   },
-  headRow: {
+  head: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.sm,
-    marginBottom: SPACE.sm,
-  },
-  pill: {
-    paddingHorizontal: SPACE.sm,
-    paddingVertical: 2,
-    borderRadius: RADIUS.pill,
-  },
-  strip: {
-    flexGrow: 0,
+    paddingHorizontal: SPACE.lg,
+    paddingBottom: SPACE.sm,
   },
   cells: {
     flexDirection: 'row',
     gap: 4,
     alignItems: 'center',
-    minHeight: 30,
+    paddingHorizontal: SPACE.lg,
+    minHeight: 28,
   },
   cell: {
-    minWidth: 26,
-    height: 28,
-    borderRadius: 6,
+    minWidth: 25,
+    height: 26,
+    borderRadius: RADIUS.chip,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -258,10 +254,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: SPACE.sm,
+    paddingLeft: SPACE.lg,
+  },
+  note: {
+    ...TYPE.small,
+    paddingHorizontal: SPACE.lg,
+    paddingTop: SPACE.sm,
   },
   controls: {
     flexDirection: 'row',
-    gap: SPACE.sm,
-    marginTop: SPACE.md,
+    alignItems: 'center',
+    gap: SPACE.lg,
+    paddingHorizontal: SPACE.lg,
+    paddingTop: SPACE.sm,
+  },
+  step: {
+    minHeight: 34,
+    justifyContent: 'center',
+    ...Platform.select({ web: { cursor: 'pointer' as const }, default: {} }),
   },
 });

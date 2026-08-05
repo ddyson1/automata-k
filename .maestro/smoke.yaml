@@ -1,6 +1,6 @@
 # Section 9: the one iOS smoke flow.
 #
-# Open level 1, reveal the solution, run the tests, see the win sheet, then
+# Open level 1, reveal the solution, watch the live suite turn green, then
 # restart the app and confirm progress survived.
 #
 #   maestro test .maestro/smoke.yaml
@@ -24,47 +24,52 @@ appId: io.plotflow.automatalab
     id: 'level-dfa-ends-in-1'
 - assertVisible:
     id: 'canvas-card'
-- assertVisible: '1. Last symbol'
+- assertVisible: 'Last symbol'
 
-# The dock never changes contents, so every control is here from the start.
-- assertVisible: 'Add state'
+# The transition function is permanent, not behind a toggle. Nothing is drawn
+# yet, so the ledger is empty and the suite withholds a verdict.
+- assertVisible: 'δ : Q × Σ → Q'
+- assertVisible: 'NOTHING DRAWN'
+
+# The toolbar is the same six controls throughout, and Run is not one of them:
+# grading is continuous.
+- assertVisible: 'Add State'
 - assertVisible: 'Connect'
 - assertVisible: 'Tidy'
-- assertVisible: 'Fit'
-- assertVisible: 'Run tests'
+- assertVisible: 'Notes'
+- assertNotVisible: 'Run tests'
 
 # Reveal the worked solution, which marks the solve as shown.
-- tapOn: 'Hint'
+- tapOn:
+    id: 'notes'
 - assertVisible:
-    id: 'hint-sheet'
+    id: 'level-sheet'
+- tapOn:
+    id: 'tab-hint'
 - tapOn:
     id: 'reveal-solution'
 
-# The revealed machine is the verified two state solution.
+# The revealed machine is the verified two state solution, and the ledger
+# filled in with it.
 - assertVisible: 'q0'
 - assertVisible: 'q1'
-
-# The formal readout tracks it.
-- tapOn: 'Show the formal readout'
 - assertVisible: 'δ(q0, 1) = q1'
-- assertVisible: 'δ is total: all 4 pairs defined.'
-- tapOn: 'Hide the formal readout'
+- assertVisible: '4 OF 4 DEFINED'
 
+# The suite graded itself without being asked.
+- assertVisible: 'ALL PASSING'
+- assertVisible: 'Solved with 2 states, par 2, shown'
+
+# Tapping a test plays its trace between the panes.
 - tapOn:
-    id: 'run-tests'
+    id: 'test-0101'
 - assertVisible:
-    id: 'results-sheet'
-- assertVisible: 'Solved'
-- assertVisible: 'This is the smallest DFA for the language.'
-
-# Drag the sheet away by its grab handle rather than tapping a button.
-- swipe:
-    from:
-      id: 'results-sheet'
-    direction: DOWN
+    id: 'trace-band'
+- assertVisible: 'ACCEPTED'
+- tapOn: 'Close'
 
 # Progress survives an app restart, not just a screen change.
 - stopApp
 - launchApp
 - assertVisible: '1 of 12 solved'
-- assertVisible: 'Solved, shown'
+- assertVisible: 'SHOWN'

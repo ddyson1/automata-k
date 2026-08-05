@@ -93,7 +93,8 @@ export function Sheet(props: SheetProps) {
         style={[
           styles.sheet,
           {
-            backgroundColor: palette.surface,
+            backgroundColor: palette.ground,
+            borderTopColor: palette.rule,
             paddingBottom: insets.bottom + SPACE.lg,
             maxHeight: `${Math.round(maxHeightRatio * 100)}%`,
           },
@@ -136,6 +137,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     borderTopLeftRadius: RADIUS.sheet,
     borderTopRightRadius: RADIUS.sheet,
+    borderTopWidth: StyleSheet.hairlineWidth,
     ...Platform.select({ web: { maxWidth: 560, marginHorizontal: 'auto' as const }, default: {} }),
   },
   grabZone: {

@@ -7,7 +7,7 @@ import type { ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
-import { elevation, RADIUS, SPACE, SPRING_SNAPPY, TAP, TYPE, type Palette } from '../theme';
+import { RADIUS, SPACE, SPRING_SNAPPY, TAP, TYPE, type Palette } from '../theme';
 import * as haptics from '../haptics';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -38,10 +38,10 @@ export function Button(props: ButtonProps) {
   }));
 
   const colours: Record<ButtonTone, { bg: string; fg: string; border: string }> = {
-    plain: { bg: palette.surface, fg: palette.ink, border: palette.hairline },
-    accent: { bg: palette.accent, fg: '#FFFFFF', border: palette.accent },
+    plain: { bg: 'transparent', fg: palette.ink, border: palette.hairline },
+    accent: { bg: palette.accentTintStrong, fg: palette.accentInk, border: palette.accent },
     quiet: { bg: 'transparent', fg: palette.muted, border: 'transparent' },
-    danger: { bg: palette.failTint, fg: palette.fail, border: palette.failTint },
+    danger: { bg: 'transparent', fg: palette.fail, border: palette.failTint },
   };
   const c = colours[tone];
 
@@ -74,7 +74,6 @@ export function Button(props: ButtonProps) {
           flexGrow: grow ? 1 : 0,
           flexBasis: grow ? 0 : 'auto',
         },
-        tone === 'accent' ? elevation(1, palette) : null,
         props.style,
         animated,
       ]}
@@ -123,12 +122,10 @@ export function Card({
   children,
   palette,
   style,
-  level = 1,
 }: {
   children: ReactNode;
   palette: Palette;
   style?: ViewStyle;
-  level?: 1 | 2 | 3;
 }) {
   return (
     <View
@@ -139,7 +136,6 @@ export function Card({
           borderWidth: StyleSheet.hairlineWidth,
           borderColor: palette.hairline,
         },
-        elevation(level, palette),
         style,
       ]}
     >

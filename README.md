@@ -25,6 +25,7 @@ npm run ios        # Expo on a simulator or device
 npm test           # engine, grammar, geometry and purity suites
 npm run typecheck  # tsc --noEmit, strict, no any in the engine
 npm run build:web && npm run test:web   # Playwright, desktop and phone viewports
+npm run build:single                    # one self-contained HTML file
 maestro test .maestro/smoke.yaml        # the iOS smoke flow, needs a simulator
 ```
 
@@ -60,7 +61,7 @@ elimination checked against every level language.
     levels.ts    the twelve levels, each with an accepts predicate
     solutions.ts one verified machine per level
     formal.ts    tuple rendering, delta notation, grammars, hierarchy copy
-  /ui            screens, canvas, sheets, design tokens
+  /ui            canvas, ledger, suite strip, design tokens
   /store         game state and persistence
 /app             expo-router routes
 /tests           the verification suites, plain Node
@@ -98,6 +99,30 @@ after which the run is reported as non-halting, distinct from a rejection.
 
 Every simulator returns `{ accepted, frames, error?, note?, outcome }`. Frames
 are capped at 400 but simulation always runs to the real limit.
+
+## Interface
+
+The layout is the Ledger direction from the interface study, with the
+Instrument feedback loop, dressed in the Notebook visual language.
+
+**Two permanent panes.** The diagram sits above the transition function, split
+by a handle you can drag. Neither is a preview of the other: editing a rule in
+the ledger moves the arrow, touching an arrow opens its rule. δ is never
+hidden behind a toggle, so reading and building stop competing, and on a
+deterministic class the unwired pairs are listed in red with a running count.
+
+**No Run button.** The suite re-grades on every edit after a short pause and
+the strip under the ledger recolours. Tapping a test plays its trace between
+the panes rather than in a sheet. While the machine is not yet well formed the
+strip stays neutral instead of shouting red at a half-drawn machine.
+
+**One sheet.** Hint, level notes and analysis are tabs of a single reference
+sheet. Everything else in the app is permanent.
+
+Warm paper, hairline rules, almost no fill. Structure comes from dividers and
+space rather than cards and shadows; serif for level titles, mono for anything
+that is machine notation, and a muted ochre accent that leaves green and red
+free to mean pass and fail.
 
 ## Rendering
 

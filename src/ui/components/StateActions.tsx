@@ -7,7 +7,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
 
 import type { Machine, StateId } from '../../engine/types';
-import { elevation, RADIUS, SPACE, TYPE, type Palette } from '../theme';
+import { RADIUS, SPACE, TAP, TYPE, type Palette } from '../theme';
 import { Button } from './Controls';
 
 export interface StateActionsProps {
@@ -34,8 +34,7 @@ export function StateActions(props: StateActionsProps) {
       exiting={FadeOutDown.duration(120)}
       style={[
         styles.bar,
-        { backgroundColor: palette.surface, borderColor: palette.hairline },
-        elevation(2, palette),
+        { backgroundColor: palette.ground, borderTopColor: palette.hairline },
       ]}
     >
       <View style={styles.title}>
@@ -69,10 +68,10 @@ export function ConnectPrompt({ palette, label }: { palette: Palette; label: str
     <Animated.View
       entering={FadeInDown.duration(160)}
       exiting={FadeOutDown.duration(120)}
-      style={[styles.prompt, { backgroundColor: palette.accent }, elevation(2, palette)]}
+      style={[styles.prompt, { backgroundColor: palette.accentTintStrong }]}
       accessibilityLiveRegion="polite"
     >
-      <Text style={{ ...TYPE.small, color: '#FFFFFF', fontWeight: '600' }}>{label}</Text>
+      <Text style={{ ...TYPE.small, color: palette.accentInk, fontWeight: '600' }}>{label}</Text>
     </Animated.View>
   );
 }
@@ -80,15 +79,16 @@ export function ConnectPrompt({ palette, label }: { palette: Palette; label: str
 const styles = StyleSheet.create({
   bar: {
     position: 'absolute',
-    left: SPACE.sm,
-    right: SPACE.sm,
-    bottom: SPACE.sm,
+    left: 0,
+    right: 0,
+    bottom: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.xs,
-    padding: SPACE.sm,
-    borderRadius: RADIUS.control,
-    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: SPACE.sm,
+    paddingVertical: SPACE.xs,
+    minHeight: TAP + 4,
+    borderTopWidth: StyleSheet.hairlineWidth,
     flexWrap: 'wrap',
   },
   title: {
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   prompt: {
     position: 'absolute',
     alignSelf: 'center',
-    bottom: SPACE.sm,
+    bottom: SPACE.md,
     paddingHorizontal: SPACE.lg,
     paddingVertical: SPACE.sm,
     borderRadius: RADIUS.pill,

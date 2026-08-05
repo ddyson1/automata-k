@@ -4,126 +4,151 @@ import { expect, test, type Page } from '@playwright/test';
 async function reveal(page: Page, levelId: string) {
   await page.goto(`/level/${levelId}`);
   await expect(page.getByTestId('canvas-card')).toBeVisible();
-  await page.getByRole('button', { name: 'Hint' }).click();
+  await page.getByTestId('notes').click();
+  await page.getByTestId('tab-hint').click();
   await page.getByTestId('reveal-solution').click();
-  await expect(page.getByTestId('hint-sheet')).toBeHidden();
+  await expect(page.getByTestId('level-sheet')).toBeHidden();
 }
 
-test('the trace player steps through a run and shows the stack on a PDA', async ({ page }) => {
-  await reveal(page, 'pda-an-bn');
-  await page.getByTestId('run-tests').click();
-  await expect(page.getByTestId('results-sheet')).toBeVisible();
+test('the ledger edits a rule in place, with no sheet', async ({ page }) => {
+  await reveal(page, 'dfa-ends-in-1');
 
-  await page.getByRole('button', { name: /^aabb, language says accept/ }).click();
-  await expect(page.getByTestId('canvas-card').getByText('TRACE')).toBeVisible();
-  await expect(page.getByTestId('canvas-card').getByText('STACK')).toBeVisible();
-  await expect(page.getByTestId('canvas-card').getByText('accepted')).toBeVisible();
+  // δ(q0, 1) = q1 currently. Open the row and send it to q0 instead.
+  await page.getByRole('button', { name: 'δ(q0, 1) = q1' }).click();
+  await expect(page.getByRole('radio', { name: 'To q0' })).toBeVisible();
+  await page.getByRole('radio', { name: 'To q0' }).click();
 
-  // Step forward and the counter moves with it.
-  await expect(page.getByTestId('canvas-card').getByText(/^1\/\d+$/)).toBeVisible();
-  await page.getByTestId('canvas-card').getByRole('button', { name: 'Next', exact: true }).click();
-  await expect(page.getByTestId('canvas-card').getByText(/^2\/\d+$/)).toBeVisible();
-  await page.getByTestId('canvas-card').getByRole('button', { name: 'Back', exact: true }).click();
-  await expect(page.getByTestId('canvas-card').getByText(/^1\/\d+$/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'δ(q0, 1) = q0' })).toBeVisible();
+  // The live suite noticed without being asked.
+  await expect(page.getByText('ALL PASSING')).toHaveCount(0);
+  await expect(page.getByTestId('counterexample')).toBeVisible();
 });
 
-test('the trace player shows the tape and head on a Turing machine', async ({ page }) => {
+test('an unwired pair is listed in red and tapping it writes the rule', async ({ page }) => {
+  await page.goto('/level/dfa-ends-in-1');
+  await page.getByTestId('add-state').click();
+
+  await expect(page.getByRole('button', { name: 'δ(q0, 0) = undefined' })).toBeVisible();
+  await expect(page.getByText('0 OF 2 DEFINED')).toBeVisible();
+
+  await page.getByRole('button', { name: 'δ(q0, 0) = undefined' }).click();
+  await expect(page.getByRole('button', { name: 'δ(q0, 0) = q0' })).toBeVisible();
+  await expect(page.getByText('1 OF 2 DEFINED')).toBeVisible();
+});
+
+test('grading is live: the strip recolours as the machine changes', async ({ page }) => {
+  await reveal(page, 'dfa-ends-in-1');
+  await expect(page.getByText('ALL PASSING')).toBeVisible();
+
+  // Un-accept the accepting state; the suite goes red without being asked.
+  await page.getByRole('button', { name: /^State q1/ }).click();
+  await page.getByRole('button', { name: 'Accepting', exact: true }).click();
+  await expect(page.getByText(/FAILING$/)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByText('ALL PASSING')).toBeVisible();
+});
+
+test('tapping a test plays its trace between the panes', async ({ page }) => {
+  await reveal(page, 'pda-an-bn');
+  await page.getByTestId('test-aabb').click();
+
+  await expect(page.getByTestId('trace-band')).toBeVisible();
+  await expect(page.getByTestId('trace-band').getByText('STACK')).toBeVisible();
+  await expect(page.getByTestId('trace-band').getByText('ACCEPTED')).toBeVisible();
+
+  await expect(page.getByTestId('trace-band').getByText(/^1\/\d+$/)).toBeVisible();
+  await page.getByTestId('trace-band').getByRole('button', { name: 'Next' }).click();
+  await expect(page.getByTestId('trace-band').getByText(/^2\/\d+$/)).toBeVisible();
+});
+
+test('a Turing machine trace shows the tape and the head', async ({ page }) => {
   await reveal(page, 'tm-an-bn');
-  await page.getByTestId('run-tests').click();
-  await page.getByRole('button', { name: /^ab, language says accept/ }).click();
-  await expect(page.getByTestId('canvas-card').getByText('TAPE')).toBeVisible();
-  await expect(page.getByTestId('canvas-card').getByText('accepted')).toBeVisible();
+  await page.getByTestId('test-ab').click();
+  await expect(page.getByTestId('trace-band').getByText('TAPE')).toBeVisible();
+  await expect(page.getByTestId('trace-band').getByText('ACCEPTED')).toBeVisible();
 });
 
 test('undo and redo walk the edit history', async ({ page }) => {
   await page.goto('/level/dfa-ends-in-1');
-  await expect(page.getByTestId('canvas-card')).toBeVisible();
-
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
-  await page.getByRole('button', { name: 'Add state' }).click();
-  await expect(page.getByRole('button', { name: /^State q0/ })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Add state' }).click();
+  await page.getByTestId('add-state').click();
+  await expect(page.getByRole('button', { name: /^State q0/ })).toBeVisible();
+  await page.getByTestId('add-state').click();
   await expect(page.getByRole('button', { name: /^State q1/ })).toBeVisible();
 
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(page.getByRole('button', { name: /^State q1/ })).toBeHidden();
-
   await page.getByRole('button', { name: 'Redo' }).click();
   await expect(page.getByRole('button', { name: /^State q1/ })).toBeVisible();
 });
 
-test('connect mode draws an arrow and a self loop', async ({ page }) => {
+test('connect mode draws a self loop and opens its rule', async ({ page }) => {
   await page.goto('/level/dfa-ends-in-1');
-  await page.getByRole('button', { name: 'Add state' }).click();
+  await page.getByTestId('add-state').click();
   await page.getByTestId('connect-toggle').click();
   await expect(page.getByText(/Tap a target state/)).toBeVisible();
 
-  // Tapping the source itself is the self loop gesture.
   await page.getByRole('button', { name: /^State q0/ }).click();
-  await expect(page.getByTestId('transition-sheet')).toBeVisible();
-  await expect(page.getByText('q0 to q0')).toBeVisible();
-});
-
-test('the regex view converts the machine by state elimination', async ({ page }) => {
-  await reveal(page, 'dfa-ends-in-1');
-  await page.getByRole('button', { name: 'Show the formal readout' }).click();
-  await page.getByRole('button', { name: 'Regex view of this machine' }).click();
-
-  await expect(page.getByTestId('analysis-sheet')).toBeVisible();
-  await expect(page.getByText('Regular expression')).toBeVisible();
-  // Every string ending in 1, as state elimination writes it.
-  await expect(page.getByTestId('analysis-sheet').getByText('0*1(1|00*1)*')).toBeVisible();
-});
-
-test('the subset construction view determinises an NFA state by state', async ({ page }) => {
-  await reveal(page, 'nfa-third-last-1');
-  await page.getByRole('button', { name: 'Show the formal readout' }).click();
-  await page.getByRole('button', { name: 'Subsets view of this machine' }).click();
-
-  await expect(page.getByTestId('analysis-sheet')).toBeVisible();
-  // The classic result: third from the end needs eight deterministic states.
-  await expect(page.getByText('Determinised: 8 subsets')).toBeVisible();
-});
-
-test('the diagram has a text alternative driven by the delta list', async ({ page }) => {
-  await reveal(page, 'dfa-ends-in-1');
-  await page.getByRole('button', { name: 'Show the formal readout' }).click();
-  await page.getByRole('button', { name: 'Text view of this machine' }).click();
-
-  await expect(page.getByText('The diagram in words')).toBeVisible();
-  await expect(page.getByText(/2 states: q0, q1\. Start state q0\./)).toBeVisible();
-  await expect(page.getByText(/From q0 to q1, reading 1\./)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'δ(q0, 0) = q0' })).toBeVisible();
 });
 
 test('a machine that is not a DFA is reported rather than simulated', async ({ page }) => {
   await page.goto('/level/dfa-ends-in-1');
-  await page.getByRole('button', { name: 'Add state' }).click();
+  await page.getByTestId('add-state').click();
 
-  // Two arrows out of q0 on the same symbol.
-  await page.getByTestId('connect-toggle').click();
-  await page.getByRole('button', { name: /^State q0/ }).click();
-  await page.getByRole('button', { name: 'Add another rule' }).click();
-
-  // Backdrop tap to close, which section 7 asks every sheet to support. Tap
-  // near the top so the point is backdrop on a phone viewport too.
-  const box = page.viewportSize();
-  await page.mouse.click((box?.width ?? 400) / 2, 30);
-  await expect(page.getByTestId('transition-sheet')).toBeHidden();
+  // Two rules out of q0 on the same symbol.
+  await page.getByRole('button', { name: 'δ(q0, 0) = undefined' }).click();
+  await page.getByTestId('add-rule').click();
 
   await expect(page.getByText(/A deterministic machine allows only one/)).toBeVisible();
+  await expect(page.getByText('NOT A MACHINE YET')).toBeVisible();
 });
 
-test('level notes carry the language, a grammar and the class definition', async ({ page }) => {
-  await page.goto('/level/tm-an-bn-cn');
-  await page.getByTestId('dock').getByRole('button', { name: 'Notes', exact: true }).click();
+test('the level sheet carries the language, a grammar and your machine', async ({ page }) => {
+  await reveal(page, 'tm-an-bn-cn');
+  await page.getByTestId('notes').click();
 
-  await expect(page.getByTestId('notes-sheet')).toBeVisible();
+  await expect(page.getByTestId('level-sheet')).toBeVisible();
   await expect(page.getByText('L = { aⁿbⁿcⁿ : n ≥ 0 }')).toBeVisible();
   await expect(page.getByText('S → ε | aBC | aSBC')).toBeVisible();
-  await expect(page.getByTestId('notes-sheet').getByText('CB → BC', { exact: true })).toBeVisible();
+  await expect(page.getByTestId('level-sheet').getByText('CB → BC', { exact: true })).toBeVisible();
   await expect(page.getByText('Chomsky type 1')).toBeVisible();
-  await expect(page.getByTestId('notes-sheet').getByText(/Turing machine/).first()).toBeVisible();
+
+  await page.getByTestId('tab-machine').click();
+  await expect(page.getByText('The diagram in words')).toBeVisible();
+  await expect(page.getByText(/6 states: q0, q1, q2, q3, q4, qa/)).toBeVisible();
+});
+
+test('the regex and subset views live in the same sheet', async ({ page }) => {
+  await reveal(page, 'dfa-ends-in-1');
+  await page.getByTestId('notes').click();
+  await page.getByTestId('tab-machine').click();
+  await expect(page.getByText('0*1(1|00*1)*')).toBeVisible();
+  await expect(page.getByText('Already minimal')).toBeVisible();
+
+  await reveal(page, 'nfa-third-last-1');
+  await page.getByTestId('notes').click();
+  await page.getByTestId('tab-machine').click();
+  await expect(page.getByText('Determinised: 8 subsets')).toBeVisible();
+});
+
+test('the diagram pane resizes and the ledger keeps its place', async ({ page }) => {
+  await reveal(page, 'dfa-ends-in-1');
+  const before = await page.getByTestId('canvas-card').boundingBox();
+  const grip = await page.getByTestId('divider').boundingBox();
+  if (!grip || !before) throw new Error('no layout');
+
+  await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(grip.x + grip.width / 2, grip.y - 90, { steps: 8 });
+  await page.mouse.up();
+
+  const after = await page.getByTestId('canvas-card').boundingBox();
+  if (!after) throw new Error('no layout');
+  expect(after.height).toBeLessThan(before.height - 40);
+  await expect(page.getByRole('button', { name: 'δ(q0, 1) = q1' })).toBeVisible();
 });
 
 test('locked levels stay locked until the one before them is solved', async ({ page }) => {
