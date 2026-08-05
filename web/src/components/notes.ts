@@ -86,6 +86,9 @@ function grammarSection(level: Level): Node[] {
       `Chomsky type ${level.chomsky}`,
       prose(hierarchyBlurb(level)),
       h(
+        'div',
+        { class: 'scroll-x' },
+        h(
         'table',
         { class: 'hierarchy' },
         h(
@@ -117,6 +120,7 @@ function grammarSection(level: Level): Node[] {
               })()),
             ),
           ),
+        ),
         ),
       ),
     ),

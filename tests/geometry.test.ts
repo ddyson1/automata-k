@@ -17,6 +17,9 @@ import {
   buildEdges,
   CANVAS_H,
   CANVAS_W,
+  CHIP_CHAR_W,
+  CHIP_PAD_X,
+  CHIP_ROW_HEIGHT,
   chipAnchor,
   edgeGeometry,
   edgesPathData,
@@ -178,13 +181,55 @@ describe('self loops', () => {
   });
 
   it('aim back inward when the state sits against a canvas edge', () => {
-    // Neighbour to the right would push the loop left, off the canvas.
+    // Straight away from the neighbour would put the loop off the left of the
+    // canvas, so it has to give up some of that and turn.
     const positions: Positions = { a: { x: 34, y: 230 }, b: { x: 200, y: 230 } };
-    const g = edgeGeometry(
-      edge({ key: 'a->a', to: 'a', selfLoop: true, neighbours: ['b'] }),
-      positions,
-    );
-    expect(g.normal.x).toBeGreaterThan(0);
+    const spec = edge({ key: 'a->a', to: 'a', selfLoop: true, neighbours: ['b'] });
+    const g = edgeGeometry(spec, positions);
+    const anchor = chipAnchor(spec, positions);
+
+    expect(anchor.x).toBeGreaterThan(6);
+    // Still on the away side rather than pointing into the neighbour.
+    expect(g.normal.x).toBeLessThan(0.2);
+  });
+
+  it('never point a loop into another state, wherever that state is', () => {
+    // The failure this guards: one neighbour and a start marker cancel exactly
+    // under a vector sum, and the loop ends up aimed at the neighbour.
+    const chips = ['a, ε → A'];
+    const halfW = (chips[0] as string).length * (CHIP_CHAR_W / 2) + CHIP_PAD_X;
+    const halfH = CHIP_ROW_HEIGHT / 2;
+
+    for (const start of [false, true]) {
+      for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
+        for (const gap of [90, 130]) {
+          const a = { x: 150, y: 230 };
+          const b = { x: a.x + Math.cos(angle) * gap, y: a.y + Math.sin(angle) * gap };
+          const positions: Positions = { a, b };
+          const spec = edge({
+            key: 'a->a',
+            to: 'a',
+            selfLoop: true,
+            neighbours: ['b'],
+            startMarker: start,
+            chips,
+          });
+          const anchor = chipAnchor(spec, positions);
+          const where = `angle ${angle.toFixed(2)} gap ${gap} start ${start}`;
+
+          // The chip box clears the neighbour's disc.
+          const dx = Math.max(0, Math.abs(b.x - anchor.x) - halfW);
+          const dy = Math.max(0, Math.abs(b.y - anchor.y) - halfH);
+          expect(Math.hypot(dx, dy), where).toBeGreaterThanOrEqual(STATE_RADIUS);
+
+          // And stays on the canvas.
+          expect(anchor.x - halfW, where).toBeGreaterThan(-2);
+          expect(anchor.x + halfW, where).toBeLessThan(CANVAS_W + 2);
+          expect(anchor.y - halfH, where).toBeGreaterThan(-2);
+          expect(anchor.y + halfH, where).toBeLessThan(CANVAS_H + 2);
+        }
+      }
+    }
   });
 
   it('keep the head on the rim with clearance, like any other edge', () => {

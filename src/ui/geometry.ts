@@ -10,8 +10,9 @@
  *   - Self loops aim away from the average direction of that state's other
  *     connections.
  *
- * Every function here is a worklet: the drag path recomputes edge geometry on
- * the UI thread, never through React state.
+ * Nothing here imports anything. The drag path recomputes edge geometry on
+ * every pointer move, so it has to stay cheap and free of allocation-heavy
+ * dependencies, and the Swift port has to be able to follow it line for line.
  */
 
 export interface Pt {
@@ -37,14 +38,28 @@ export const BEND_PARALLEL = 34;
  */
 const LOOP_CENTRE = 1.14;
 const LOOP_RADIUS = 0.68;
-/** Room a self loop's chip stack needs beyond the loop itself. */
-const CHIP_CLEARANCE = 34;
-/** How hard a nearby wall pushes a self loop back toward the middle. */
-const EDGE_WEIGHT = 1.6;
+/** Height of one chip row in a stack. */
+export const CHIP_ROW_HEIGHT = 24;
+/** Advance of one character in the chip's monospace face, at the chip's size. */
+export const CHIP_CHAR_W = 7.2;
+/** Horizontal padding inside a chip. */
+export const CHIP_PAD_X = 6;
+/** Gap between a curve and the near edge of its chip stack. */
+const CHIP_GAP = 10;
+const CHIP_GAP_LOOP = 4;
+
+/** Directions tried when aiming a self loop. 24 gives 15 degree steps. */
+const AIM_CANDIDATES = 24;
+/** How hard a chip poking outside the canvas counts against a direction. */
+const OUT_WEIGHT = 4;
+/** How hard a chip landing on another state counts against a direction. */
+const COVER_WEIGHT = 3;
+/** All else equal a loop points up, which is where a reader expects it. */
+const UP_BIAS = 0.15;
 
 /**
- * The logical canvas, mirrored here as plain numbers so the worklets above
- * never close over an imported object. tests/geometry.test.ts asserts these
+ * The logical canvas, mirrored here as plain numbers rather than imported, so
+ * this module keeps its zero dependencies. tests/geometry.test.ts asserts they
  * stay equal to CANVAS in the engine.
  */
 export const CANVAS_W = 340;
@@ -85,17 +100,13 @@ const EMPTY: EdgeGeometry = {
   normal: { x: 0, y: -1 },
 };
 
-const n2 = (v: number): string => {
-  'worklet';
-  return (Math.round(v * 100) / 100).toString();
-};
+const n2 = (v: number): string => (Math.round(v * 100) / 100).toString();
 
 // ---------------------------------------------------------------------------
 // quadratic helpers
 // ---------------------------------------------------------------------------
 
 function quadAt(p0: Pt, c: Pt, p1: Pt, t: number): Pt {
-  'worklet';
   const u = 1 - t;
   return {
     x: u * u * p0.x + 2 * u * t * c.x + t * t * p1.x,
@@ -104,7 +115,6 @@ function quadAt(p0: Pt, c: Pt, p1: Pt, t: number): Pt {
 }
 
 function quadTangent(p0: Pt, c: Pt, p1: Pt, t: number): Pt {
-  'worklet';
   const u = 1 - t;
   const x = 2 * u * (c.x - p0.x) + 2 * t * (p1.x - c.x);
   const y = 2 * u * (c.y - p0.y) + 2 * t * (p1.y - c.y);
@@ -113,19 +123,16 @@ function quadTangent(p0: Pt, c: Pt, p1: Pt, t: number): Pt {
 }
 
 const lerp = (a: Pt, b: Pt, t: number): Pt => {
-  'worklet';
   return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
 };
 
 /** The control point of the sub-curve of a quadratic over [a, b]. */
 function quadSplitControl(p0: Pt, c: Pt, p1: Pt, a: number, b: number): Pt {
-  'worklet';
   return lerp(lerp(p0, c, a), lerp(c, p1, a), b);
 }
 
 /** Largest t whose point is at least `d` away from `target`. Distance falls with t. */
 function tAtDistanceFromEnd(p0: Pt, c: Pt, p1: Pt, target: Pt, d: number): number {
-  'worklet';
   let lo = 0;
   let hi = 1;
   for (let i = 0; i < 22; i++) {
@@ -139,7 +146,6 @@ function tAtDistanceFromEnd(p0: Pt, c: Pt, p1: Pt, target: Pt, d: number): numbe
 
 /** Smallest t whose point is at least `d` away from `origin`. Distance grows with t. */
 function tAtDistanceFromStart(p0: Pt, c: Pt, p1: Pt, origin: Pt, d: number): number {
-  'worklet';
   let lo = 0;
   let hi = 1;
   for (let i = 0; i < 22; i++) {
@@ -153,7 +159,6 @@ function tAtDistanceFromStart(p0: Pt, c: Pt, p1: Pt, origin: Pt, d: number): num
 
 /** The filled triangle, tip first. */
 function triangle(tip: Pt, dir: Pt): string {
-  'worklet';
   const px = -dir.y;
   const py = dir.x;
   const bx = tip.x - dir.x * ARROW_LEN;
@@ -170,7 +175,6 @@ function triangle(tip: Pt, dir: Pt): string {
 // ---------------------------------------------------------------------------
 
 function betweenStates(from: Pt, to: Pt, bend: number, radius: number): EdgeGeometry {
-  'worklet';
   const dx = to.x - from.x;
   const dy = to.y - from.y;
   const len = Math.hypot(dx, dy);
@@ -214,71 +218,106 @@ function betweenStates(from: Pt, to: Pt, bend: number, radius: number): EdgeGeom
   };
 }
 
+/** Half the width of the widest chip in a stack. */
+function chipHalfWidth(chips: readonly string[]): number {
+  let longest = 1;
+  for (let i = 0; i < chips.length; i++) {
+    const n = (chips[i] as string).length;
+    if (n > longest) longest = n;
+  }
+  return (longest * CHIP_CHAR_W) / 2 + CHIP_PAD_X;
+}
+
+/** How far a box centred at `c` pokes outside the logical canvas. */
+function outsideBy(c: Pt, halfW: number, halfH: number): number {
+  let out = 0;
+  if (c.x - halfW < 0) out += halfW - c.x;
+  if (c.x + halfW > CANVAS_W) out += c.x + halfW - CANVAS_W;
+  if (c.y - halfH < 0) out += halfH - c.y;
+  if (c.y + halfH > CANVAS_H) out += c.y + halfH - CANVAS_H;
+  return out;
+}
+
+/** How deeply a box centred at `c` overlaps a state's disc. */
+function coverage(c: Pt, halfW: number, halfH: number, state: Pt, radius: number): number {
+  // Distance from the state's centre to the nearest point of the box.
+  const dx = Math.max(0, Math.abs(state.x - c.x) - halfW);
+  const dy = Math.max(0, Math.abs(state.y - c.y) - halfH);
+  const gap = Math.hypot(dx, dy);
+  return gap >= radius ? 0 : radius - gap;
+}
+
 /**
  * Where a self loop should point.
  *
- * Primarily away from the average direction of the state's other connections,
- * as the spec asks. A near canvas edge counts as something to avoid too, or a
- * loop on a state at the rim throws its label chips off the card.
+ * The spec asks for "away from the average direction of the state's other
+ * connections", and a vector sum says that literally. It is also fragile: a
+ * state with one neighbour and a start marker has those two cancel exactly, and
+ * whatever rounding is left over decides the answer, which is how a loop ends
+ * up pointing straight into the state next door.
+ *
+ * So this scores candidate directions instead. Pointing at a connection costs,
+ * pointing where the chip stack would leave the canvas costs more, and pointing
+ * where the chip stack would land on another state costs most. Ties go up,
+ * which is where a reader expects a self loop.
  */
 function awayDirection(
   at: Pt,
   neighbours: string[],
   positions: Positions,
   startMarker: boolean,
+  chips: readonly string[],
+  radius: number,
 ): Pt {
-  'worklet';
-  let sx = 0;
-  let sy = 0;
-  let n = 0;
+  const rows = Math.max(1, chips.length);
+  const halfW = chipHalfWidth(chips);
+  const halfH = (rows * CHIP_ROW_HEIGHT) / 2;
+  // Where the chip stack's centre would sit, matching chipAnchor exactly.
+  const out = radius * (LOOP_CENTRE + LOOP_RADIUS) + CHIP_GAP_LOOP + halfH;
 
-  // The start marker comes in from the left, so treat it as occupied.
-  if (startMarker) {
-    sx -= 1;
-    n++;
-  }
-  for (let i = 0; i < neighbours.length; i++) {
-    const p = positions[neighbours[i] as string];
-    if (!p) continue;
-    const dx = p.x - at.x;
-    const dy = p.y - at.y;
-    const len = Math.hypot(dx, dy);
-    if (len < 0.001) continue;
-    sx += dx / len;
-    sy += dy / len;
-    n++;
-  }
+  let best: Pt = { x: 0, y: -1 };
+  let bestScore = -Infinity;
 
-  // Pseudo-neighbours at the walls, weighted by how close the state is. The
-  // weight scales with the pull already accumulated, so a wall can still win
-  // against several neighbours dragging the loop off the canvas.
-  const reach = STATE_RADIUS * (LOOP_CENTRE + LOOP_RADIUS) + CHIP_CLEARANCE;
-  const weight = EDGE_WEIGHT * (Math.hypot(sx, sy) + 1);
-  if (at.x < reach) {
-    sx -= weight * (1 - at.x / reach);
-    n++;
-  }
-  if (at.x > CANVAS_W - reach) {
-    sx += weight * (1 - (CANVAS_W - at.x) / reach);
-    n++;
-  }
-  if (at.y < reach) {
-    sy -= weight * (1 - at.y / reach);
-    n++;
-  }
-  if (at.y > CANVAS_H - reach) {
-    sy += weight * (1 - (CANVAS_H - at.y) / reach);
-    n++;
-  }
+  for (let i = 0; i < AIM_CANDIDATES; i++) {
+    // Start at straight up so an exact tie keeps it.
+    const angle = -Math.PI / 2 + (i / AIM_CANDIDATES) * Math.PI * 2;
+    const dir: Pt = { x: Math.cos(angle), y: Math.sin(angle) };
+    const centre: Pt = { x: at.x + dir.x * out, y: at.y + dir.y * out };
 
-  if (n === 0) return { x: 0, y: -1 };
-  const len = Math.hypot(sx, sy);
-  if (len < 0.02) return { x: 0, y: -1 };
-  return { x: -sx / len, y: -sy / len };
+    let score = UP_BIAS * -dir.y;
+    score -= OUT_WEIGHT * outsideBy(centre, halfW, halfH);
+
+    // The start marker comes in from the left, so treat that side as occupied.
+    if (startMarker) score -= (1 - dir.x) * 0.5;
+
+    for (let k = 0; k < neighbours.length; k++) {
+      const p = positions[neighbours[k] as string];
+      if (!p) continue;
+      const dx = p.x - at.x;
+      const dy = p.y - at.y;
+      const len = Math.hypot(dx, dy);
+      if (len < 0.001) continue;
+      // A near neighbour crowds a loop harder than a distant one.
+      const weight = Math.min(2, 120 / Math.max(60, len));
+      score -= (1 + (dir.x * dx + dir.y * dy) / len) * weight;
+    }
+
+    // Every state on the canvas, connected or not, is something to not sit on.
+    for (const key in positions) {
+      const p = positions[key] as Pt;
+      if (p === undefined || (p.x === at.x && p.y === at.y)) continue;
+      score -= COVER_WEIGHT * coverage(centre, halfW, halfH, p, radius);
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      best = dir;
+    }
+  }
+  return best;
 }
 
 function selfLoop(at: Pt, away: Pt, radius: number): EdgeGeometry {
-  'worklet';
   const d = radius * LOOP_CENTRE;
   const rl = radius * LOOP_RADIUS;
   const base = Math.atan2(away.y, away.x);
@@ -321,15 +360,18 @@ export function edgeGeometry(
   positions: Positions,
   radius: number = STATE_RADIUS,
 ): EdgeGeometry {
-  'worklet';
   const from = positions[spec.from];
   if (!from) return EMPTY;
   if (spec.selfLoop) {
-    return selfLoop(
+    const away = awayDirection(
       from,
-      awayDirection(from, spec.neighbours, positions, spec.startMarker),
+      spec.neighbours,
+      positions,
+      spec.startMarker,
+      spec.chips,
       radius,
     );
+    return selfLoop(from, away, radius);
   }
   const to = positions[spec.to];
   if (!to) return EMPTY;
@@ -342,7 +384,6 @@ export function edgesPathData(
   positions: Positions,
   radius: number = STATE_RADIUS,
 ): { strokes: string; heads: string } {
-  'worklet';
   let strokes = '';
   let heads = '';
   for (let i = 0; i < specs.length; i++) {
@@ -353,19 +394,16 @@ export function edgesPathData(
   return { strokes, heads };
 }
 
-/** Where a chip stack sits, and how far each row is pushed off the curve. */
-export const CHIP_ROW_HEIGHT = 24;
-
+/** Where a chip stack sits, pushed off the curve far enough to clear it. */
 export function chipAnchor(
   spec: EdgeSpec,
   positions: Positions,
   radius: number = STATE_RADIUS,
 ): Pt {
-  'worklet';
   const g = edgeGeometry(spec, positions, radius);
   const rows = Math.max(1, spec.chips.length);
   // A self loop's anchor already sits out past the rim, so it needs less push.
-  const gap = spec.selfLoop ? 4 : 10;
+  const gap = spec.selfLoop ? CHIP_GAP_LOOP : CHIP_GAP;
   const lift = (rows * CHIP_ROW_HEIGHT) / 2;
   return {
     x: g.anchor.x + g.normal.x * (gap + lift),

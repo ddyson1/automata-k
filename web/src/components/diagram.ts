@@ -21,6 +21,8 @@
 import {
   CANVAS_H,
   CANVAS_W,
+  CHIP_CHAR_W,
+  CHIP_PAD_X,
   CHIP_ROW_HEIGHT,
   HIT_RADIUS,
   STATE_RADIUS,
@@ -34,10 +36,8 @@ import type { Machine, MachineKind, StateId, TransitionId } from '../../../src/e
 import { h, on, setAttr, svg } from '../dom';
 import { tap } from '../haptics';
 
-const CHIP_FONT = 12;
-/** JetBrains Mono advances 0.6em, so a chip's width follows from its length. */
-const CHIP_CHAR_W = CHIP_FONT * 0.6;
-const CHIP_PAD_X = 6;
+/** JetBrains Mono advances 0.6em, and geometry.ts sizes chips at CHIP_CHAR_W. */
+const CHIP_FONT = CHIP_CHAR_W / 0.6;
 const CHIP_H = 19;
 
 const START_MARKER_LEN = 22;
@@ -48,6 +48,9 @@ const LONG_PRESS_MS = 480;
 const DRAG_SLOP = 4;
 /** How close to the rim a press must start to mean "pull a new arrow". */
 const RIM_BAND = 11;
+/** Margin fit leaves around the machine. The top clears the view controls. */
+const FIT_PAD = 10;
+const FIT_PAD_TOP = 46;
 
 export type DiagramMode = 'select' | 'connect';
 
@@ -394,11 +397,15 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
     }
     const w = Math.max(1, b.x1 - b.x0);
     const hgt = Math.max(1, b.y1 - b.y0);
-    const scale = clamp(Math.min(box.w / w, box.h / hgt, 1.6), MIN_SCALE, MAX_SCALE);
+    // Frame into the box minus the strip the floating controls sit in, so a
+    // machine that has just been fitted is never partly behind a button.
+    const availW = Math.max(40, box.w - FIT_PAD * 2);
+    const availH = Math.max(40, box.h - FIT_PAD - FIT_PAD_TOP);
+    const scale = clamp(Math.min(availW / w, availH / hgt, 1.6), MIN_SCALE, MAX_SCALE);
     view = {
       scale,
-      tx: box.x + box.w / 2 - ((b.x0 + b.x1) / 2) * scale,
-      ty: box.y + box.h / 2 - ((b.y0 + b.y1) / 2) * scale,
+      tx: box.x + FIT_PAD + availW / 2 - ((b.x0 + b.x1) / 2) * scale,
+      ty: box.y + FIT_PAD_TOP + availH / 2 - ((b.y0 + b.y1) / 2) * scale,
     };
     applyView();
   }
