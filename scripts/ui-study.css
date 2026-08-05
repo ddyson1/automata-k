@@ -1,0 +1,1514 @@
+/* ===========================================================================
+   Page chrome.
+
+   The mockups carry four different palettes, so everything around them is
+   achromatic and quiet: hierarchy from weight, rule and space, no accent hue
+   competing with the screens it is presenting.
+   =========================================================================== */
+
+:root {
+  color-scheme: light dark;
+  --bg: #f4f4f2;
+  --panel: #ffffff;
+  --line: #dedcd7;
+  --rule: #c3c1bb;
+  --ink: #16181b;
+  --dim: #6a6e74;
+  --faint: #9b9ea3;
+  --shadow: 20 22 26;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1013;
+    --panel: #17191d;
+    --line: #262930;
+    --rule: #3a3e46;
+    --ink: #eeedea;
+    --dim: #93979e;
+    --faint: #6b6f76;
+    --shadow: 0 0 0;
+  }
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f4f4f2;
+  --panel: #ffffff;
+  --line: #dedcd7;
+  --rule: #c3c1bb;
+  --ink: #16181b;
+  --dim: #6a6e74;
+  --faint: #9b9ea3;
+  --shadow: 20 22 26;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0f1013;
+  --panel: #17191d;
+  --line: #262930;
+  --rule: #3a3e46;
+  --ink: #eeedea;
+  --dim: #93979e;
+  --faint: #6b6f76;
+  --shadow: 0 0 0;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'K Sans', system-ui, sans-serif;
+  font-size: 15.5px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: default;
+}
+
+code,
+kbd {
+  font-family: 'K Mono', ui-monospace, monospace;
+  font-variant-ligatures: none;
+}
+
+.page-head,
+.wrong,
+.dir,
+.pick,
+.page-foot {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+
+.page-head {
+  padding-top: 96px;
+  padding-bottom: 24px;
+}
+
+.eyebrow {
+  font-family: 'K Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin: 0 0 18px;
+}
+
+.page-head h1 {
+  font-family: 'K Serif', Georgia, serif;
+  font-size: clamp(40px, 7vw, 76px);
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+  margin: 0 0 20px;
+  text-wrap: balance;
+}
+
+.lede {
+  max-width: 62ch;
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--dim);
+  margin: 0;
+}
+
+/* the diagnosis ----------------------------------------------------------- */
+
+.wrong {
+  padding-top: 56px;
+  padding-bottom: 24px;
+}
+
+.wrong h2 {
+  font-family: 'K Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--dim);
+  font-weight: 500;
+  margin: 0 0 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.wrong ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: w;
+  display: grid;
+  gap: 14px;
+  max-width: 78ch;
+}
+
+.wrong li {
+  counter-increment: w;
+  position: relative;
+  padding-left: 40px;
+  color: var(--dim);
+}
+
+.wrong li::before {
+  content: counter(w, decimal-leading-zero);
+  position: absolute;
+  left: 0;
+  top: 2px;
+  font-family: 'K Mono', monospace;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.wrong li b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* a direction ------------------------------------------------------------- */
+
+.dir {
+  padding-top: 110px;
+}
+
+.dir-head {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  padding-bottom: 26px;
+}
+
+.dir-n {
+  font-family: 'K Mono', monospace;
+  font-size: 13px;
+  color: var(--faint);
+  margin: 0;
+  padding-top: 12px;
+  min-width: 32px;
+}
+
+.dir-head h2 {
+  font-family: 'K Serif', Georgia, serif;
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  margin: 0 0 8px;
+}
+
+.dir-thesis {
+  margin: 0;
+  font-size: 17px;
+  color: var(--dim);
+  max-width: 60ch;
+}
+
+.frame {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgb(var(--shadow) / 6%), 0 18px 44px -18px rgb(var(--shadow) / 22%);
+}
+
+.frame-stack {
+  display: grid;
+  gap: 1px;
+  background: var(--line);
+}
+
+.dir-foot {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 44px;
+  padding-top: 34px;
+}
+
+.dir-body p {
+  margin: 0 0 22px;
+  color: var(--dim);
+  max-width: 58ch;
+}
+
+.dir-body code {
+  font-size: 0.88em;
+  color: var(--ink);
+}
+
+.dir-notes {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 20px;
+  align-content: start;
+}
+
+.dir-notes dt {
+  font-family: 'K Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+  padding: 13px 0 0;
+  border-top: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.dir-notes dd {
+  margin: 0;
+  padding: 13px 0 15px;
+  border-top: 1px solid var(--line);
+  color: var(--dim);
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+/* the recommendation ------------------------------------------------------ */
+
+.pick {
+  padding-top: 120px;
+}
+
+.pick h2 {
+  font-family: 'K Serif', Georgia, serif;
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  margin: 0 0 22px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.pick p {
+  max-width: 74ch;
+  color: var(--dim);
+  margin: 0 0 20px;
+}
+
+.pick b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.page-foot {
+  padding-top: 80px;
+  padding-bottom: 96px;
+  color: var(--faint);
+  font-size: 13.5px;
+}
+
+.page-foot p {
+  max-width: 70ch;
+  margin: 0;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 880px) {
+  .dir-foot {
+    grid-template-columns: 1fr;
+    gap: 26px;
+  }
+}
+
+/* ===========================================================================
+   The diagram, shared by every mockup and coloured through tokens.
+   =========================================================================== */
+
+/*
+ * An SVG in a grid or flex container sizes from its intrinsic aspect unless it
+ * is told not to, which lets it grow past the box and ignore preserveAspectRatio.
+ * flex: 1 1 0 with min-height: 0 gives it exactly the leftover space instead.
+ */
+.k-diagram {
+  display: block;
+  width: 100%;
+  flex: 1 1 0;
+  min-height: 0;
+  min-width: 0;
+}
+
+.k-edge {
+  fill: none;
+  stroke: var(--dia-ink);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.k-head {
+  fill: var(--dia-ink);
+  stroke: none;
+}
+
+.k-start {
+  fill: none;
+  stroke: var(--dia-ink);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.k-chip rect {
+  fill: var(--dia-chip);
+  stroke: var(--dia-line);
+  stroke-width: 1;
+}
+
+.k-chip text {
+  fill: var(--dia-ink);
+  font-family: 'K Mono', monospace;
+}
+
+.k-chip.is-lit rect {
+  fill: var(--dia-lit);
+  stroke: var(--dia-ink);
+}
+
+.k-ring {
+  fill: var(--dia-surface);
+  stroke: var(--dia-ink);
+  stroke-width: 1.6;
+}
+
+.k-accept {
+  fill: none;
+  stroke: var(--dia-ink);
+  stroke-width: 1.4;
+}
+
+.k-label {
+  fill: var(--dia-ink);
+  font-family: 'K Mono', monospace;
+  font-weight: 500;
+}
+
+.k-state.is-active .k-ring {
+  fill: var(--dia-ink);
+}
+
+.k-state.is-active .k-label,
+.k-state.is-active .k-accept {
+  fill: var(--dia-surface);
+  stroke: var(--dia-surface);
+}
+
+/* live marks -------------------------------------------------------------- */
+
+.k-verdicts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.k-verdict {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.k-verdict code {
+  font-size: 12.5px;
+}
+
+.k-mark {
+  display: inline-flex;
+  color: var(--ok, #1f6f43);
+}
+
+.k-verdict.is-off .k-mark {
+  color: var(--bad, #a32d18);
+}
+
+.k-verdict.is-off code {
+  color: var(--bad, #a32d18);
+}
+
+/* ===========================================================================
+   01 Brief
+   =========================================================================== */
+
+.m {
+  height: 620px;
+  display: grid;
+}
+
+.m-brief {
+  grid-template-columns: 364px 1fr;
+  background: #ffffff;
+  --dia-ink: #14161a;
+  --dia-surface: #ffffff;
+  --dia-chip: #ffffff;
+  --dia-line: #e2e2de;
+  --dia-lit: #eeeeea;
+  --ok: #1f6f43;
+  --bad: #a32d18;
+  color: #14161a;
+  font-family: 'K Sans', system-ui, sans-serif;
+}
+
+.brief-pane {
+  border-right: 1px solid #e7e7e3;
+  padding: 30px 26px 22px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.brief-eyebrow {
+  font-family: 'K Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #8b8f95;
+  margin: 0 0 16px;
+}
+
+.brief-q {
+  font-size: 22px;
+  line-height: 1.28;
+  font-weight: 450;
+  letter-spacing: -0.014em;
+  margin: 0 0 12px;
+  text-wrap: balance;
+}
+
+.brief-q b {
+  font-weight: 650;
+}
+
+.brief-set {
+  display: block;
+  font-size: 11.5px;
+  color: #71757b;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #ededea;
+}
+
+.brief-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  padding-top: 20px;
+  flex: 1;
+  min-height: 0;
+}
+
+.brief-h {
+  font-family: 'K Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: #8b8f95;
+  margin: 0 0 10px;
+}
+
+.brief-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid #ededea;
+}
+
+.brief-score {
+  font-size: 13px;
+  font-weight: 550;
+  color: #1f6f43;
+}
+
+.brief-foot.is-fail .brief-score {
+  color: #a32d18;
+}
+
+.brief-why {
+  font-size: 12px;
+  color: #71757b;
+}
+
+.brief-why code {
+  color: #a32d18;
+}
+
+.brief-more {
+  font-size: 12.5px;
+  color: #71757b;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.brief-canvas {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(circle at 1px 1px, #e6e6e2 1px, transparent 0) 0 0 / 22px 22px;
+  padding: 22px 22px 34px;
+  min-width: 0;
+}
+
+.brief-tools {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  gap: 2px;
+  z-index: 2;
+}
+
+.brief-tools button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  color: #9a9ea3;
+  border-radius: 7px;
+}
+
+.brief-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 12px;
+  text-align: center;
+  font-size: 11.5px;
+  color: #9a9ea3;
+  margin: 0;
+}
+
+.brief-hint b,
+.brief-hint code {
+  color: #71757b;
+}
+
+.m-brief.is-fail .brief-canvas {
+  background:
+    radial-gradient(circle at 1px 1px, #ecdedb 1px, transparent 0) 0 0 / 22px 22px;
+}
+
+/* ===========================================================================
+   02 Worksheet
+   =========================================================================== */
+
+.m-sheet {
+  grid-template-columns: 1fr 244px;
+  background: #fcfbf9;
+  color: #1a1b19;
+  font-family: 'K Sans', system-ui, sans-serif;
+  --dia-ink: #1a1b19;
+  --dia-surface: #fcfbf9;
+  --dia-chip: #fcfbf9;
+  --dia-line: #d9d7d1;
+  --dia-lit: #eeece6;
+  --ok: #2c6b45;
+  --bad: #9c3520;
+  height: 724px;
+}
+
+.sheet-body {
+  padding: 34px 40px 30px;
+  overflow: hidden;
+}
+
+.sheet-num {
+  font-family: 'K Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #8d8b84;
+  margin: 0 0 12px;
+}
+
+.sheet-q {
+  font-family: 'K Serif Two', Georgia, serif;
+  font-size: 25px;
+  line-height: 1.24;
+  font-weight: 400;
+  margin: 0 0 8px;
+  max-width: 30ch;
+  text-wrap: balance;
+}
+
+.sheet-formal {
+  margin: 0 0 22px;
+}
+
+.sheet-formal code {
+  font-size: 12px;
+  color: #6d6b65;
+}
+
+.sheet-fig {
+  position: relative;
+  margin: 0 0 22px;
+  border: 1px solid #ddd9d1;
+  background: #fdfdfb;
+  height: 282px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sheet-rail {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 38px;
+  border-right: 1px solid #eae7e0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 0;
+  align-items: center;
+}
+
+.sheet-rail button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  color: #a5a29a;
+  border-radius: 5px;
+}
+
+.sheet-rail button.is-on {
+  color: #1a1b19;
+  background: #ecead800;
+  box-shadow: inset 0 0 0 1px #ddd9d1;
+}
+
+.sheet-fig .k-diagram {
+  padding: 4px 4px 4px 42px;
+}
+
+.sheet-fig figcaption {
+  position: absolute;
+  left: 46px;
+  bottom: 8px;
+  font-family: 'K Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #a5a29a;
+}
+
+.sheet-tables {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 34px;
+}
+
+.sheet-cap {
+  font-family: 'K Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #8d8b84;
+  margin: 0 0 8px;
+}
+
+.sheet-delta,
+.sheet-tests {
+  width: 100%;
+  max-width: 320px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.sheet-delta td,
+.sheet-tests td {
+  padding: 3px 8px 3px 0;
+  border-bottom: 1px solid #eeebe4;
+}
+
+.sheet-delta code,
+.sheet-tests code {
+  font-size: 11.5px;
+}
+
+.sheet-want {
+  color: #8d8b84;
+  font-size: 11px;
+}
+
+.sheet-got {
+  text-align: right;
+  width: 20px;
+}
+
+.sheet-rest td {
+  color: #a5a29a;
+  font-size: 11px;
+  border-bottom: 0;
+  padding-top: 6px;
+}
+
+.sheet-got .k-mark {
+  color: #2c6b45;
+}
+
+.sheet-margin {
+  border-left: 1px solid #e8e5dd;
+  padding: 34px 24px;
+  background: #fbfaf7;
+}
+
+.sheet-note {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.sheet-note .k-mark.big {
+  color: #2c6b45;
+}
+
+.sheet-note p {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 550;
+}
+
+.sheet-hand {
+  font-family: 'K Serif Two', Georgia, serif;
+  font-style: italic;
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: #55534d;
+  margin: 0;
+}
+
+.sheet-margin hr {
+  border: 0;
+  border-top: 1px solid #e8e5dd;
+  margin: 20px 0;
+}
+
+.sheet-ref {
+  margin: 0;
+  font-size: 12.5px;
+  color: #55534d;
+  line-height: 1.7;
+}
+
+.sheet-ref code {
+  font-size: 11.5px;
+}
+
+.sheet-ref.muted {
+  color: #8d8b84;
+}
+
+/* ===========================================================================
+   03 Studio
+   =========================================================================== */
+
+.m-studio {
+  grid-template-columns: 1fr 316px;
+  background: #eef0f2;
+  color: #171a1d;
+  font-family: 'K Plex', system-ui, sans-serif;
+  --dia-ink: #171a1d;
+  --dia-surface: #ffffff;
+  --dia-chip: #ffffff;
+  --dia-line: #dcdfe3;
+  --dia-lit: #dfe6ef;
+  --ok: #226b46;
+  --bad: #a3301b;
+  height: 560px;
+}
+
+.studio-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  padding: 16px 16px 16px 62px;
+  min-width: 0;
+}
+
+.studio-rail {
+  position: absolute;
+  top: 14px;
+  left: 12px;
+  bottom: 14px;
+  width: 38px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.studio-rail button {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: #767c85;
+  position: relative;
+}
+
+.studio-rail button.is-on {
+  background: #171a1d;
+  color: #ffffff;
+}
+
+.studio-rail kbd {
+  position: absolute;
+  right: 3px;
+  bottom: 1px;
+  font-size: 7.5px;
+  color: currentcolor;
+  opacity: 0.55;
+}
+
+.studio-pane {
+  background: #f8f9fa;
+  border-left: 1px solid #e0e3e7;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.studio-score {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #e6e9ec;
+  font-size: 12px;
+  color: #226b46;
+  font-weight: 500;
+}
+
+.studio-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: #e2e6ea;
+  overflow: hidden;
+}
+
+.studio-bar i {
+  display: block;
+  height: 100%;
+  background: #226b46;
+}
+
+.studio-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 8px 12px 0;
+  border-bottom: 1px solid #e6e9ec;
+}
+
+.studio-tabs button {
+  padding: 7px 11px 9px;
+  font-size: 12.5px;
+  color: #767c85;
+  border-bottom: 2px solid transparent;
+}
+
+.studio-tabs button.is-on {
+  color: #171a1d;
+  border-bottom-color: #171a1d;
+  font-weight: 500;
+}
+
+.studio-body {
+  padding: 18px;
+  overflow: hidden;
+}
+
+.studio-q {
+  font-size: 17px;
+  line-height: 1.3;
+  font-weight: 500;
+  margin: 0 0 8px;
+  text-wrap: balance;
+}
+
+.studio-set {
+  display: block;
+  font-size: 11px;
+  color: #767c85;
+  margin-bottom: 18px;
+}
+
+.studio-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.studio-h {
+  font-family: 'K Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: #8b9099;
+  margin: 0 0 9px;
+}
+
+.studio-sel {
+  font-family: 'K Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: #8b9099;
+  margin: 0 0 10px;
+}
+
+.studio-rule {
+  font-size: 19px;
+  margin: 0 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.studio-rule span {
+  color: #8b9099;
+}
+
+.studio-choices {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.studio-choices button {
+  min-width: 42px;
+  height: 36px;
+  border-radius: 7px;
+  border: 1px solid #dfe3e7;
+  font-family: 'K Mono', monospace;
+  font-size: 13px;
+  background: #ffffff;
+}
+
+.studio-choices button.is-on {
+  background: #171a1d;
+  border-color: #171a1d;
+  color: #ffffff;
+}
+
+.studio-delta {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+}
+
+.studio-delta li {
+  padding: 5px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+  color: #4c525a;
+}
+
+.studio-delta li.is-on {
+  background: #e8edf3;
+  color: #171a1d;
+}
+
+.studio-danger {
+  font-size: 12.5px;
+  color: #a3301b;
+  padding: 9px 14px;
+  border: 1px solid #e8cec8;
+  border-radius: 7px;
+}
+
+/* ===========================================================================
+   04 Bench
+   =========================================================================== */
+
+.m-bench {
+  grid-template-columns: 1fr 300px;
+  background: #0c0e11;
+  color: #d8dbe0;
+  font-family: 'K Mono', ui-monospace, monospace;
+  --dia-ink: #d8dbe0;
+  --dia-surface: #0c0e11;
+  --dia-chip: #14171c;
+  --dia-line: #2a2f36;
+  --dia-lit: #22303b;
+  --ok: #6fbf8f;
+  --bad: #d97a5c;
+  height: 580px;
+}
+
+.bench-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px 14px;
+  background:
+    linear-gradient(#171a1f 1px, transparent 0) 0 0 / 100% 26px,
+    linear-gradient(90deg, #171a1f 1px, transparent 0) 0 0 / 26px 100%;
+  min-width: 0;
+}
+
+.bench-q {
+  flex: none;
+  margin: 0;
+  font-size: 12px;
+  color: #9aa0a9;
+  letter-spacing: 0.01em;
+}
+
+.bench-q b {
+  color: #eef1f4;
+  font-weight: 700;
+}
+
+.bench-q span {
+  color: #61676f;
+}
+
+.bench-cmd {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  padding: 9px 12px;
+  border: 1px solid #262b32;
+  border-radius: 6px;
+  background: #101318;
+}
+
+.bench-caret {
+  color: #6fbf8f;
+}
+
+.bench-typed {
+  color: #eef1f4;
+}
+
+.bench-cursor {
+  width: 7px;
+  height: 15px;
+  background: #6fbf8f;
+  display: inline-block;
+  margin-left: -4px;
+}
+
+.bench-ghost {
+  margin-left: auto;
+  color: #4e545c;
+  font-size: 11px;
+}
+
+.bench-pane {
+  border-left: 1px solid #1d2127;
+  padding: 16px 16px 14px;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 16px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.bench-h {
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #6d737b;
+  margin: 0 0 9px;
+}
+
+/* δ is not Δ. Section labels that are notation keep their own case. */
+.bench-h.raw,
+.k-label,
+.studio-h.raw {
+  text-transform: none;
+}
+
+.bench-h code {
+  color: #9aa0a9;
+  letter-spacing: 0;
+}
+
+.bench-tape {
+  display: flex;
+  gap: 3px;
+  margin-bottom: 9px;
+}
+
+.bench-cell {
+  width: 26px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #262b32;
+  border-radius: 4px;
+  font-size: 12.5px;
+  color: #d8dbe0;
+}
+
+.bench-cell.is-read {
+  color: #575d65;
+}
+
+.bench-cell.is-head {
+  background: #d8dbe0;
+  color: #0c0e11;
+  border-color: #d8dbe0;
+}
+
+.bench-state {
+  margin: 0 0 9px;
+  font-size: 11px;
+  color: #9aa0a9;
+}
+
+.bench-state b {
+  color: #eef1f4;
+}
+
+.bench-state .ok {
+  color: #6fbf8f;
+}
+
+.bench-scrub {
+  position: relative;
+  height: 3px;
+  background: #232830;
+  border-radius: 999px;
+}
+
+.bench-scrub i {
+  position: absolute;
+  top: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #d8dbe0;
+}
+
+.bench-delta {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bench-delta li {
+  font-size: 11.5px;
+  color: #868d96;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.bench-delta li.is-on {
+  background: #1b2129;
+  color: #eef1f4;
+}
+
+.bench-lamps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1px;
+  overflow: hidden;
+}
+
+.bench-lamps li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 11.5px;
+}
+
+.bench-lamps i {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  flex: none;
+}
+
+.bench-lamps i.on {
+  background: #6fbf8f;
+}
+
+.bench-lamps i.off {
+  background: #3a4048;
+}
+
+.bench-lamps code {
+  color: #d8dbe0;
+}
+
+.bench-lamps em {
+  margin-left: auto;
+  font-style: normal;
+  color: #5d636b;
+  font-size: 10.5px;
+}
+
+/* ===========================================================================
+   phone frames
+   =========================================================================== */
+
+.phone {
+  width: 210px;
+  height: 428px;
+  border-radius: 26px;
+  padding: 7px;
+  background: var(--rule);
+  box-shadow: 0 12px 30px -14px rgb(var(--shadow) / 34%);
+  flex: none;
+}
+
+.phone-in {
+  height: 100%;
+  border-radius: 20px;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  background: #ffffff;
+}
+
+.phone.brief .phone-in,
+.phone.studio .phone-in {
+  --dia-ink: #14161a;
+  --dia-surface: #ffffff;
+  --dia-chip: #ffffff;
+  --dia-line: #e2e2de;
+  --dia-lit: #eeeeea;
+  --ok: #1f6f43;
+  --bad: #a32d18;
+  font-family: 'K Sans', system-ui, sans-serif;
+  color: #14161a;
+}
+
+.phone.sheet .phone-in {
+  grid-template-rows: 1fr;
+  background: #fcfbf9;
+  --dia-ink: #1a1b19;
+  --dia-surface: #fcfbf9;
+  --dia-chip: #fcfbf9;
+  --dia-line: #d9d7d1;
+  --dia-lit: #eeece6;
+  --ok: #2c6b45;
+  color: #1a1b19;
+}
+
+.phone.bench .phone-in {
+  background: #0c0e11;
+  --dia-ink: #d8dbe0;
+  --dia-surface: #0c0e11;
+  --dia-chip: #14171c;
+  --dia-line: #2a2f36;
+  --dia-lit: #22303b;
+  color: #d8dbe0;
+  font-family: 'K Mono', monospace;
+}
+
+.p-canvas {
+  position: relative;
+  padding: 10px;
+  background: radial-gradient(circle at 1px 1px, #ececE8 1px, transparent 0) 0 0 / 18px 18px;
+  min-height: 0;
+}
+
+.p-canvas.dark {
+  background:
+    linear-gradient(#171a1f 1px, transparent 0) 0 0 / 100% 20px,
+    linear-gradient(90deg, #171a1f 1px, transparent 0) 0 0 / 20px 100%;
+}
+
+.p-rail {
+  position: absolute;
+  top: 10px;
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 2;
+}
+
+.p-rail button {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  color: #8b9099;
+  background: #ffffffdd;
+}
+
+.p-rail button.is-on {
+  background: #171a1d;
+  color: #ffffff;
+}
+
+.p-sheet,
+.p-insp {
+  border-top: 1px solid #e7e7e3;
+  padding: 8px 14px 14px;
+  background: #ffffff;
+  border-radius: 14px 14px 0 0;
+}
+
+.p-grab {
+  display: block;
+  width: 30px;
+  height: 3px;
+  border-radius: 999px;
+  background: #d6d6d1;
+  margin: 0 auto 10px;
+}
+
+.p-q {
+  font-size: 13px;
+  line-height: 1.3;
+  margin: 0 0 10px;
+  font-weight: 450;
+}
+
+.p-rows {
+  display: grid;
+  gap: 2px;
+}
+
+.p-tabs {
+  display: flex;
+  gap: 12px;
+  font-size: 10.5px;
+  color: #8b9099;
+  border-bottom: 1px solid #ececE8;
+  padding-bottom: 7px;
+  margin-bottom: 10px;
+}
+
+.p-tabs b {
+  color: #171a1d;
+  font-weight: 500;
+  border-bottom: 2px solid #171a1d;
+  padding-bottom: 7px;
+  margin-bottom: -8px;
+}
+
+.p-paper {
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.p-num {
+  font-family: 'K Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #8d8b84;
+  margin: 0 0 8px;
+}
+
+.p-serif {
+  font-family: 'K Serif Two', Georgia, serif;
+  font-size: 16px;
+  line-height: 1.25;
+  margin: 0 0 14px;
+}
+
+.p-fig {
+  border: 1px solid #ddd9d1;
+  background: #fdfdfb;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.p-mark {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 12px;
+  margin: 12px 0 0;
+  color: #2c6b45;
+}
+
+.p-bench {
+  border-top: 1px solid #1d2127;
+  padding: 10px 12px 14px;
+}
+
+.p-lamps {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.p-lamps i {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+}
+
+.p-lamps i.on {
+  background: #6fbf8f;
+}
+
+.p-lamps i.off {
+  background: #3a4048;
+}
+
+.p-cmd {
+  font-size: 11px;
+  color: #eef1f4;
+  border: 1px solid #262b32;
+  border-radius: 5px;
+  padding: 7px 9px;
+  background: #101318;
+}
+
+.p-cmd span {
+  color: #6fbf8f;
+}
+
+/* ===========================================================================
+   responsive: the mockups are fixed-shape screens, so they scroll rather
+   than reflow into something the product would never render.
+   =========================================================================== */
+
+.frame {
+  overflow-x: auto;
+}
+
+.m {
+  min-width: 900px;
+}
+
+.m-studio {
+  min-width: 860px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
