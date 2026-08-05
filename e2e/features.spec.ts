@@ -111,7 +111,7 @@ test('the level sheet carries the language, a grammar and your machine', async (
   await page.getByTestId('notes').click();
 
   await expect(page.getByTestId('level-sheet')).toBeVisible();
-  await expect(page.getByText('L = { aⁿbⁿcⁿ : n ≥ 0 }')).toBeVisible();
+  await expect(page.getByText('L = { a^nb^nc^n : n ≥ 0 }')).toBeVisible();
   await expect(page.getByText('S → ε | aBC | aSBC')).toBeVisible();
   await expect(page.getByTestId('level-sheet').getByText('CB → BC', { exact: true })).toBeVisible();
   await expect(page.getByText('Chomsky type 1')).toBeVisible();

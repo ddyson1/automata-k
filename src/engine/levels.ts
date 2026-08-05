@@ -159,7 +159,7 @@ export const LEVELS: Level[] = [
     theory:
       'An ε arrow changes state without reading anything. It lets one phase of a machine hand over to the next without spending a symbol.',
     hint: 'Two states, both accepting. The first loops on a, the second loops on b, and an ε arrow joins them. There is no way back.',
-    setBuilder: 'L = { aⁱbʲ : i ≥ 0, j ≥ 0 }',
+    setBuilder: 'L = { a^ib^j : i ≥ 0, j ≥ 0 }',
     grammar: g(
       ['S', 'B'],
       ['a', 'b'],
@@ -186,7 +186,7 @@ export const LEVELS: Level[] = [
     theory:
       'Concatenating languages is an ε arrow between their machines. The same construction chains any number of phases together.',
     hint: 'A chain of three self-looping states joined by ε arrows. Every state accepts, because every block is allowed to be empty.',
-    setBuilder: 'L = { aⁱbʲcᵏ : i ≥ 0, j ≥ 0, k ≥ 0 }',
+    setBuilder: 'L = { a^ib^jc^k : i ≥ 0, j ≥ 0, k ≥ 0 }',
     grammar: g(
       ['S', 'B', 'C'],
       ['a', 'b', 'c'],
@@ -257,7 +257,7 @@ export const LEVELS: Level[] = [
     theory:
       'A stack is unbounded memory with one rule: last in, first out. That is exactly enough to remember how deep you are without knowing how deep you will go.',
     hint: 'One state does the work: push X on (, pop X on ). Then an ε arrow that pops the bottom marker $ into an accepting state, which is what forces the stack to be empty at the end.',
-    setBuilder: 'L = { w ∈ {(,)}* : every prefix has |w|₍ ≥ |w|₎ and |w|₍ = |w|₎ }',
+    setBuilder: 'L = { w ∈ {(,)}* : no prefix has more ) than (, and w has equally many of each }',
     grammar: g(
       ['S'],
       ['(', ')'],
@@ -274,7 +274,7 @@ export const LEVELS: Level[] = [
     index: 9,
     type: 'PDA',
     title: 'Matching counts',
-    goal: 'Accept aⁿbⁿ: some a s followed by exactly as many b s.',
+    goal: 'Accept a^nb^n: some a s followed by exactly as many b s.',
     alphabet: ['a', 'b'],
     stackAlphabet: [STACK_BOTTOM, 'A'],
     par: 3,
@@ -283,7 +283,7 @@ export const LEVELS: Level[] = [
     theory:
       'This is the standard example of a language no finite automaton can recognise. The pumping lemma kills every finite-state attempt, because no fixed number of states can count without bound.',
     hint: 'Push one A per a in the first state, take an ε arrow to a second state, pop one A per b there, then an ε arrow popping $ into the accepting state.',
-    setBuilder: 'L = { aⁿbⁿ : n ≥ 0 }',
+    setBuilder: 'L = { a^nb^n : n ≥ 0 }',
     grammar: g(
       ['S'],
       ['a', 'b'],
@@ -309,7 +309,7 @@ export const LEVELS: Level[] = [
     theory:
       'Here the stack is not counting, it is recording. The machine must also guess where the middle is, which is why this language needs a nondeterministic pushdown automaton and not a deterministic one.',
     hint: 'First state pushes a marker for each symbol read. An ε arrow to the second state is the guess that the middle is here. The second state pops the marker that matches the symbol it reads.',
-    setBuilder: 'L = { w wᴿ : w ∈ {a,b}* }',
+    setBuilder: 'L = { w w^R : w ∈ {a,b}* }',
     grammar: g(
       ['S'],
       ['a', 'b'],
@@ -331,7 +331,7 @@ export const LEVELS: Level[] = [
     index: 11,
     type: 'TM',
     title: 'Cross off',
-    goal: 'Accept aⁿbⁿ again, this time on a tape you can rewrite.',
+    goal: 'Accept a^nb^n again, this time on a tape you can rewrite.',
     alphabet: ['a', 'b'],
     tapeAlphabet: ['a', 'b', 'X', 'Y', BLANK],
     par: 5,
@@ -340,7 +340,7 @@ export const LEVELS: Level[] = [
     theory:
       'A tape can be read and written in any order, so a Turing machine can mark cells and come back. Marking one a and one b at a time and sweeping back is the basic idiom of every tape algorithm.',
     hint: 'Cross the leftmost a as X, walk right past a s and Y s to the first b, cross it as Y, walk back left to the X, and repeat. When no a s remain, check that only Y s stand between you and the blank.',
-    setBuilder: 'L = { aⁿbⁿ : n ≥ 0 }',
+    setBuilder: 'L = { a^nb^n : n ≥ 0 }',
     grammar: g(
       ['S'],
       ['a', 'b'],
@@ -357,7 +357,7 @@ export const LEVELS: Level[] = [
     index: 12,
     type: 'TM',
     title: 'Beyond context free',
-    goal: 'Accept aⁿbⁿcⁿ: equal runs of a, b and c in that order.',
+    goal: 'Accept a^nb^nc^n: equal runs of a, b and c in that order.',
     alphabet: ['a', 'b', 'c'],
     tapeAlphabet: ['a', 'b', 'c', 'X', 'Y', 'Z', BLANK],
     par: 6,
@@ -380,7 +380,7 @@ export const LEVELS: Level[] = [
     theory:
       'No pushdown automaton recognises this language: one stack can match a against b or b against c, never both. It is context sensitive, one full step up the hierarchy, and a tape handles it without effort.',
     hint: 'The same cross-off loop as before, one pass per triple. Mark an a as X, the next b as Y, the next c as Z, sweep back to the X and go again. At the end only Y s and Z s may remain.',
-    setBuilder: 'L = { aⁿbⁿcⁿ : n ≥ 0 }',
+    setBuilder: 'L = { a^nb^nc^n : n ≥ 0 }',
     grammar: g(
       ['S', 'B', 'C'],
       ['a', 'b', 'c'],

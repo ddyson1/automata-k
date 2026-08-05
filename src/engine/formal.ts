@@ -360,7 +360,7 @@ export const MACHINE_CLASS: Record<MachineKind, ClassCopy> = {
     definition: `M = (Q, Σ, δ, q${SUB0}, F) with ${deltaSignature('NFA')}`,
     acceptance: `M accepts w when δ̂(q${SUB0}, w) ∩ F ≠ ∅: at least one branch survives and ends in F.`,
     power:
-      'Also exactly the regular languages. The subset construction turns any NFA of n states into a DFA of at most 2ⁿ, so nondeterminism buys size, never power.',
+      'Also exactly the regular languages. The subset construction turns any NFA of n states into a DFA of at most 2^n, so nondeterminism buys size, never power.',
   },
   PDA: {
     kind: 'PDA',
@@ -403,14 +403,14 @@ export const HIERARCHY: HierarchyRow[] = [
     name: 'Context free',
     productions: 'A → γ, with γ any string of symbols',
     machine: 'Pushdown automaton',
-    example: 'aⁿbⁿ',
+    example: 'a^nb^n',
   },
   {
     type: 1,
     name: 'Context sensitive',
     productions: 'αAβ → αγβ, with |γ| ≥ 1',
     machine: 'Linear bounded automaton',
-    example: 'aⁿbⁿcⁿ',
+    example: 'a^nb^nc^n',
   },
   {
     type: 0,

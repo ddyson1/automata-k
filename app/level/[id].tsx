@@ -465,7 +465,7 @@ export default function LevelScreen() {
           { borderTopColor: palette.rule, paddingBottom: Math.max(insets.bottom, SPACE.md) },
         ]}
       >
-        <Tool label="＋ State" palette={palette} testID="add-state" onPress={addState} />
+        <Tool label="+ State" palette={palette} testID="add-state" onPress={addState} />
         <Tool
           label="Connect"
           palette={palette}
@@ -570,7 +570,7 @@ function Tool({
     <Pressable
       testID={testID}
       accessibilityRole="button"
-      accessibilityLabel={label.replace('＋ ', 'Add ')}
+      accessibilityLabel={label.replace('+ ', 'Add ')}
       accessibilityState={{ disabled: Boolean(disabled), selected: Boolean(on) }}
       disabled={disabled}
       onPress={() => {
