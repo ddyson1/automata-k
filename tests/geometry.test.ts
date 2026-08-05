@@ -49,6 +49,7 @@ const edge = (over: Partial<EdgeSpec> = {}): EdgeSpec => ({
   selfLoop: false,
   bend: BEND_DEFAULT,
   neighbours: [],
+  startMarker: false,
   transitionIds: ['t0'],
   chips: ['0'],
   ...over,
@@ -193,6 +194,36 @@ describe('self loops', () => {
       STATE_RADIUS + ARROW_CLEARANCE,
       1,
     );
+  });
+
+  it('aim away from the start marker, which occupies the left', () => {
+    const positions: Positions = { a: { x: 170, y: 230 } };
+    const g = edgeGeometry(
+      edge({ key: 'a->a', to: 'a', selfLoop: true, startMarker: true }),
+      positions,
+    );
+    expect(g.normal.x).toBeGreaterThan(0.9);
+  });
+
+  it('are a compact arc resting on the rim, not a sprawl', () => {
+    const at = { x: 170, y: 230 };
+    const g = edgeGeometry(edge({ key: 'a->a', to: 'a', selfLoop: true }), { a: at });
+
+    // A real circular arc, so one A command and no cubic control points.
+    expect(g.path).toMatch(/^M[-\d. ]+A/);
+    expect(g.path).not.toContain('C');
+
+    // The anchor is the far point of the loop. Keeping it under two radii from
+    // the centre is what makes it read as a loop rather than a lasso.
+    expect(dist(g.anchor, at)).toBeLessThan(STATE_RADIUS * 1.9);
+    expect(dist(g.anchor, at)).toBeGreaterThan(STATE_RADIUS);
+  });
+
+  it('starts on the rim itself', () => {
+    const at = { x: 170, y: 230 };
+    const g = edgeGeometry(edge({ key: 'a->a', to: 'a', selfLoop: true }), { a: at });
+    const m = /^M(-?[\d.]+) (-?[\d.]+)/.exec(g.path);
+    expect(dist({ x: Number(m?.[1]), y: Number(m?.[2]) }, at)).toBeCloseTo(STATE_RADIUS, 1);
   });
 });
 

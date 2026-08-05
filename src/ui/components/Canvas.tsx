@@ -46,6 +46,8 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 /** Chip stacks are laid out in a fixed box and centred on the edge's anchor. */
 const CHIP_BOX_W = 240;
 const CHIP_BOX_H = 96;
+/** Advance width of one monospace character at the chip's size. */
+const CHIP_CHAR_W = 7;
 
 export type Selection =
   | { kind: 'state'; id: StateId }
@@ -149,8 +151,9 @@ export function Canvas(props: CanvasProps) {
           to: t.to,
           chip: transitionChip(t, level.type),
         })),
+        machine.start,
       ),
-    [machine.transitions, level.type],
+    [machine.transitions, level.type, machine.start],
   );
 
   // Fit to content, not to the logical canvas: an empty level shows the whole
@@ -167,17 +170,25 @@ export function Canvas(props: CanvasProps) {
     let top = Infinity;
     let right = -Infinity;
     let bottom = -Infinity;
-    const grow = (x: number, y: number, pad: number) => {
-      left = Math.min(left, x - pad);
-      top = Math.min(top, y - pad);
-      right = Math.max(right, x + pad);
-      bottom = Math.max(bottom, y + pad);
+    const grow = (x: number, y: number, padX: number, padY: number) => {
+      left = Math.min(left, x - padX);
+      top = Math.min(top, y - padY);
+      right = Math.max(right, x + padX);
+      bottom = Math.max(bottom, y + padY);
     };
 
-    for (const s of machine.states) grow(s.x, s.y, margin);
+    for (const s of machine.states) grow(s.x, s.y, margin, margin);
     for (const e of edges) {
       const a = chipAnchor(e, committed);
-      grow(a.x, a.y, (Math.max(1, e.chips.length) * CHIP_ROW_HEIGHT) / 2 + 8);
+      // Chips are monospace, so their width is predictable from the longest
+      // label. A Turing machine rule such as "Y → Y, R" needs real room.
+      const chars = e.chips.reduce((n, c) => Math.max(n, c.length), 1);
+      grow(
+        a.x,
+        a.y,
+        (chars * CHIP_CHAR_W) / 2 + 10,
+        (Math.max(1, e.chips.length) * CHIP_ROW_HEIGHT) / 2 + 8,
+      );
     }
 
     return {
@@ -298,16 +309,17 @@ export function Canvas(props: CanvasProps) {
           >
             <AnimatedPath
               animatedProps={plainProps}
-              stroke={palette.muted}
-              strokeWidth={1.9}
+              stroke={palette.ink}
+              strokeOpacity={0.74}
+              strokeWidth={1.7}
               strokeLinecap="butt"
               fill="none"
             />
-            <AnimatedPath animatedProps={plainHeadProps} fill={palette.muted} />
+            <AnimatedPath animatedProps={plainHeadProps} fill={palette.ink} fillOpacity={0.8} />
             <AnimatedPath
               animatedProps={litProps}
               stroke={palette.accent}
-              strokeWidth={2.6}
+              strokeWidth={2.4}
               strokeLinecap="butt"
               fill="none"
             />
@@ -672,10 +684,7 @@ function ChipStack({
             key={`${edge.key}-${i}`}
             style={[
               styles.chip,
-              {
-                backgroundColor: lit ? palette.accentTintStrong : palette.surface,
-                borderColor: lit ? palette.accent : palette.hairline,
-              },
+              { backgroundColor: lit ? palette.accentTintStrong : palette.ground },
             ]}
           >
             <Text
@@ -751,11 +760,10 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   chip: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
     borderRadius: RADIUS.chip,
-    borderWidth: 1,
-    minHeight: 18,
+    minHeight: 17,
     justifyContent: 'center',
   },
 });

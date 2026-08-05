@@ -27,12 +27,18 @@ export const HIT_RADIUS = 36;
 export const ARROW_CLEARANCE = 3;
 export const ARROW_LEN = 11;
 export const ARROW_HALF_WIDTH = 5.2;
-export const BEND_DEFAULT = 18;
-export const BEND_PARALLEL = 42;
-const LOOP_REACH = 52;
-const LOOP_SPREAD = 0.62;
+export const BEND_DEFAULT = 11;
+export const BEND_PARALLEL = 34;
+/**
+ * A self loop is an arc of a small circle resting against the state's rim:
+ * centre `LOOP_CENTRE * radius` out along the aim direction, radius
+ * `LOOP_RADIUS * radius`. Drawing it as a real circular arc rather than a
+ * hand-tuned cubic is what keeps it compact and even.
+ */
+const LOOP_CENTRE = 1.14;
+const LOOP_RADIUS = 0.68;
 /** Room a self loop's chip stack needs beyond the loop itself. */
-const CHIP_CLEARANCE = 46;
+const CHIP_CLEARANCE = 34;
 /** How hard a nearby wall pushes a self loop back toward the middle. */
 const EDGE_WEIGHT = 1.6;
 
@@ -54,6 +60,8 @@ export interface EdgeSpec {
   bend: number;
   /** Self loops only: the other states this one connects to, for aiming. */
   neighbours: string[];
+  /** Self loops only: true when the start marker also occupies this state's left. */
+  startMarker: boolean;
   transitionIds: string[];
   /** One chip per transition on this edge. */
   chips: string[];
@@ -213,11 +221,22 @@ function betweenStates(from: Pt, to: Pt, bend: number, radius: number): EdgeGeom
  * as the spec asks. A near canvas edge counts as something to avoid too, or a
  * loop on a state at the rim throws its label chips off the card.
  */
-function awayDirection(at: Pt, neighbours: string[], positions: Positions): Pt {
+function awayDirection(
+  at: Pt,
+  neighbours: string[],
+  positions: Positions,
+  startMarker: boolean,
+): Pt {
   'worklet';
   let sx = 0;
   let sy = 0;
   let n = 0;
+
+  // The start marker comes in from the left, so treat it as occupied.
+  if (startMarker) {
+    sx -= 1;
+    n++;
+  }
   for (let i = 0; i < neighbours.length; i++) {
     const p = positions[neighbours[i] as string];
     if (!p) continue;
@@ -233,7 +252,7 @@ function awayDirection(at: Pt, neighbours: string[], positions: Positions): Pt {
   // Pseudo-neighbours at the walls, weighted by how close the state is. The
   // weight scales with the pull already accumulated, so a wall can still win
   // against several neighbours dragging the loop off the canvas.
-  const reach = STATE_RADIUS + LOOP_REACH + CHIP_CLEARANCE;
+  const reach = STATE_RADIUS * (LOOP_CENTRE + LOOP_RADIUS) + CHIP_CLEARANCE;
   const weight = EDGE_WEIGHT * (Math.hypot(sx, sy) + 1);
   if (at.x < reach) {
     sx -= weight * (1 - at.x / reach);
@@ -260,48 +279,38 @@ function awayDirection(at: Pt, neighbours: string[], positions: Positions): Pt {
 
 function selfLoop(at: Pt, away: Pt, radius: number): EdgeGeometry {
   'worklet';
+  const d = radius * LOOP_CENTRE;
+  const rl = radius * LOOP_RADIUS;
   const base = Math.atan2(away.y, away.x);
-  const a0 = base - LOOP_SPREAD;
-  const a1 = base + LOOP_SPREAD;
-  const reach = radius + LOOP_REACH;
+  const cx = at.x + away.x * d;
+  const cy = at.y + away.y * d;
 
-  const p0: Pt = { x: at.x + Math.cos(a0) * radius, y: at.y + Math.sin(a0) * radius };
-  const tip: Pt = {
-    x: at.x + Math.cos(a1) * (radius + ARROW_CLEARANCE),
-    y: at.y + Math.sin(a1) * (radius + ARROW_CLEARANCE),
-  };
-  const c0: Pt = {
-    x: at.x + Math.cos(a0 - 0.42) * reach,
-    y: at.y + Math.sin(a0 - 0.42) * reach,
-  };
-  const c1: Pt = {
-    x: at.x + Math.cos(a1 + 0.42) * reach,
-    y: at.y + Math.sin(a1 + 0.42) * reach,
+  // Angle, measured on the loop circle, at which it crosses a circle of
+  // radius `rr` around the state.
+  const crossing = (rr: number): number => {
+    const k = (rr * rr - d * d - rl * rl) / (2 * d * rl);
+    return Math.acos(Math.max(-1, Math.min(1, k)));
   };
 
-  // Tangent of the cubic at t = 1 is 3 * (P3 - C1).
-  const tx = tip.x - c1.x;
-  const ty = tip.y - c1.y;
-  const tlen = Math.hypot(tx, ty) || 1;
-  const dir: Pt = { x: tx / tlen, y: ty / tlen };
+  const footAngle = base - crossing(radius);
+  const tipAngle = base + crossing(radius + ARROW_CLEARANCE);
+  const baseAngle = tipAngle - (ARROW_LEN * 0.92) / rl;
 
-  const end: Pt = {
-    x: tip.x - dir.x * ARROW_LEN * 0.92,
-    y: tip.y - dir.y * ARROW_LEN * 0.92,
-  };
+  const on = (t: number): Pt => ({ x: cx + rl * Math.cos(t), y: cy + rl * Math.sin(t) });
 
-  // Midpoint of the cubic, which is where the chips hang.
-  const anchor: Pt = {
-    x: (p0.x + 3 * c0.x + 3 * c1.x + tip.x) / 8,
-    y: (p0.y + 3 * c0.y + 3 * c1.y + tip.y) / 8,
-  };
+  const p0 = on(footAngle);
+  const pEnd = on(baseAngle);
+  const tip = on(tipAngle);
+  // Travelling with increasing angle, so the tangent is the rotated radius.
+  const dir: Pt = { x: -Math.sin(tipAngle), y: Math.cos(tipAngle) };
+  const large = baseAngle - footAngle > Math.PI ? 1 : 0;
 
   return {
     path:
-      `M${n2(p0.x)} ${n2(p0.y)}C${n2(c0.x)} ${n2(c0.y)} ${n2(c1.x)} ${n2(c1.y)} ` +
-      `${n2(end.x)} ${n2(end.y)}`,
+      `M${n2(p0.x)} ${n2(p0.y)}` +
+      `A${n2(rl)} ${n2(rl)} 0 ${large} 1 ${n2(pEnd.x)} ${n2(pEnd.y)}`,
     arrow: triangle(tip, dir),
-    anchor,
+    anchor: { x: at.x + away.x * (d + rl), y: at.y + away.y * (d + rl) },
     normal: away,
   };
 }
@@ -316,7 +325,11 @@ export function edgeGeometry(
   const from = positions[spec.from];
   if (!from) return EMPTY;
   if (spec.selfLoop) {
-    return selfLoop(from, awayDirection(from, spec.neighbours, positions), radius);
+    return selfLoop(
+      from,
+      awayDirection(from, spec.neighbours, positions, spec.startMarker),
+      radius,
+    );
   }
   const to = positions[spec.to];
   if (!to) return EMPTY;
@@ -376,7 +389,7 @@ export interface EdgeSource {
  * carrying every transition between them, so multiple transitions stack as
  * chips rather than concatenating into one label.
  */
-export function buildEdges(transitions: EdgeSource[]): EdgeSpec[] {
+export function buildEdges(transitions: EdgeSource[], startId?: string | null): EdgeSpec[] {
   const pairs = new Set(transitions.map((t) => `${t.from}->${t.to}`));
   const order: string[] = [];
   const grouped = new Map<string, EdgeSource[]>();
@@ -416,6 +429,7 @@ export function buildEdges(transitions: EdgeSource[]): EdgeSpec[] {
       selfLoop: selfLoopEdge,
       bend: selfLoopEdge ? 0 : hasReverse ? BEND_PARALLEL : BEND_DEFAULT,
       neighbours: selfLoopEdge ? [...(connections.get(first.from) ?? [])] : [],
+      startMarker: selfLoopEdge && first.from === startId,
       transitionIds: list.map((t) => t.id),
       chips: list.map((t) => t.chip),
     };
