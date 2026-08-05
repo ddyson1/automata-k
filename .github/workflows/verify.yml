@@ -1,0 +1,48 @@
+name: verify
+
+# The whole check, in one place, called by ci.yml and by pages.yml so that
+# nothing reaches the published site without having passed it.
+on:
+  workflow_call:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # 9.1 and 9.2: the exhaustive engine check and the grammar derivations,
+      # plus validation, caps, geometry and purity. These print their counts.
+      - name: Engine, grammars, geometry, purity
+        run: npx vitest run
+
+      - name: Types
+        run: npm run typecheck
+
+      - name: The golden fixture against the Swift declarations
+        run: node scripts/check-swift-shape.mjs
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      # Runs against the built bundle, on a desktop and a phone viewport.
+      - name: Web
+        run: npx playwright test
+
+      - name: Keep the trace when something fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            test-results
+            playwright-report
+          retention-days: 7

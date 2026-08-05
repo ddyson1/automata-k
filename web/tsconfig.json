@@ -1,10 +1,10 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "types": ["node"],
+    "types": ["vite/client"],
 
     "strict": true,
     "noUncheckedIndexedAccess": true,
@@ -12,11 +12,12 @@
     "noFallthroughCasesInSwitch": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": false,
 
     "isolatedModules": true,
+    "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts", "*.ts"],
-  "exclude": ["node_modules", "e2e/**/*", "web/**/*"]
+  "include": ["src/**/*.ts", "vite.config.ts", "../src/engine/**/*.ts", "../src/ui/geometry.ts"]
 }

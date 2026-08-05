@@ -17,6 +17,9 @@ import {
   buildEdges,
   CANVAS_H,
   CANVAS_W,
+  CHIP_CHAR_W,
+  CHIP_PAD_X,
+  CHIP_ROW_HEIGHT,
   chipAnchor,
   edgeGeometry,
   edgesPathData,
@@ -49,6 +52,7 @@ const edge = (over: Partial<EdgeSpec> = {}): EdgeSpec => ({
   selfLoop: false,
   bend: BEND_DEFAULT,
   neighbours: [],
+  startMarker: false,
   transitionIds: ['t0'],
   chips: ['0'],
   ...over,
@@ -107,6 +111,34 @@ describe('arrow heads', () => {
     expect(dist(strokeEnd, positions.b as { x: number; y: number })).toBeGreaterThan(
       STATE_RADIUS + ARROW_CLEARANCE,
     );
+  });
+
+  it('the stroke ends exactly at the head, whatever the bend', () => {
+    // The complaint this guards: on a bent edge the head looked pasted on at
+    // the wrong angle, because the stroke stopped a fixed distance from the
+    // target rather than a fixed distance back along the curve from the tip.
+    for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 5) {
+      for (const bend of [BEND_DEFAULT, BEND_PARALLEL, -BEND_PARALLEL, 60]) {
+        const at: Positions = {
+          a: { x: 170, y: 230 },
+          b: { x: 170 + Math.cos(angle) * 140, y: 230 + Math.sin(angle) * 140 },
+        };
+        const g = edgeGeometry(edge({ bend }), at);
+        const tip = tipOf(g.arrow);
+        const strokeEnd = lastPointOf(g.path);
+        // Where the triangle's base sits, from the head path itself.
+        const corners = [...g.arrow.matchAll(/L(-?[\d.]+) (-?[\d.]+)/g)].map((m) => ({
+          x: Number(m[1]),
+          y: Number(m[2]),
+        }));
+        const base = {
+          x: ((corners[0] as { x: number }).x + (corners[1] as { x: number }).x) / 2,
+          y: ((corners[0] as { y: number }).y + (corners[1] as { y: number }).y) / 2,
+        };
+        expect(dist(strokeEnd, base), `bend ${bend} angle ${angle.toFixed(2)}`).toBeLessThan(1.5);
+        expect(dist(strokeEnd, tip)).toBeGreaterThan(6);
+      }
+    }
   });
 
   it('the stroke starts on the source rim', () => {
@@ -177,13 +209,55 @@ describe('self loops', () => {
   });
 
   it('aim back inward when the state sits against a canvas edge', () => {
-    // Neighbour to the right would push the loop left, off the canvas.
+    // Straight away from the neighbour would put the loop off the left of the
+    // canvas, so it has to give up some of that and turn.
     const positions: Positions = { a: { x: 34, y: 230 }, b: { x: 200, y: 230 } };
-    const g = edgeGeometry(
-      edge({ key: 'a->a', to: 'a', selfLoop: true, neighbours: ['b'] }),
-      positions,
-    );
-    expect(g.normal.x).toBeGreaterThan(0);
+    const spec = edge({ key: 'a->a', to: 'a', selfLoop: true, neighbours: ['b'] });
+    const g = edgeGeometry(spec, positions);
+    const anchor = chipAnchor(spec, positions);
+
+    expect(anchor.x).toBeGreaterThan(6);
+    // Still on the away side rather than pointing into the neighbour.
+    expect(g.normal.x).toBeLessThan(0.2);
+  });
+
+  it('never point a loop into another state, wherever that state is', () => {
+    // The failure this guards: one neighbour and a start marker cancel exactly
+    // under a vector sum, and the loop ends up aimed at the neighbour.
+    const chips = ['a, ε → A'];
+    const halfW = (chips[0] as string).length * (CHIP_CHAR_W / 2) + CHIP_PAD_X;
+    const halfH = CHIP_ROW_HEIGHT / 2;
+
+    for (const start of [false, true]) {
+      for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
+        for (const gap of [90, 130]) {
+          const a = { x: 150, y: 230 };
+          const b = { x: a.x + Math.cos(angle) * gap, y: a.y + Math.sin(angle) * gap };
+          const positions: Positions = { a, b };
+          const spec = edge({
+            key: 'a->a',
+            to: 'a',
+            selfLoop: true,
+            neighbours: ['b'],
+            startMarker: start,
+            chips,
+          });
+          const anchor = chipAnchor(spec, positions);
+          const where = `angle ${angle.toFixed(2)} gap ${gap} start ${start}`;
+
+          // The chip box clears the neighbour's disc.
+          const dx = Math.max(0, Math.abs(b.x - anchor.x) - halfW);
+          const dy = Math.max(0, Math.abs(b.y - anchor.y) - halfH);
+          expect(Math.hypot(dx, dy), where).toBeGreaterThanOrEqual(STATE_RADIUS);
+
+          // And stays on the canvas.
+          expect(anchor.x - halfW, where).toBeGreaterThan(-2);
+          expect(anchor.x + halfW, where).toBeLessThan(CANVAS_W + 2);
+          expect(anchor.y - halfH, where).toBeGreaterThan(-2);
+          expect(anchor.y + halfH, where).toBeLessThan(CANVAS_H + 2);
+        }
+      }
+    }
   });
 
   it('keep the head on the rim with clearance, like any other edge', () => {
@@ -193,6 +267,36 @@ describe('self loops', () => {
       STATE_RADIUS + ARROW_CLEARANCE,
       1,
     );
+  });
+
+  it('aim away from the start marker, which occupies the left', () => {
+    const positions: Positions = { a: { x: 170, y: 230 } };
+    const g = edgeGeometry(
+      edge({ key: 'a->a', to: 'a', selfLoop: true, startMarker: true }),
+      positions,
+    );
+    expect(g.normal.x).toBeGreaterThan(0.9);
+  });
+
+  it('are a compact arc resting on the rim, not a sprawl', () => {
+    const at = { x: 170, y: 230 };
+    const g = edgeGeometry(edge({ key: 'a->a', to: 'a', selfLoop: true }), { a: at });
+
+    // A real circular arc, so one A command and no cubic control points.
+    expect(g.path).toMatch(/^M[-\d. ]+A/);
+    expect(g.path).not.toContain('C');
+
+    // The anchor is the far point of the loop. Keeping it under two radii from
+    // the centre is what makes it read as a loop rather than a lasso.
+    expect(dist(g.anchor, at)).toBeLessThan(STATE_RADIUS * 1.9);
+    expect(dist(g.anchor, at)).toBeGreaterThan(STATE_RADIUS);
+  });
+
+  it('starts on the rim itself', () => {
+    const at = { x: 170, y: 230 };
+    const g = edgeGeometry(edge({ key: 'a->a', to: 'a', selfLoop: true }), { a: at });
+    const m = /^M(-?[\d.]+) (-?[\d.]+)/.exec(g.path);
+    expect(dist({ x: Number(m?.[1]), y: Number(m?.[2]) }, at)).toBeCloseTo(STATE_RADIUS, 1);
   });
 });
 

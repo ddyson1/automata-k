@@ -1,0 +1,1325 @@
+/*
+ * Layout, in the Brief direction.
+ *
+ * A level is two things: the brief, and the canvas. The brief is a column on
+ * the left holding the question in plain English and the two lists that define
+ * the level; those lists are also the grader, which is why there is no results
+ * band anywhere in this file. The canvas is everything else, with no dock.
+ *
+ * Controls attach to what they act on. A selected state gets a bar under it, a
+ * rule opens from its own chip, and the four things with nothing to attach to
+ * sit as quiet icons in one corner.
+ */
+
+.shell {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: calc(18px + var(--safe-top)) calc(18px + var(--safe-right))
+    calc(40px + var(--safe-bottom)) calc(18px + var(--safe-left));
+}
+
+/* --------------------------------------------------------------------------
+   home
+   -------------------------------------------------------------------------- */
+
+.home-head {
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.home-head h1 {
+  margin: 0 0 6px;
+}
+
+.home-head p {
+  margin: 0;
+  max-width: 56ch;
+}
+
+.home-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.ghost {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 6px 10px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-control);
+  min-height: 32px;
+}
+
+.ghost:hover {
+  border-color: var(--rule);
+  color: var(--ink);
+}
+
+.group-head {
+  padding: 26px 0 10px;
+}
+
+.group-head p {
+  margin: 4px 0 0;
+  max-width: 60ch;
+}
+
+.level-row {
+  display: grid;
+  grid-template-columns: 30px 1fr auto 20px;
+  align-items: baseline;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--hairline);
+  min-height: var(--tap);
+}
+
+.level-row:hover:not(:disabled) {
+  background: var(--sunken);
+}
+
+.level-row.is-locked {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.level-row .index {
+  color: var(--faint);
+}
+
+.level-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.level-main code {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.level-row .status {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.level-row .tick {
+  color: var(--pass);
+  text-align: right;
+}
+
+.home-foot {
+  margin-top: 34px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+  max-width: 68ch;
+}
+
+/* --------------------------------------------------------------------------
+   the level: two columns and nothing else
+   -------------------------------------------------------------------------- */
+
+.level {
+  display: grid;
+  grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.pane {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--hairline);
+}
+
+.pane-grab {
+  display: none;
+}
+
+/* --------------------------------------------------------------------------
+   the brief
+   -------------------------------------------------------------------------- */
+
+.brief {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  padding: calc(18px + var(--safe-top)) 22px calc(16px + var(--safe-bottom))
+    calc(22px + var(--safe-left));
+}
+
+.brief-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex: none;
+}
+
+.back {
+  width: 26px;
+  height: 26px;
+  margin-left: -6px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1;
+}
+
+.back:hover {
+  background: var(--sunken);
+  color: var(--ink);
+}
+
+.brief-eyebrow {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.brief-q {
+  font-family: var(--sans);
+  font-size: 22px;
+  line-height: 1.26;
+  font-weight: 450;
+  letter-spacing: -0.014em;
+  margin: 0 0 10px;
+  text-wrap: balance;
+  flex: none;
+}
+
+.brief-set {
+  display: block;
+  color: var(--muted);
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--hairline);
+  overflow-wrap: anywhere;
+  flex: none;
+}
+
+.brief-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding-top: 18px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.brief-split .t-label {
+  display: block;
+  margin-bottom: 9px;
+}
+
+/* the marks -------------------------------------------------------------- */
+
+.verdicts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.verdict-hit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 3px 6px 3px 2px;
+  border-radius: 5px;
+  min-height: 26px;
+}
+
+.verdict-hit:hover {
+  background: var(--sunken);
+}
+
+.mark {
+  width: 13px;
+  flex: none;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--pass);
+}
+
+.verdict.is-off .mark,
+.verdict.is-off code {
+  color: var(--fail);
+}
+
+.verdict.is-blank .mark {
+  color: var(--faint);
+}
+
+.verdict.is-playing .verdict-hit {
+  background: var(--accent-tint);
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
+
+/* the foot --------------------------------------------------------------- */
+
+.brief-foot {
+  flex: none;
+  padding-top: 14px;
+  margin-top: 14px;
+  border-top: 1px solid var(--hairline);
+}
+
+.brief-score {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 550;
+  color: var(--muted);
+}
+
+.brief.is-solved .brief-score {
+  color: var(--pass);
+}
+
+.brief.is-broken .brief-score {
+  color: var(--fail);
+}
+
+.brief-why {
+  margin: 2px 0 0;
+  color: var(--muted);
+  min-height: 1.4em;
+}
+
+.brief.is-broken .brief-why {
+  color: var(--fail);
+}
+
+.brief-links {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.brief-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 0 11px 0 10px;
+  font-size: 13px;
+  color: var(--muted);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-control);
+}
+
+.brief-link:hover {
+  color: var(--ink);
+  border-color: var(--rule);
+}
+
+.brief-link.is-next {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.brief-link[hidden] {
+  display: none;
+}
+
+/* --------------------------------------------------------------------------
+   the stage
+   -------------------------------------------------------------------------- */
+
+.stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--ground);
+}
+
+.diagram-wrap {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.diagram {
+  display: block;
+  width: 100%;
+  flex: 1 1 0;
+  min-height: 0;
+  touch-action: none;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.canvas-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(10px + var(--safe-bottom));
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--faint);
+  margin: 0;
+  pointer-events: none;
+}
+
+.empty-prompt {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  pointer-events: none;
+  color: var(--faint);
+  text-align: center;
+  padding: 0 24px;
+}
+
+.empty-prompt[hidden] {
+  display: none;
+}
+
+.empty-prompt p {
+  margin: 0;
+}
+
+.empty-ring {
+  width: 62px;
+  height: 62px;
+  border-radius: 999px;
+  border: 1.6px dashed var(--rule);
+}
+
+.corner {
+  position: absolute;
+  top: calc(10px + var(--safe-top));
+  right: calc(10px + var(--safe-right));
+  display: flex;
+  gap: 2px;
+  z-index: 3;
+}
+
+.corner-b {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--faint);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.corner-b:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.corner-b:disabled {
+  opacity: 0.3;
+}
+
+/* the bar that belongs to the selected state ------------------------------ */
+
+.state-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 4;
+  display: flex;
+  gap: 1px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  box-shadow: 0 6px 18px -8px rgb(0 0 0 / 28%);
+  white-space: nowrap;
+}
+
+.state-bar[hidden] {
+  display: none;
+}
+
+.sb {
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+
+.sb:hover {
+  background: var(--sunken);
+}
+
+.sb.is-on {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* --------------------------------------------------------------------------
+   svg
+   -------------------------------------------------------------------------- */
+
+.grid {
+  stroke: none;
+}
+
+.dot {
+  fill: var(--dot);
+}
+
+.edge-stroke {
+  stroke: var(--ink);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.edge-head {
+  fill: var(--ink);
+  stroke: none;
+}
+
+.pending {
+  stroke: var(--ink);
+  stroke-width: 1.6;
+  stroke-dasharray: 6 4;
+  fill: none;
+  opacity: 0.65;
+}
+
+.start-shaft {
+  stroke: var(--ink);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.start-head {
+  fill: var(--ink);
+}
+
+.state {
+  cursor: grab;
+}
+
+.state-hit {
+  fill: transparent;
+}
+
+/*
+ * Anywhere in the band just outside the rim starts an arrow. The grips are what
+ * says so: four of them, on the state under the pointer, gone again when it
+ * leaves, so a diagram at rest is only the diagram.
+ */
+
+.state-ring {
+  fill: var(--surface);
+  stroke: var(--ink);
+  stroke-width: 1.6;
+}
+
+.state-accept {
+  fill: none;
+  stroke: none;
+}
+
+.state.is-accepting .state-accept {
+  stroke: var(--ink);
+  stroke-width: 1.4;
+}
+
+.state-label {
+  fill: var(--ink);
+  font-family: var(--mono);
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.state-grip {
+  fill: var(--accent);
+  stroke: var(--surface);
+  stroke-width: 2;
+  opacity: 0;
+  pointer-events: none;
+  cursor: crosshair;
+  transition: opacity 0.12s ease;
+}
+
+.state.is-selected .state-ring {
+  stroke-width: 2.6;
+}
+
+.state.is-hover .state-grip,
+.state.is-selected .state-grip {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.state.is-target .state-ring {
+  stroke-width: 2.6;
+  fill: var(--accent-tint);
+}
+
+.state.is-active .state-ring {
+  fill: var(--accent);
+}
+
+.state.is-active .state-label {
+  fill: var(--accent-ink);
+}
+
+.state.is-active .state-accept {
+  stroke: var(--accent-ink);
+}
+
+/* Clicking a state focuses it; the UA ring around an SVG group is not wanted. */
+.diagram:focus,
+.state:focus,
+.chip:focus {
+  outline: none;
+}
+
+.state:focus-visible .state-ring {
+  stroke-width: 3;
+  stroke-dasharray: 3 2.5;
+}
+
+.chip {
+  cursor: pointer;
+}
+
+.chip-bg {
+  fill: var(--surface);
+  stroke: var(--hairline);
+  stroke-width: 1;
+}
+
+.chip-text {
+  fill: var(--ink);
+  font-family: var(--mono);
+  pointer-events: none;
+}
+
+.chip.is-lit .chip-bg,
+.chip:hover .chip-bg {
+  fill: var(--accent-tint);
+  stroke: var(--ink);
+}
+
+.chip.is-selected .chip-bg {
+  stroke: var(--ink);
+  stroke-width: 1.6;
+}
+
+.chip:focus-visible .chip-bg {
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-dasharray: 3 2;
+}
+
+/* --------------------------------------------------------------------------
+   the trace, along the foot of the canvas
+   -------------------------------------------------------------------------- */
+
+.trace {
+  flex: none;
+  position: relative;
+  z-index: 2;
+  background: var(--surface);
+  border-top: 1px solid var(--hairline);
+  padding: 10px 14px calc(10px + var(--safe-bottom));
+  display: grid;
+  gap: 8px;
+}
+
+.trace[hidden] {
+  display: none;
+}
+
+.trace .band-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.trace .verdict {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.trace-input,
+.mem-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.trace-memory {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mem-label {
+  flex: none;
+}
+
+.cellx {
+  min-width: 24px;
+  padding: 3px 5px;
+  text-align: center;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-chip);
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+
+.cellx.is-read {
+  color: var(--faint);
+}
+
+.cellx.is-head {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.cellx.is-empty {
+  color: var(--muted);
+}
+
+.trace-caption {
+  margin: 0;
+}
+
+.transport-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.transport {
+  min-width: 36px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-control);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.transport.is-primary {
+  min-width: 62px;
+  font-size: 12.5px;
+}
+
+.transport:disabled {
+  opacity: 0.35;
+}
+
+.transport-row .counter {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+/* --------------------------------------------------------------------------
+   the overlay: the formal layer, over the brief
+   -------------------------------------------------------------------------- */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  transform: translateX(-8px);
+  opacity: 0;
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.overlay.is-open {
+  transform: none;
+  opacity: 1;
+}
+
+.overlay[hidden] {
+  display: none;
+}
+
+.ov-grab {
+  display: none;
+}
+
+.ov-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: calc(14px + var(--safe-top)) 12px 0 calc(14px + var(--safe-left));
+  border-bottom: 1px solid var(--hairline);
+  flex: none;
+}
+
+.ov-tabs {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  flex: 1;
+}
+
+.ov-tab {
+  padding: 8px 10px 9px;
+  font-size: 13px;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  min-height: 38px;
+}
+
+.ov-tab.is-on {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+  font-weight: 500;
+}
+
+.ov-close {
+  width: 34px;
+  height: 34px;
+  margin-bottom: 3px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 19px;
+  line-height: 1;
+  flex: none;
+}
+
+.ov-close:hover {
+  background: var(--sunken);
+  color: var(--ink);
+}
+
+.ov-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px calc(18px + var(--safe-right)) calc(24px + var(--safe-bottom))
+    calc(18px + var(--safe-left));
+}
+
+/* --------------------------------------------------------------------------
+   the ledger, inside the overlay
+   -------------------------------------------------------------------------- */
+
+.band-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 4px 0 8px;
+}
+
+.band-head .sig {
+  color: var(--muted);
+  margin-left: auto;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.band + .band {
+  border-top: 1px solid var(--hairline);
+  margin-top: 6px;
+}
+
+.band-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 0 8px;
+  min-height: 36px;
+}
+
+.chevron {
+  width: 7px;
+  height: 7px;
+  border-right: 1.4px solid var(--muted);
+  border-bottom: 1.4px solid var(--muted);
+  transform: rotate(45deg) translate(-2px, -2px);
+  transition: transform 0.16s ease;
+}
+
+.band-toggle[aria-expanded='false'] .chevron {
+  transform: rotate(-45deg) translate(-1px, 1px);
+}
+
+.tuple {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 14px;
+  margin: 0 0 14px;
+}
+
+.tuple.is-collapsed {
+  display: none;
+}
+
+.tuple dt {
+  color: var(--muted);
+  padding-top: 1px;
+}
+
+.tuple dd {
+  margin: 0;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.tuple dd code {
+  overflow-wrap: anywhere;
+}
+
+.gloss {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.delta {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.delta-line {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.delta-hit {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 6px;
+  min-height: 38px;
+}
+
+.delta-line.is-missing .delta-hit {
+  color: var(--fail);
+}
+
+.delta-line.is-lit,
+.delta-line:hover {
+  background: var(--accent-tint);
+}
+
+.delta-note {
+  margin: 10px 0 4px;
+}
+
+/* --------------------------------------------------------------------------
+   sheets
+   -------------------------------------------------------------------------- */
+
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+}
+
+.sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.sheet.is-open .sheet-backdrop {
+  opacity: 1;
+}
+
+.sheet-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 88dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-top: 1px solid var(--rule);
+  border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+  transform: translateY(100%);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.3, 1);
+  padding-bottom: var(--safe-bottom);
+}
+
+.sheet.is-open .sheet-panel {
+  transform: translateY(0);
+}
+
+@media (min-width: 720px) {
+  .sheet-panel {
+    left: 50%;
+    right: auto;
+    bottom: 4vh;
+    width: min(560px, 92vw);
+    transform: translate(-50%, calc(100% + 8vh));
+    border: 1px solid var(--rule);
+    border-radius: var(--r-sheet);
+    max-height: 86dvh;
+  }
+
+  .sheet.is-open .sheet-panel {
+    transform: translate(-50%, 0);
+  }
+}
+
+.grab {
+  width: 36px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--rule);
+  margin: 9px auto 2px;
+  flex: none;
+  cursor: grab;
+  touch-action: none;
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 18px 0;
+}
+
+.sheet-title {
+  margin: 0;
+  flex: 1;
+}
+
+.sheet-close {
+  min-width: var(--tap);
+  min-height: var(--tap);
+  font-size: 20px;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.sheet-body {
+  padding: 8px 18px calc(20px + var(--safe-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.sheet-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+}
+
+.action {
+  min-height: var(--tap);
+  padding: 0 16px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-control);
+  font-size: 14px;
+}
+
+.action:hover {
+  background: var(--sunken);
+}
+
+.action.is-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.action.is-primary:hover {
+  opacity: 0.88;
+  background: var(--accent);
+}
+
+.action.is-danger {
+  color: var(--fail);
+  border-color: color-mix(in srgb, var(--fail) 40%, var(--hairline));
+}
+
+/* rule editor -------------------------------------------------------------- */
+
+.rule-head {
+  margin: 4px 0 14px;
+  color: var(--muted);
+}
+
+.field {
+  margin-bottom: 16px;
+}
+
+.field .t-label {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.choice-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.choice {
+  min-width: var(--tap);
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-control);
+}
+
+.choice.is-on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.rename-input {
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0 12px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-control);
+}
+
+/* theory and analysis ------------------------------------------------------ */
+
+.note-block {
+  margin-bottom: 22px;
+}
+
+.note-block .t-label {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.note-block p {
+  margin: 0 0 8px;
+  max-width: 62ch;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 14px;
+}
+
+.wrap {
+  overflow-wrap: anywhere;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 14px;
+  overflow-x: auto;
+}
+
+.tab {
+  padding: 8px 12px;
+  min-height: 38px;
+  font-size: 13px;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+
+.tab.is-on {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table.hierarchy,
+table.subset-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 8px;
+}
+
+table.hierarchy th,
+table.hierarchy td,
+table.subset-table th,
+table.subset-table td {
+  text-align: left;
+  padding: 7px 10px 7px 0;
+  border-bottom: 1px solid var(--hairline);
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+table.hierarchy th,
+table.subset-table th {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+table.hierarchy tr.is-here td {
+  background: var(--accent-tint);
+}
+
+table.subset-table tr.is-start td:first-child::after {
+  content: ' start';
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* --------------------------------------------------------------------------
+   narrow: the canvas is the screen, the brief is a sheet
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 899px) {
+  .level {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .stage {
+    grid-area: 1 / 1;
+  }
+
+  .pane {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 8;
+    height: 68dvh;
+    border-right: 0;
+    border-top: 1px solid var(--rule);
+    border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+    box-shadow: 0 -8px 30px -14px rgb(0 0 0 / 28%);
+    /* Peeking: the question and the score, nothing else. */
+    transform: translateY(calc(100% - 186px));
+    transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+
+  .pane.is-open {
+    transform: none;
+  }
+
+  .pane-grab {
+    display: block;
+    width: 100%;
+    padding: 9px 0 3px;
+    flex: none;
+  }
+
+  .pane-grab::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    margin: 0 auto;
+    border-radius: 999px;
+    background: var(--rule);
+  }
+
+  .brief {
+    padding-top: 4px;
+  }
+
+  /* Peeking shows the verdict before the lists, so the peek is worth having. */
+  .brief-foot {
+    order: -1;
+    border-top: 0;
+    border-bottom: 1px solid var(--hairline);
+    margin: 0 0 4px;
+    padding: 0 0 12px;
+  }
+
+  .brief-split {
+    padding-top: 12px;
+  }
+
+  .stage {
+    padding-bottom: 186px;
+  }
+
+  .canvas-hint {
+    bottom: calc(196px + var(--safe-bottom));
+  }
+
+  .empty-prompt {
+    bottom: 186px;
+  }
+
+  .ov-grab {
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--rule);
+    margin: 9px auto 2px;
+    flex: none;
+    touch-action: none;
+  }
+
+  .overlay {
+    border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+    transform: translateY(10px);
+  }
+}
+
+@media (max-width: 460px) {
+  .brief-split {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}

@@ -10,8 +10,9 @@
  *   - Self loops aim away from the average direction of that state's other
  *     connections.
  *
- * Every function here is a worklet: the drag path recomputes edge geometry on
- * the UI thread, never through React state.
+ * Nothing here imports anything. The drag path recomputes edge geometry on
+ * every pointer move, so it has to stay cheap and free of allocation-heavy
+ * dependencies, and the Swift port has to be able to follow it line for line.
  */
 
 export interface Pt {
@@ -27,18 +28,38 @@ export const HIT_RADIUS = 36;
 export const ARROW_CLEARANCE = 3;
 export const ARROW_LEN = 11;
 export const ARROW_HALF_WIDTH = 5.2;
-export const BEND_DEFAULT = 18;
-export const BEND_PARALLEL = 42;
-const LOOP_REACH = 52;
-const LOOP_SPREAD = 0.62;
-/** Room a self loop's chip stack needs beyond the loop itself. */
-const CHIP_CLEARANCE = 46;
-/** How hard a nearby wall pushes a self loop back toward the middle. */
-const EDGE_WEIGHT = 1.6;
+export const BEND_DEFAULT = 11;
+export const BEND_PARALLEL = 34;
+/**
+ * A self loop is an arc of a small circle resting against the state's rim:
+ * centre `LOOP_CENTRE * radius` out along the aim direction, radius
+ * `LOOP_RADIUS * radius`. Drawing it as a real circular arc rather than a
+ * hand-tuned cubic is what keeps it compact and even.
+ */
+const LOOP_CENTRE = 1.14;
+const LOOP_RADIUS = 0.68;
+/** Height of one chip row in a stack. */
+export const CHIP_ROW_HEIGHT = 24;
+/** Advance of one character in the chip's monospace face, at the chip's size. */
+export const CHIP_CHAR_W = 7.2;
+/** Horizontal padding inside a chip. */
+export const CHIP_PAD_X = 6;
+/** Gap between a curve and the near edge of its chip stack. */
+const CHIP_GAP = 10;
+const CHIP_GAP_LOOP = 4;
+
+/** Directions tried when aiming a self loop. 24 gives 15 degree steps. */
+const AIM_CANDIDATES = 24;
+/** How hard a chip poking outside the canvas counts against a direction. */
+const OUT_WEIGHT = 4;
+/** How hard a chip landing on another state counts against a direction. */
+const COVER_WEIGHT = 3;
+/** All else equal a loop points up, which is where a reader expects it. */
+const UP_BIAS = 0.15;
 
 /**
- * The logical canvas, mirrored here as plain numbers so the worklets above
- * never close over an imported object. tests/geometry.test.ts asserts these
+ * The logical canvas, mirrored here as plain numbers rather than imported, so
+ * this module keeps its zero dependencies. tests/geometry.test.ts asserts they
  * stay equal to CANVAS in the engine.
  */
 export const CANVAS_W = 340;
@@ -54,6 +75,8 @@ export interface EdgeSpec {
   bend: number;
   /** Self loops only: the other states this one connects to, for aiming. */
   neighbours: string[];
+  /** Self loops only: true when the start marker also occupies this state's left. */
+  startMarker: boolean;
   transitionIds: string[];
   /** One chip per transition on this edge. */
   chips: string[];
@@ -77,17 +100,13 @@ const EMPTY: EdgeGeometry = {
   normal: { x: 0, y: -1 },
 };
 
-const n2 = (v: number): string => {
-  'worklet';
-  return (Math.round(v * 100) / 100).toString();
-};
+const n2 = (v: number): string => (Math.round(v * 100) / 100).toString();
 
 // ---------------------------------------------------------------------------
 // quadratic helpers
 // ---------------------------------------------------------------------------
 
 function quadAt(p0: Pt, c: Pt, p1: Pt, t: number): Pt {
-  'worklet';
   const u = 1 - t;
   return {
     x: u * u * p0.x + 2 * u * t * c.x + t * t * p1.x,
@@ -96,7 +115,6 @@ function quadAt(p0: Pt, c: Pt, p1: Pt, t: number): Pt {
 }
 
 function quadTangent(p0: Pt, c: Pt, p1: Pt, t: number): Pt {
-  'worklet';
   const u = 1 - t;
   const x = 2 * u * (c.x - p0.x) + 2 * t * (p1.x - c.x);
   const y = 2 * u * (c.y - p0.y) + 2 * t * (p1.y - c.y);
@@ -105,19 +123,16 @@ function quadTangent(p0: Pt, c: Pt, p1: Pt, t: number): Pt {
 }
 
 const lerp = (a: Pt, b: Pt, t: number): Pt => {
-  'worklet';
   return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
 };
 
 /** The control point of the sub-curve of a quadratic over [a, b]. */
 function quadSplitControl(p0: Pt, c: Pt, p1: Pt, a: number, b: number): Pt {
-  'worklet';
   return lerp(lerp(p0, c, a), lerp(c, p1, a), b);
 }
 
 /** Largest t whose point is at least `d` away from `target`. Distance falls with t. */
 function tAtDistanceFromEnd(p0: Pt, c: Pt, p1: Pt, target: Pt, d: number): number {
-  'worklet';
   let lo = 0;
   let hi = 1;
   for (let i = 0; i < 22; i++) {
@@ -129,9 +144,28 @@ function tAtDistanceFromEnd(p0: Pt, c: Pt, p1: Pt, target: Pt, d: number): numbe
   return lo;
 }
 
+/**
+ * Largest t at or below `tMax` whose point is at least `d` from `origin`.
+ *
+ * Used to end the stroke exactly where the arrow triangle's base is. Measuring
+ * that distance from the target state instead, which is what this used to do,
+ * is only the same thing on a straight edge: on a bent one the two points are
+ * different and the head reads as pasted on at the wrong angle.
+ */
+function tBackFrom(p0: Pt, c: Pt, p1: Pt, tMax: number, origin: Pt, d: number): number {
+  let lo = 0;
+  let hi = tMax;
+  for (let i = 0; i < 22; i++) {
+    const mid = (lo + hi) / 2;
+    const p = quadAt(p0, c, p1, mid);
+    if (Math.hypot(p.x - origin.x, p.y - origin.y) >= d) lo = mid;
+    else hi = mid;
+  }
+  return lo;
+}
+
 /** Smallest t whose point is at least `d` away from `origin`. Distance grows with t. */
 function tAtDistanceFromStart(p0: Pt, c: Pt, p1: Pt, origin: Pt, d: number): number {
-  'worklet';
   let lo = 0;
   let hi = 1;
   for (let i = 0; i < 22; i++) {
@@ -145,7 +179,6 @@ function tAtDistanceFromStart(p0: Pt, c: Pt, p1: Pt, origin: Pt, d: number): num
 
 /** The filled triangle, tip first. */
 function triangle(tip: Pt, dir: Pt): string {
-  'worklet';
   const px = -dir.y;
   const py = dir.x;
   const bx = tip.x - dir.x * ARROW_LEN;
@@ -162,7 +195,6 @@ function triangle(tip: Pt, dir: Pt): string {
 // ---------------------------------------------------------------------------
 
 function betweenStates(from: Pt, to: Pt, bend: number, radius: number): EdgeGeometry {
-  'worklet';
   const dx = to.x - from.x;
   const dy = to.y - from.y;
   const len = Math.hypot(dx, dy);
@@ -183,11 +215,11 @@ function betweenStates(from: Pt, to: Pt, bend: number, radius: number): EdgeGeom
   if (len <= radius + tipDistance + 2) return EMPTY;
 
   const tTip = tAtDistanceFromEnd(from, ctrl, to, to, tipDistance);
-  const tBase = tAtDistanceFromEnd(from, ctrl, to, to, tipDistance + ARROW_LEN * 0.92);
-  const tStart = tAtDistanceFromStart(from, ctrl, to, from, radius);
-
   const tip = quadAt(from, ctrl, to, tTip);
   const dir = quadTangent(from, ctrl, to, tTip);
+
+  const tBase = tBackFrom(from, ctrl, to, tTip, tip, ARROW_LEN * 0.92);
+  const tStart = tAtDistanceFromStart(from, ctrl, to, from, radius);
 
   const a = Math.min(tStart, tBase);
   const b = Math.max(tStart, tBase);
@@ -206,102 +238,153 @@ function betweenStates(from: Pt, to: Pt, bend: number, radius: number): EdgeGeom
   };
 }
 
+/** Half the width of the widest chip in a stack. */
+function chipHalfWidth(chips: readonly string[]): number {
+  let longest = 1;
+  for (let i = 0; i < chips.length; i++) {
+    const n = (chips[i] as string).length;
+    if (n > longest) longest = n;
+  }
+  return (longest * CHIP_CHAR_W) / 2 + CHIP_PAD_X;
+}
+
+/**
+ * The region a diagram has to stay inside. The logical canvas by default, which
+ * is what the authored solutions and the iOS port use; the web app passes the
+ * region actually on screen, which is larger and moves with the window.
+ */
+export interface Bounds {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export const CANVAS_BOUNDS: Bounds = { x: 0, y: 0, w: CANVAS_W, h: CANVAS_H };
+
+/** How far a box centred at `c` pokes outside `bounds`. */
+function outsideBy(c: Pt, halfW: number, halfH: number, bounds: Bounds): number {
+  let out = 0;
+  if (c.x - halfW < bounds.x) out += bounds.x - (c.x - halfW);
+  if (c.x + halfW > bounds.x + bounds.w) out += c.x + halfW - (bounds.x + bounds.w);
+  if (c.y - halfH < bounds.y) out += bounds.y - (c.y - halfH);
+  if (c.y + halfH > bounds.y + bounds.h) out += c.y + halfH - (bounds.y + bounds.h);
+  return out;
+}
+
+/** How deeply a box centred at `c` overlaps a state's disc. */
+function coverage(c: Pt, halfW: number, halfH: number, state: Pt, radius: number): number {
+  // Distance from the state's centre to the nearest point of the box.
+  const dx = Math.max(0, Math.abs(state.x - c.x) - halfW);
+  const dy = Math.max(0, Math.abs(state.y - c.y) - halfH);
+  const gap = Math.hypot(dx, dy);
+  return gap >= radius ? 0 : radius - gap;
+}
+
 /**
  * Where a self loop should point.
  *
- * Primarily away from the average direction of the state's other connections,
- * as the spec asks. A near canvas edge counts as something to avoid too, or a
- * loop on a state at the rim throws its label chips off the card.
+ * The spec asks for "away from the average direction of the state's other
+ * connections", and a vector sum says that literally. It is also fragile: a
+ * state with one neighbour and a start marker has those two cancel exactly, and
+ * whatever rounding is left over decides the answer, which is how a loop ends
+ * up pointing straight into the state next door.
+ *
+ * So this scores candidate directions instead. Pointing at a connection costs,
+ * pointing where the chip stack would leave the canvas costs more, and pointing
+ * where the chip stack would land on another state costs most. Ties go up,
+ * which is where a reader expects a self loop.
  */
-function awayDirection(at: Pt, neighbours: string[], positions: Positions): Pt {
-  'worklet';
-  let sx = 0;
-  let sy = 0;
-  let n = 0;
-  for (let i = 0; i < neighbours.length; i++) {
-    const p = positions[neighbours[i] as string];
-    if (!p) continue;
-    const dx = p.x - at.x;
-    const dy = p.y - at.y;
-    const len = Math.hypot(dx, dy);
-    if (len < 0.001) continue;
-    sx += dx / len;
-    sy += dy / len;
-    n++;
-  }
+function awayDirection(
+  at: Pt,
+  neighbours: string[],
+  positions: Positions,
+  startMarker: boolean,
+  chips: readonly string[],
+  radius: number,
+  bounds: Bounds,
+): Pt {
+  const rows = Math.max(1, chips.length);
+  const halfW = chipHalfWidth(chips);
+  const halfH = (rows * CHIP_ROW_HEIGHT) / 2;
+  // Where the chip stack's centre would sit, matching chipAnchor exactly.
+  const out = radius * (LOOP_CENTRE + LOOP_RADIUS) + CHIP_GAP_LOOP + halfH;
 
-  // Pseudo-neighbours at the walls, weighted by how close the state is. The
-  // weight scales with the pull already accumulated, so a wall can still win
-  // against several neighbours dragging the loop off the canvas.
-  const reach = STATE_RADIUS + LOOP_REACH + CHIP_CLEARANCE;
-  const weight = EDGE_WEIGHT * (Math.hypot(sx, sy) + 1);
-  if (at.x < reach) {
-    sx -= weight * (1 - at.x / reach);
-    n++;
-  }
-  if (at.x > CANVAS_W - reach) {
-    sx += weight * (1 - (CANVAS_W - at.x) / reach);
-    n++;
-  }
-  if (at.y < reach) {
-    sy -= weight * (1 - at.y / reach);
-    n++;
-  }
-  if (at.y > CANVAS_H - reach) {
-    sy += weight * (1 - (CANVAS_H - at.y) / reach);
-    n++;
-  }
+  let best: Pt = { x: 0, y: -1 };
+  let bestScore = -Infinity;
 
-  if (n === 0) return { x: 0, y: -1 };
-  const len = Math.hypot(sx, sy);
-  if (len < 0.02) return { x: 0, y: -1 };
-  return { x: -sx / len, y: -sy / len };
+  for (let i = 0; i < AIM_CANDIDATES; i++) {
+    // Start at straight up so an exact tie keeps it.
+    const angle = -Math.PI / 2 + (i / AIM_CANDIDATES) * Math.PI * 2;
+    const dir: Pt = { x: Math.cos(angle), y: Math.sin(angle) };
+    const centre: Pt = { x: at.x + dir.x * out, y: at.y + dir.y * out };
+
+    let score = UP_BIAS * -dir.y;
+    score -= OUT_WEIGHT * outsideBy(centre, halfW, halfH, bounds);
+
+    // The start marker comes in from the left, so treat that side as occupied.
+    if (startMarker) score -= (1 - dir.x) * 0.5;
+
+    for (let k = 0; k < neighbours.length; k++) {
+      const p = positions[neighbours[k] as string];
+      if (!p) continue;
+      const dx = p.x - at.x;
+      const dy = p.y - at.y;
+      const len = Math.hypot(dx, dy);
+      if (len < 0.001) continue;
+      // A near neighbour crowds a loop harder than a distant one.
+      const weight = Math.min(2, 120 / Math.max(60, len));
+      score -= (1 + (dir.x * dx + dir.y * dy) / len) * weight;
+    }
+
+    // Every state on the canvas, connected or not, is something to not sit on.
+    for (const key in positions) {
+      const p = positions[key] as Pt;
+      if (p === undefined || (p.x === at.x && p.y === at.y)) continue;
+      score -= COVER_WEIGHT * coverage(centre, halfW, halfH, p, radius);
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      best = dir;
+    }
+  }
+  return best;
 }
 
 function selfLoop(at: Pt, away: Pt, radius: number): EdgeGeometry {
-  'worklet';
+  const d = radius * LOOP_CENTRE;
+  const rl = radius * LOOP_RADIUS;
   const base = Math.atan2(away.y, away.x);
-  const a0 = base - LOOP_SPREAD;
-  const a1 = base + LOOP_SPREAD;
-  const reach = radius + LOOP_REACH;
+  const cx = at.x + away.x * d;
+  const cy = at.y + away.y * d;
 
-  const p0: Pt = { x: at.x + Math.cos(a0) * radius, y: at.y + Math.sin(a0) * radius };
-  const tip: Pt = {
-    x: at.x + Math.cos(a1) * (radius + ARROW_CLEARANCE),
-    y: at.y + Math.sin(a1) * (radius + ARROW_CLEARANCE),
-  };
-  const c0: Pt = {
-    x: at.x + Math.cos(a0 - 0.42) * reach,
-    y: at.y + Math.sin(a0 - 0.42) * reach,
-  };
-  const c1: Pt = {
-    x: at.x + Math.cos(a1 + 0.42) * reach,
-    y: at.y + Math.sin(a1 + 0.42) * reach,
+  // Angle, measured on the loop circle, at which it crosses a circle of
+  // radius `rr` around the state.
+  const crossing = (rr: number): number => {
+    const k = (rr * rr - d * d - rl * rl) / (2 * d * rl);
+    return Math.acos(Math.max(-1, Math.min(1, k)));
   };
 
-  // Tangent of the cubic at t = 1 is 3 * (P3 - C1).
-  const tx = tip.x - c1.x;
-  const ty = tip.y - c1.y;
-  const tlen = Math.hypot(tx, ty) || 1;
-  const dir: Pt = { x: tx / tlen, y: ty / tlen };
+  const footAngle = base - crossing(radius);
+  const tipAngle = base + crossing(radius + ARROW_CLEARANCE);
+  const baseAngle = tipAngle - (ARROW_LEN * 0.92) / rl;
 
-  const end: Pt = {
-    x: tip.x - dir.x * ARROW_LEN * 0.92,
-    y: tip.y - dir.y * ARROW_LEN * 0.92,
-  };
+  const on = (t: number): Pt => ({ x: cx + rl * Math.cos(t), y: cy + rl * Math.sin(t) });
 
-  // Midpoint of the cubic, which is where the chips hang.
-  const anchor: Pt = {
-    x: (p0.x + 3 * c0.x + 3 * c1.x + tip.x) / 8,
-    y: (p0.y + 3 * c0.y + 3 * c1.y + tip.y) / 8,
-  };
+  const p0 = on(footAngle);
+  const pEnd = on(baseAngle);
+  const tip = on(tipAngle);
+  // Travelling with increasing angle, so the tangent is the rotated radius.
+  const dir: Pt = { x: -Math.sin(tipAngle), y: Math.cos(tipAngle) };
+  const large = baseAngle - footAngle > Math.PI ? 1 : 0;
 
   return {
     path:
-      `M${n2(p0.x)} ${n2(p0.y)}C${n2(c0.x)} ${n2(c0.y)} ${n2(c1.x)} ${n2(c1.y)} ` +
-      `${n2(end.x)} ${n2(end.y)}`,
+      `M${n2(p0.x)} ${n2(p0.y)}` +
+      `A${n2(rl)} ${n2(rl)} 0 ${large} 1 ${n2(pEnd.x)} ${n2(pEnd.y)}`,
     arrow: triangle(tip, dir),
-    anchor,
+    anchor: { x: at.x + away.x * (d + rl), y: at.y + away.y * (d + rl) },
     normal: away,
   };
 }
@@ -311,12 +394,21 @@ export function edgeGeometry(
   spec: EdgeSpec,
   positions: Positions,
   radius: number = STATE_RADIUS,
+  bounds: Bounds = CANVAS_BOUNDS,
 ): EdgeGeometry {
-  'worklet';
   const from = positions[spec.from];
   if (!from) return EMPTY;
   if (spec.selfLoop) {
-    return selfLoop(from, awayDirection(from, spec.neighbours, positions), radius);
+    const away = awayDirection(
+      from,
+      spec.neighbours,
+      positions,
+      spec.startMarker,
+      spec.chips,
+      radius,
+      bounds,
+    );
+    return selfLoop(from, away, radius);
   }
   const to = positions[spec.to];
   if (!to) return EMPTY;
@@ -328,31 +420,29 @@ export function edgesPathData(
   specs: EdgeSpec[],
   positions: Positions,
   radius: number = STATE_RADIUS,
+  bounds: Bounds = CANVAS_BOUNDS,
 ): { strokes: string; heads: string } {
-  'worklet';
   let strokes = '';
   let heads = '';
   for (let i = 0; i < specs.length; i++) {
-    const g = edgeGeometry(specs[i] as EdgeSpec, positions, radius);
+    const g = edgeGeometry(specs[i] as EdgeSpec, positions, radius, bounds);
     if (g.path) strokes += g.path;
     if (g.arrow) heads += g.arrow;
   }
   return { strokes, heads };
 }
 
-/** Where a chip stack sits, and how far each row is pushed off the curve. */
-export const CHIP_ROW_HEIGHT = 24;
-
+/** Where a chip stack sits, pushed off the curve far enough to clear it. */
 export function chipAnchor(
   spec: EdgeSpec,
   positions: Positions,
   radius: number = STATE_RADIUS,
+  bounds: Bounds = CANVAS_BOUNDS,
 ): Pt {
-  'worklet';
-  const g = edgeGeometry(spec, positions, radius);
+  const g = edgeGeometry(spec, positions, radius, bounds);
   const rows = Math.max(1, spec.chips.length);
   // A self loop's anchor already sits out past the rim, so it needs less push.
-  const gap = spec.selfLoop ? 4 : 10;
+  const gap = spec.selfLoop ? CHIP_GAP_LOOP : CHIP_GAP;
   const lift = (rows * CHIP_ROW_HEIGHT) / 2;
   return {
     x: g.anchor.x + g.normal.x * (gap + lift),
@@ -376,7 +466,7 @@ export interface EdgeSource {
  * carrying every transition between them, so multiple transitions stack as
  * chips rather than concatenating into one label.
  */
-export function buildEdges(transitions: EdgeSource[]): EdgeSpec[] {
+export function buildEdges(transitions: EdgeSource[], startId?: string | null): EdgeSpec[] {
   const pairs = new Set(transitions.map((t) => `${t.from}->${t.to}`));
   const order: string[] = [];
   const grouped = new Map<string, EdgeSource[]>();
@@ -416,6 +506,7 @@ export function buildEdges(transitions: EdgeSource[]): EdgeSpec[] {
       selfLoop: selfLoopEdge,
       bend: selfLoopEdge ? 0 : hasReverse ? BEND_PARALLEL : BEND_DEFAULT,
       neighbours: selfLoopEdge ? [...(connections.get(first.from) ?? [])] : [],
+      startMarker: selfLoopEdge && first.from === startId,
       transitionIds: list.map((t) => t.id),
       chips: list.map((t) => t.chip),
     };
