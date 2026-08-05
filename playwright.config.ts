@@ -2,8 +2,9 @@ import { defineConfig, devices } from '@playwright/test';
 import { existsSync } from 'node:fs';
 
 /**
- * Web smoke tests run against the exported static build, so they exercise the
- * same bundle that ships. `npm run build:web` first, or let webServer do it.
+ * The web smoke tests run against the built bundle, not the dev server, so they
+ * exercise the same files that ship. `npm run build` first, or let webServer do
+ * it.
  */
 
 /**
@@ -36,10 +37,10 @@ export default defineConfig({
     },
   },
   webServer: {
-    command: 'npx serve dist --listen 8081 --single --no-clipboard',
+    command: 'npm run build && npx serve web/dist --listen 8081 --no-clipboard',
     url: 'http://127.0.0.1:8081',
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 180_000,
   },
   projects: [
     { name: 'desktop', use: { viewport: { width: 1280, height: 900 } } },

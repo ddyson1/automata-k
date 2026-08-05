@@ -9,50 +9,60 @@ automata, then Turing machines.
 Alongside the diagram the app shows the same machine as a formal object, so the
 tuple and the transition function update as you build.
 
-One codebase, iOS and web.
+Two native apps, one engine. The web app is plain TypeScript against the DOM
+and SVG; the iOS app is SwiftUI. The engine is ported rather than shared, and
+the port is held to a fixture generated from the proven one.
 
 ## Running it
 
 ```
 npm install
-npm run web        # Expo web
-npm run ios        # Expo on a simulator or device
+npm run dev          # the web app, on a dev server
+npm run build        # web/dist, a folder of static files
+npm run build:single # web/dist/automata-k.html, one file, opens with file://
 ```
+
+The built app works from any path a host serves it from, makes no network
+requests, and keeps progress in localStorage.
+
+For iOS, `ios/` is a Swift package containing the engine. See `ios/README.md`,
+including what has and has not been executed.
 
 ## Verifying it
 
 ```
 npm test           # engine, grammar, geometry and purity suites
-npm run typecheck  # tsc --noEmit, strict, no any in the engine
-npm run build:web && npm run test:web   # Playwright, desktop and phone viewports
-npm run build:single                    # one self-contained HTML file
-maestro test .maestro/smoke.yaml        # the iOS smoke flow, needs a simulator
+npm run typecheck  # tsc --noEmit, strict, on both projects
+npm run test:web   # Playwright, desktop and phone viewports
+npm run check:swift  # the golden fixture against the Swift declarations
+npm run verify     # all of the above
 ```
 
 Two checks are the definition of done, and both print their counts.
 
 **9.1 Engine and solutions.** Every level's verified solution is run against
 its own test suite and against every string over its alphabet up to length 6,
-length 9 for aⁿbⁿcⁿ, and compared to the level's `accepts` predicate. Nothing
-anywhere hardcodes a pass or fail for a particular string. The suite also
-asserts each solution's state count equals par and that every state sits
+length 9 for a^n b^n c^n, and compared to the level's `accepts` predicate.
+Nothing anywhere hardcodes a pass or fail for a particular string. The suite
+also asserts each solution's state count equals par and that every state sits
 inside the canvas.
 
 **9.2 Grammars.** Every grammar in the formal layer is derived by
 breadth-first search over sentential forms with a length cap, and the
 generated set is asserted equal to the level's language over the same range.
 A single wrong production shows up immediately, including in the context
-sensitive grammar for aⁿbⁿcⁿ.
+sensitive grammar for a^n b^n c^n.
 
 Alongside those: validation tests, simulation cap tests, a property test
-determinising random NFAs, Hopcroft minimisation against par, and state
-elimination checked against every level language.
+determinising random NFAs, Hopcroft minimisation against par, state
+elimination checked against every level language, and 38 Playwright tests over
+two viewports.
 
 ## Layout
 
 ```
 /src
-  /engine        pure TypeScript, zero React and zero React Native imports
+  /engine        pure TypeScript, zero platform imports
     types.ts     Machine, Transition, Level, Frame, RunResult, caps
     simulate.ts  simulateDFA / simulateNFA / simulatePDA / simulateTM / run
     validate.ts  well-formedness per machine class
@@ -61,17 +71,24 @@ elimination checked against every level language.
     levels.ts    the twelve levels, each with an accepts predicate
     solutions.ts one verified machine per level
     formal.ts    tuple rendering, delta notation, grammars, hierarchy copy
-  /ui            canvas, ledger, suite strip, design tokens
-  /store         game state and persistence
-/app             expo-router routes
+  /ui
+    geometry.ts  edge geometry, shared by the web app and its tests
+/web             the web app: DOM and SVG, no framework
+  /src
+    diagram.ts   the canvas
+    ledger.ts    tuple and transition function
+    suite.ts     live grading
+    trace.ts     the stepper
+    fonts/       the three bundled families, subset from the originals
+/ios             the Swift package: the same engine, held to a golden fixture
+/scripts         golden fixture, font build, single file build, shape check
 /tests           the verification suites, plain Node
-/e2e             Playwright web smoke tests
-/.maestro        the iOS smoke flow
+/e2e             Playwright web tests
 ```
 
 The engine is importable by a plain Node script and `tests/purity.test.ts`
-keeps it that way: it fails if anything under `src/engine` imports React,
-React Native, Expo or Zustand, or touches a platform global.
+keeps it that way: it fails if anything under `src/engine` imports a UI
+framework or touches a platform global.
 
 ## Engine semantics
 
@@ -102,27 +119,40 @@ are capped at 400 but simulation always runs to the real limit.
 
 ## Interface
 
-The layout is the Ledger direction from the interface study, with the
-Instrument feedback loop, dressed in the Notebook visual language.
+**Two permanent panes.** The diagram and the transition function are both
+always on screen: side by side on a wide window, stacked on a phone. Neither is
+a preview of the other. Pointing at a rule lights the arrow it came from,
+selecting an arrow lights and scrolls to its rule. δ is never behind a toggle,
+so reading and building stop competing, and on a deterministic class the
+unwired pairs are listed in red with a running count.
 
-**Two permanent panes.** The diagram sits above the transition function, split
-by a handle you can drag. Neither is a preview of the other: editing a rule in
-the ledger moves the arrow, touching an arrow opens its rule. δ is never
-hidden behind a toggle, so reading and building stop competing, and on a
-deterministic class the unwired pairs are listed in red with a running count.
+**No Run button.** The suite re-grades on every edit after a short pause. When
+it fails it names the shortest string the machine and the language disagree on,
+which is usually the whole diagnosis. Tapping a test plays its trace, with the
+stack or the tape. A blank canvas is neutral: it has not gone wrong, it has not
+started.
 
-**No Run button.** The suite re-grades on every edit after a short pause and
-the strip under the ledger recolours. Tapping a test plays its trace between
-the panes rather than in a sheet. While the machine is not yet well formed the
-strip stays neutral instead of shouting red at a half-drawn machine.
+**A dock that never changes.** Its contents are fixed so a finger already on
+its way to a button finds that button. Anything contextual floats inside the
+diagram card instead, next to the thing it acts on.
 
-**One sheet.** Hint, level notes and analysis are tabs of a single reference
-sheet. Everything else in the app is permanent.
+## Design
 
-Warm paper, hairline rules, almost no fill. Structure comes from dividers and
-space rather than cards and shadows; serif for level titles, mono for anything
-that is machine notation, and a muted ochre accent that leaves green and red
-free to mean pass and fail.
+Ink: achromatic, hairline rules, no fills, no shadows. Structure comes from
+rules and space. Pass and fail are the only colour in the app, and they are
+quiet; a machine that works should feel settled, not congratulated.
+
+Literata for level titles, Inter for interface text, JetBrains Mono for
+anything that is machine notation. All three are bundled, all three are under
+the SIL Open Font License, and `scripts/build-fonts.py` cuts each one from the
+complete original down to the ranges the app can draw. 189KB, and δ, ε, Σ and
+the set-theory symbols are drawn by the typeface rather than by whatever the
+system happened to have.
+
+Exponents are written `^n`, not with Unicode superscript codepoints. The type
+study measured every non-ASCII character the app shows against nine families
+and found the superscripts carried by none of them, so both renderers raise
+`^x` themselves.
 
 ## Rendering
 
@@ -132,15 +162,32 @@ Two things the diagram gets right on purpose.
 curve's tangent so it lands on the target circle with about 3px clearance, at
 any angle, distance or bend. Every edge has a slight bend by default and a
 wider one when a reverse edge exists, so parallel arrows separate. Self loops
-aim away from the average direction of that state's other connections, and
-away from a near canvas edge so their labels stay on the card. Several
-transitions on one pair stack as separate rounded chips.
+are true circular arcs aimed away from the average direction of that state's
+other connections, and away from a near canvas edge so their labels stay on the
+card. Several transitions on one pair stack as separate rounded chips.
 
-**Drag.** Positions never touch React state per frame. They live in one
-Reanimated shared value; edge paths, arrow heads, node transforms and label
-chips all derive from it on the UI thread, and one commit lands on release.
-All edges batch into a single path per style, so a drag animates four
-properties rather than one per arrow.
+**Drag.** A drag never commits a position per frame. It writes transforms
+straight onto the SVG nodes and recomputes the batched edge paths in place;
+one commit lands on release, so one undo takes it back.
+
+The canvas grows its own visible region to whatever shape the card has, so a
+wide window means more room rather than two grey bars, while the logical
+340 x 460 box stays centred and authored coordinates stay put.
+
+## The Swift port
+
+The TypeScript engine is the proven one. Rather than describe it twice,
+`scripts/golden.ts` freezes the proof into `ios/Tests/.../golden.json`: every
+level's shape, verified solution and grammar, plus the language itself as a
+bitmap over the canonical enumeration of Σ* up to that level's depth, one bit
+per string. 31887 bits across 12 levels. `tests/golden.test.ts` regenerates the
+fixture and checks it against the live predicate string for string, so a stale
+fixture cannot pass, and the Swift tests hold the port to the same bits.
+
+No Swift toolchain is reachable from this environment, so none of the Swift has
+been compiled. `npm run check:swift` is the mitigation available here: it
+confirms the fixture's keys and enum values match the `Codable` declarations.
+`swift test` on a Mac is the real proof.
 
 ## What is not built
 
@@ -149,9 +196,9 @@ sandbox mode, and the level editor. Everything above them in that list is:
 minimality feedback, the subset construction viewer, counterexamples on
 failure, the regular expression view, dark mode and the accessibility pass.
 
-The iOS smoke flow is written but has not been executed here, because this
-environment has no simulator. The web smoke tests run against the exported
-static build on every check.
+The SwiftUI app itself is not written yet. `ios/` currently contains the engine
+and its tests, which is the part that has to be right before any of it is worth
+drawing.
 
 ## Provenance
 
@@ -165,6 +212,5 @@ original content is a contained change followed by a re-run of 9.1 and 9.2.
 ## Constraints kept
 
 No account system, no analytics, no ads, no network calls. Progress stays on
-device behind a single `storage.ts` interface, backed by `expo-sqlite/kv-store`
-on both platforms. No paid dependencies. No native modules that need a config
-plugin beyond what Expo ships.
+device behind a single `storage.ts` interface. No paid dependencies. The whole
+web app is five dev dependencies and no runtime ones.
