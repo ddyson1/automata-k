@@ -32,6 +32,7 @@ import {
 } from '../../src/engine/types';
 import { validate } from '../../src/engine/validate';
 import { useGame } from '../../src/store/game';
+import { AnalysisSheet, sectionsFor } from '../../src/ui/components/AnalysisSheet';
 import { Canvas, type Selection } from '../../src/ui/components/Canvas';
 import { Button, Toggle } from '../../src/ui/components/Controls';
 import { FormalPanel } from '../../src/ui/components/FormalPanel';
@@ -82,6 +83,9 @@ export default function LevelScreen() {
   const [trace, setTrace] = useState<Trace | null>(null);
   const [fitToken, setFitToken] = useState(1);
   const [centreOn, setCentreOn] = useState<{ id: StateId; token: number } | null>(null);
+  const [analysis, setAnalysis] = useState<ReturnType<typeof sectionsFor>[number]['value'] | null>(
+    null,
+  );
   const [card, setCard] = useState({ width: 320, height: 420 });
   const centreToken = useRef(0);
 
@@ -269,7 +273,10 @@ export default function LevelScreen() {
             onToggle={() => setFormalOpen((v) => !v)}
             highlight={highlightIds}
             onPickLine={pickDeltaLine}
-            maxHeight={Math.max(160, card.height - 120)}
+            onAnalyse={setAnalysis}
+            // The panel stays open while you build, so it never takes more
+            // than half the card: the machine has to stay visible under it.
+            maxHeight={Math.max(160, Math.round(card.height * 0.52))}
           />
 
           {trace ? (
@@ -429,6 +436,15 @@ export default function LevelScreen() {
           setSelection(null);
           setFitToken((t) => t + 1);
         }}
+      />
+
+      <AnalysisSheet
+        visible={analysis !== null}
+        onClose={() => setAnalysis(null)}
+        palette={palette}
+        level={level}
+        machine={machine}
+        initial={analysis ?? 'text'}
       />
 
       <NotesSheet

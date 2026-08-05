@@ -29,6 +29,7 @@ describe('engine purity', () => {
       'formal.ts',
       'levels.ts',
       'minimize.ts',
+      'regex.ts',
       'simulate.ts',
       'solutions.ts',
       'types.ts',

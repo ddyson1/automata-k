@@ -1,0 +1,70 @@
+# Section 9: the one iOS smoke flow.
+#
+# Open level 1, reveal the solution, run the tests, see the win sheet, then
+# restart the app and confirm progress survived.
+#
+#   maestro test .maestro/smoke.yaml
+#
+# Needs a simulator with the app installed:
+#   npx expo run:ios --configuration Release
+appId: io.plotflow.automatalab
+---
+- launchApp:
+    clearState: true
+
+- assertVisible: 'Automata Lab'
+- assertVisible: 'Draw a machine. Watch it run. Read it as a tuple.'
+- assertVisible: '0 of 12 solved'
+
+# Levels unlock in order, so only the first one is open.
+- assertVisible:
+    id: 'level-dfa-ends-in-1'
+
+- tapOn:
+    id: 'level-dfa-ends-in-1'
+- assertVisible:
+    id: 'canvas-card'
+- assertVisible: '1. Last symbol'
+
+# The dock never changes contents, so every control is here from the start.
+- assertVisible: 'Add state'
+- assertVisible: 'Connect'
+- assertVisible: 'Tidy'
+- assertVisible: 'Fit'
+- assertVisible: 'Run tests'
+
+# Reveal the worked solution, which marks the solve as shown.
+- tapOn: 'Hint'
+- assertVisible:
+    id: 'hint-sheet'
+- tapOn:
+    id: 'reveal-solution'
+
+# The revealed machine is the verified two state solution.
+- assertVisible: 'q0'
+- assertVisible: 'q1'
+
+# The formal readout tracks it.
+- tapOn: 'Show the formal readout'
+- assertVisible: 'δ(q0, 1) = q1'
+- assertVisible: 'δ is total: all 4 pairs defined.'
+- tapOn: 'Hide the formal readout'
+
+- tapOn:
+    id: 'run-tests'
+- assertVisible:
+    id: 'results-sheet'
+- assertVisible: 'Solved'
+- assertVisible: 'This is the smallest DFA for the language.'
+
+# Drag the sheet away by its grab handle rather than tapping a button.
+- swipe:
+    from:
+      id: 'results-sheet'
+    direction: DOWN
+
+# Progress survives an app restart, not just a screen change.
+- stopApp
+- launchApp
+- assertVisible: '1 of 12 solved'
+- assertVisible: 'Solved, shown'

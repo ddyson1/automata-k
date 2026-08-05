@@ -11,7 +11,7 @@
  *    release.
  */
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -39,6 +39,7 @@ import {
 } from '../geometry';
 import * as haptics from '../haptics';
 import { RADIUS, SPRING, TYPE, type Palette } from '../theme';
+import { useReducedMotion } from '../usePalette';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -101,6 +102,13 @@ export function Canvas(props: CanvasProps) {
     centreOn,
   } = props;
 
+  // Section 10.8: Reduce Motion turns the camera springs into jumps.
+  const reduced = useReducedMotion();
+  const glide = useCallback(
+    (to: number) => (reduced ? to : withSpring(to, SPRING)),
+    [reduced],
+  );
+
   // Live positions. The single source of truth while a drag is in flight.
   const positions = useSharedValue<Positions>({});
   const scale = useSharedValue(1);
@@ -124,9 +132,9 @@ export function Canvas(props: CanvasProps) {
     const target = machine.states.find((s) => s.id === centreOn.id);
     if (!target) return;
     const s = scale.value;
-    tx.value = withSpring(width / 2 - target.x * s, SPRING);
-    ty.value = withSpring(height / 2 - target.y * s, SPRING);
-  }, [centreOn, machine.states, width, height, scale, tx, ty]);
+    tx.value = glide(width / 2 - target.x * s);
+    ty.value = glide(height / 2 - target.y * s);
+  }, [centreOn, machine.states, width, height, scale, tx, ty, glide]);
 
   // -------------------------------------------------------------------------
   // edge model
@@ -186,10 +194,10 @@ export function Canvas(props: CanvasProps) {
     if (last.token === fitToken && last.w === width && last.h === height) return;
     fit.current = { token: fitToken, w: width, h: height };
     const base = Math.min(3, Math.max(0.45, Math.min(width / bounds.w, height / bounds.h)));
-    scale.value = withSpring(base, SPRING);
-    tx.value = withSpring((width - bounds.w * base) / 2 - bounds.x * base, SPRING);
-    ty.value = withSpring((height - bounds.h * base) / 2 - bounds.y * base, SPRING);
-  }, [fitToken, width, height, bounds, scale, tx, ty]);
+    scale.value = glide(base);
+    tx.value = glide((width - bounds.w * base) / 2 - bounds.x * base);
+    ty.value = glide((height - bounds.h * base) / 2 - bounds.y * base);
+  }, [fitToken, width, height, bounds, scale, tx, ty, glide]);
 
   const litIds = useMemo(() => new Set(highlightTransitionIds), [highlightTransitionIds]);
   const isLit = (e: EdgeSpec): boolean =>

@@ -14,6 +14,7 @@ import Animated, { LinearTransition } from 'react-native-reanimated';
 import { deltaSummary, machineTuple } from '../../engine/formal';
 import type { Level, Machine, TransitionId } from '../../engine/types';
 import { elevation, RADIUS, SPACE, TAP, TYPE, type Palette } from '../theme';
+import { sectionsFor } from './AnalysisSheet';
 
 export interface FormalPanelProps {
   level: Level;
@@ -25,11 +26,14 @@ export interface FormalPanelProps {
   highlight: readonly TransitionId[];
   /** Tapping a δ line selects and centres its arrow. */
   onPickLine: (transitionIds: TransitionId[], from: string) => void;
+  /** Opens the analysis sheet at one of the views this level supports. */
+  onAnalyse: (section: ReturnType<typeof sectionsFor>[number]['value']) => void;
   maxHeight: number;
 }
 
 export const FormalPanel = memo(function FormalPanel(props: FormalPanelProps) {
-  const { level, machine, palette, open, onToggle, highlight, onPickLine, maxHeight } = props;
+  const { level, machine, palette, open, onToggle, highlight, onPickLine, onAnalyse, maxHeight } =
+    props;
 
   const tuple = useMemo(() => machineTuple(machine, level), [machine, level]);
   const delta = useMemo(() => deltaSummary(machine, level), [machine, level]);
@@ -149,6 +153,25 @@ export const FormalPanel = memo(function FormalPanel(props: FormalPanelProps) {
           <Text style={{ ...TYPE.small, color: palette.muted, marginTop: SPACE.sm }}>
             {delta.note}
           </Text>
+
+          <View style={styles.analysisRow}>
+            {sectionsFor(level).map((s) => (
+              <Pressable
+                key={s.value}
+                onPress={() => onAnalyse(s.value)}
+                accessibilityRole="button"
+                accessibilityLabel={`${s.label} view of this machine`}
+                style={[
+                  styles.analysisChip,
+                  { borderColor: palette.hairline, backgroundColor: palette.surfaceSunken },
+                ]}
+              >
+                <Text style={{ ...TYPE.small, color: palette.accentInk, fontWeight: '600' }}>
+                  {s.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
         </ScrollView>
       ) : null}
     </Animated.View>
@@ -184,6 +207,20 @@ const styles = StyleSheet.create({
   rule: {
     height: StyleSheet.hairlineWidth,
     marginVertical: SPACE.sm,
+  },
+  analysisRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACE.xs,
+    marginTop: SPACE.md,
+  },
+  analysisChip: {
+    minHeight: 32,
+    justifyContent: 'center',
+    paddingHorizontal: SPACE.md,
+    borderRadius: RADIUS.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    ...Platform.select({ web: { cursor: 'pointer' as const }, default: {} }),
   },
   deltaRow: {
     minHeight: 24,
