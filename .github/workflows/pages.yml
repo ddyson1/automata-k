@@ -64,3 +64,26 @@ jobs:
     steps:
       - id: deploy
         uses: actions/deploy-pages@v4
+
+      # When the site's Source is a branch rather than this workflow, GitHub
+      # runs its own Jekyll builder against the same site and publishes
+      # README.md rendered as the front page. Both deploys go green, and the
+      # one that finished last is the site, so the URL serves the readme or the
+      # game depending on the weather. Ask it which.
+      - name: The published page is the app
+        run: |
+          url="${{ steps.deploy.outputs.page_url }}"
+          # Pages fronts a CDN, so give the new build a moment to become the
+          # answer, and defeat the cache with a URL nothing has seen before.
+          for wait in 0 5 10 20 30; do
+            sleep "$wait"
+            body=$(curl -fsSL --max-time 20 "${url}?build=${GITHUB_SHA}") || continue
+            if printf '%s' "$body" | grep -qF '<div id="root">'; then
+              echo "$url is serving the app"
+              exit 0
+            fi
+            echo "$url answered, but not with the app. Retrying."
+          done
+          echo "::error::$url is not serving the app. Check Settings, Pages: Source must be GitHub Actions."
+          printf '%s\n' "$body" | head -c 2000
+          exit 1

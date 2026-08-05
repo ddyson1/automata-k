@@ -3,7 +3,7 @@
 **Draw a machine. It gets graded against the language, not against an answer key.**
 Twelve levels climb the Chomsky hierarchy, from finite automata to Turing machines.
 
-[**Play it →**](https://ddyson1.github.io/automata-k/)
+[**Play it →**](https://devindyson.com/automata-k/)
 
 [![ci](https://github.com/ddyson1/automata-k/actions/workflows/ci.yml/badge.svg)](https://github.com/ddyson1/automata-k/actions/workflows/ci.yml)
 [![pages](https://github.com/ddyson1/automata-k/actions/workflows/pages.yml/badge.svg)](https://github.com/ddyson1/automata-k/actions/workflows/pages.yml)
@@ -83,6 +83,13 @@ requests, and keeps progress in localStorage.
 `.github/workflows/pages.yml` builds `web/dist` and publishes it to GitHub Pages
 on every push to `main`, after the full check has passed. It also puts
 `automata-k.html`, the whole game in one file, next to the site.
+
+Settings, then Pages, then Source must read **GitHub Actions**. On the other
+setting GitHub runs its own Jekyll builder against the same site and publishes
+`README.md` rendered as the front page, so the URL answers with the readme
+instead of the game. Both deploys go green and the last one finished is the
+site, which makes it a coin toss rather than an error. The deploy job therefore
+fetches the URL it just published and fails unless the app came back.
 
 Assets are built with `base: './'` so every URL is relative and a project page at
 `/<repo>/` works exactly like a domain root, and routing is by hash so no
