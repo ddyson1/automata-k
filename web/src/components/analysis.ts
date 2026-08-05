@@ -24,6 +24,12 @@ export type AnalysisSection = 'minimal' | 'subset' | 'regex';
 export interface AnalysisCallbacks {
   /** Put a derived machine on the canvas, replacing what is there. */
   onAdopt: (machine: Machine, description: string) => void;
+  /**
+   * Which reading is open. The panel is rebuilt whenever the machine changes,
+   * so the choice has to live outside it or every edit throws you back to the
+   * first tab.
+   */
+  onSection: (section: AnalysisSection) => void;
 }
 
 const SECTIONS: { key: AnalysisSection; label: string }[] = [
@@ -270,6 +276,7 @@ export function buildAnalysis(
     );
     on(node, 'click', () => {
       active = section.key;
+      callbacks.onSection(section.key);
       paint();
     });
     tabs.appendChild(node);

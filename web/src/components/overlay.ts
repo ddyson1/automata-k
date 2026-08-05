@@ -15,6 +15,7 @@ import { h, on } from '../dom';
 import { createLedger } from './ledger';
 import type { Ledger } from './ledger';
 import { buildAnalysis } from './analysis';
+import type { AnalysisSection } from './analysis';
 import { buildHint, buildTheory } from './theory';
 
 export type OverlayTab = 'machine' | 'theory' | 'analysis' | 'hint';
@@ -79,6 +80,7 @@ export function createOverlay(callbacks: OverlayCallbacks): Overlay {
   });
 
   let tab: OverlayTab = 'machine';
+  let analysisTab: AnalysisSection | null = null;
   let open = false;
   let state: OverlayState | null = null;
 
@@ -127,13 +129,14 @@ export function createOverlay(callbacks: OverlayCallbacks): Overlay {
       return;
     }
     if (tab === 'analysis') {
-      buildAnalysis(
-        body,
-        state.machine,
-        state.level,
-        state.level.type === 'NFA' ? 'subset' : state.level.type === 'DFA' ? 'minimal' : 'regex',
-        { onAdopt: callbacks.onAdopt },
-      );
+      const fallback: AnalysisSection =
+        state.level.type === 'NFA' ? 'subset' : state.level.type === 'DFA' ? 'minimal' : 'regex';
+      buildAnalysis(body, state.machine, state.level, analysisTab ?? fallback, {
+        onAdopt: callbacks.onAdopt,
+        onSection: (section) => {
+          analysisTab = section;
+        },
+      });
       return;
     }
     buildHint(body, {
@@ -178,6 +181,7 @@ export function createOverlay(callbacks: OverlayCallbacks): Overlay {
     },
     open(next) {
       tab = next;
+      analysisTab = null;
       open = true;
       el.hidden = false;
       requestAnimationFrame(() => el.classList.add('is-open'));
