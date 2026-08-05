@@ -1,12 +1,12 @@
 /**
  * One call site for persistence, so web and native share the same code.
  *
- * expo-sqlite/kv-store gives an AsyncStorage-shaped API backed by SQLite on
- * iOS and by localStorage on web. Nothing here reaches the network; progress
- * stays on device, per section 11.
+ * The backend is chosen per platform in kv.ts and kv.web.ts, both behind the
+ * same interface, so every call site above this file is identical. Nothing
+ * here reaches the network; progress stays on device, per section 11.
  */
 
-import Store from 'expo-sqlite/kv-store';
+import { backend } from './kv';
 
 export interface Storage {
   get(key: string): Promise<string | null>;
@@ -32,21 +32,21 @@ const memoryStorage: Storage = {
 export const storage: Storage = {
   async get(key) {
     try {
-      return await Store.getItem(key);
+      return await backend.getItem(key);
     } catch {
       return memoryStorage.get(key);
     }
   },
   async set(key, value) {
     try {
-      await Store.setItem(key, value);
+      await backend.setItem(key, value);
     } catch {
       await memoryStorage.set(key, value);
     }
   },
   async remove(key) {
     try {
-      await Store.removeItem(key);
+      await backend.removeItem(key);
     } catch {
       await memoryStorage.remove(key);
     }
