@@ -25,6 +25,24 @@ npm run build:single # web/dist/automata-k.html, one file, opens with file://
 The built app works from any path a host serves it from, makes no network
 requests, and keeps progress in localStorage.
 
+## Publishing it
+
+`.github/workflows/pages.yml` builds `web/dist` and publishes it to GitHub
+Pages on every push to `main`, after the full check has passed. The site needs
+enabling once by hand: **Settings, then Pages, then set Source to "GitHub
+Actions"**. Nothing in the workflow can do that for you, and until it is done
+the deploy step fails with "Get Pages site failed".
+
+Nothing else is needed. Assets are built with `base: './'` so every URL is
+relative and a project page at `/<repo>/` works exactly like a domain root, and
+routing is by hash so no request ever reaches the server for a path it does not
+already have a file for. The deploy also publishes `automata-k.html`, the whole
+game in one file, next to the site.
+
+`.github/workflows/ci.yml` runs the same check on every other branch and every
+pull request. Both call `verify.yml`, so there is one definition of what passing
+means.
+
 For iOS, `ios/` is a Swift package containing the engine. See `ios/README.md`,
 including what has and has not been executed.
 

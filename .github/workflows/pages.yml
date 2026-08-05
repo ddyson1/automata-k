@@ -1,0 +1,66 @@
+name: pages
+
+# Publishes web/dist to GitHub Pages.
+#
+# The site needs enabling once, by hand: Settings, then Pages, then set Source
+# to "GitHub Actions". Nothing here can do that for you, and until it is done
+# the deploy step fails with "Get Pages site failed".
+#
+# The app is built with base './', so every asset URL is relative and the same
+# build works from a project page at /automata-k/ as it does from a domain
+# root. Routing is by hash, so no path ever reaches the server that it does not
+# already have a file for, and Pages needs no rewrite rules.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time, and never cancel one that is already publishing.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    uses: ./.github/workflows/verify.yml
+
+  build:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      # One self contained file alongside the folder, for anyone who would
+      # rather download the game than visit it.
+      - run: node scripts/build-single-file.mjs
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

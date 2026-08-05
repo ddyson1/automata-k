@@ -1,0 +1,14 @@
+name: ci
+
+# Every branch except main, and every pull request. Pushes to main run the
+# same check inside pages.yml, on the way to the deploy, so they are excluded
+# here rather than checked twice.
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+
+jobs:
+  verify:
+    uses: ./.github/workflows/verify.yml
