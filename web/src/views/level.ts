@@ -24,8 +24,8 @@ import { success } from '../haptics';
 import { createDiagram } from '../components/diagram';
 import type { Diagram } from '../components/diagram';
 import { createBrief } from '../components/brief';
-import { createOverlay } from '../components/overlay';
-import type { OverlayTab } from '../components/overlay';
+import { createPanels } from '../components/panels';
+import type { PaneTab } from '../components/panels';
 import { createTrace } from '../components/trace';
 import { createSheet } from '../components/sheet';
 import { buildRuleEditor } from '../components/ruleEditor';
@@ -221,21 +221,11 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     trace.el,
   );
 
-  // -- brief and overlay ----------------------------------------------------
+  // -- the pane -------------------------------------------------------------
 
   const ruleSheet = createSheet('rule-sheet');
 
-  /** Whether the pane was already up before the overlay took it over. */
-  let paneWasOpen = false;
-
-  const overlay = createOverlay({
-    onClose: () => {
-      highlighted = [];
-      // On a phone the pane is a sheet, and the overlay opened it. Put it back
-      // where it was, or the machine that just arrived stays behind it.
-      if (!paneWasOpen) pane.classList.remove('is-open');
-      paintDiagram();
-    },
+  const panels = createPanels({
     onHighlight: (ids) => {
       highlighted = ids;
       paintDiagram();
@@ -256,17 +246,12 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     },
     onAdopt: (derived, description) => {
       game.replaceMachine(levelId, derived);
-      paneWasOpen = false;
-      overlay.close();
-      requestAnimationFrame(() => diagram.fit());
+      showCanvas();
       announce(`Canvas replaced with ${description}.`);
     },
     onReveal: () => {
       game.reveal(levelId);
-      // Whatever the pane was doing, the point now is to look at the canvas.
-      paneWasOpen = false;
-      overlay.close();
-      requestAnimationFrame(() => diagram.fit());
+      showCanvas();
       announce('The worked solution is on the canvas.');
     },
   });
@@ -276,17 +261,44 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     onTrace: (input) => {
       trace.play(machine(), level, input);
       // You asked a question about the machine, so get out of the machine's
-      // way. On a phone that means the brief drops back to peeking.
+      // way. On a phone that means the pane drops back to peeking.
       pane.classList.remove('is-open');
       render();
     },
-    onOpenMachine: () => openOverlay('machine'),
-    onOpenHint: () => openOverlay('hint'),
     onNext: () => {
       const next = game.nextLevel(levelId);
       navigate(next ? `#/level/${next.id}` : '#/');
     },
   });
+
+  // The tabs the pane can be in. The brief is one of them rather than the
+  // thing the others cover up, which is what lets the head and the foot stay
+  // put: whichever tab is open, the level line is above it and the verdict is
+  // below it.
+  const TABS: { key: PaneTab; label: string }[] = [
+    { key: 'brief', label: 'Brief' },
+    { key: 'machine', label: 'Machine' },
+    { key: 'theory', label: 'Theory' },
+    { key: 'analysis', label: 'Analysis' },
+    { key: 'hint', label: 'Stuck' },
+  ];
+
+  let tab: PaneTab = 'brief';
+  const tabButtons = new Map<PaneTab, HTMLButtonElement>();
+  const tabStrip = h('nav', { class: 'pane-tabs', role: 'tablist' });
+
+  for (const entry of TABS) {
+    const node = h(
+      'button',
+      { class: 'pane-tab', type: 'button', role: 'tab', 'data-testid': `tab-${entry.key}` },
+      entry.label,
+    );
+    on(node, 'click', () => setTab(entry.key));
+    tabButtons.set(entry.key, node);
+    tabStrip.appendChild(node);
+  }
+
+  const paneBody = h('div', { class: 'pane-body' }, brief.body, panels.el);
 
   const paneGrab = h('button', {
     class: 'pane-grab',
@@ -294,22 +306,52 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     'data-testid': 'pane-grab',
     'aria-label': 'Show the brief',
   });
-  const pane = h('div', { class: 'pane', 'data-testid': 'pane' }, paneGrab, brief.el, overlay.el);
+  const pane = h(
+    'div',
+    { class: 'pane', 'data-testid': 'pane' },
+    paneGrab,
+    brief.head,
+    tabStrip,
+    paneBody,
+    brief.foot,
+  );
   on(paneGrab, 'click', () => {
     const open = pane.classList.toggle('is-open');
     paneGrab.setAttribute('aria-label', open ? 'Hide the brief' : 'Show the brief');
   });
 
-  function openOverlay(tab: OverlayTab): void {
-    paneWasOpen = pane.classList.contains('is-open');
-    overlay.update({
-      level,
-      machine: machine(),
-      selected: selectedTransitions,
-      shownSolution: game.wasShown(levelId),
-    });
-    overlay.open(tab);
-    pane.classList.add('is-open');
+  function setTab(next: PaneTab): void {
+    tab = next;
+    for (const [key, node] of tabButtons) {
+      const on_ = key === next;
+      node.classList.toggle('is-on', on_);
+      node.setAttribute('aria-selected', String(on_));
+    }
+    brief.body.hidden = next !== 'brief';
+    panels.el.hidden = next === 'brief';
+    // Highlighting belongs to the transition list; leaving it takes it away.
+    if (next !== 'machine' && highlighted.length > 0) {
+      highlighted = [];
+      paintDiagram();
+    }
+    if (next !== 'brief') {
+      panels.update({
+        level,
+        machine: machine(),
+        selected: selectedTransitions,
+        shownSolution: game.wasShown(levelId),
+      });
+      panels.show(next);
+      pane.classList.add('is-open');
+    }
+    paneBody.scrollTop = 0;
+  }
+
+  /** Something has just landed on the canvas. Go and look at it. */
+  function showCanvas(): void {
+    setTab('brief');
+    pane.classList.remove('is-open');
+    requestAnimationFrame(() => diagram.fit());
   }
 
   // -- sheets ---------------------------------------------------------------
@@ -486,12 +528,14 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
           : 'Double click to place a state · drag from a rim to draw an arrow',
     );
 
-    overlay.update({
-      level,
-      machine: current,
-      selected: selectedTransitions,
-      shownSolution: game.wasShown(levelId),
-    });
+    if (tab !== 'brief') {
+      panels.update({
+        level,
+        machine: current,
+        selected: selectedTransitions,
+        shownSolution: game.wasShown(levelId),
+      });
+    }
 
     scheduleGrade();
   }
@@ -508,7 +552,11 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
       else game.undo(levelId);
       return;
     }
-    if (overlay.isOpen) return;
+    // Escape steps back through the pane before it clears the canvas.
+    if (event.key === 'Escape' && tab !== 'brief') {
+      setTab('brief');
+      return;
+    }
     if (event.key === 'Escape') {
       selectedState = null;
       selectedTransitions = [];
@@ -526,6 +574,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
 
   const offResize = on(window as unknown as EventTarget, 'resize', () => placeStateBar());
 
+  setTab('brief');
   render();
   paintBrief();
   // Frame whatever was restored from storage, rather than trusting that the

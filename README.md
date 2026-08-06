@@ -45,13 +45,19 @@ Par is the state count of a verified solution. Levels unlock in order.
 
 ## The machine, as a formal object
 
-One disclosure away from the canvas: the defining tuple, the transition
-function, a grammar that generates the same language, where the level sits in
-the hierarchy, and the analyses. Pointing at a rule lights the arrow it came
-from; selecting an arrow lights its rule. On a deterministic class the unwired
-pairs are listed in red with a running count.
+Four more tabs beside the brief: the defining tuple, the transition function, a
+grammar that generates the same language, where the level sits in the hierarchy,
+and the analyses. Which level you are on stays above the tabs and how the machine
+is doing stays below them, so reading δ never costs you the score. Pointing at a
+rule lights the arrow it came from; selecting an arrow lights its rule. On a
+deterministic class the unwired pairs are listed in red with a running count.
 
-![The tuple and the transition function, over the brief](docs/machine.png)
+![The tuple and the transition function, beside the canvas](docs/machine.png)
+
+Theory explains rather than states. Every letter of the tuple says what it means
+in words with no notation in it, and then what it is in the machine you have
+drawn: `Q` is "one state is one fact worth remembering", and under it `{q0, q1}`,
+so 2 states. δ is taken apart into what you hand it and what it hands back.
 
 Analysis will decline rather than guess: a machine that is not a well-formed DFA
 has no minimal form, the subset construction does not apply to a stack, and
@@ -172,15 +178,16 @@ by eye, and 36 Playwright tests over two viewports.
     levels.ts    the twelve levels, each with an accepts predicate
     solutions.ts one verified machine per level
     formal.ts    tuple rendering, delta notation, grammars, hierarchy copy
+    layout.ts    arranging a machine so the diagram reads
   /ui
     geometry.ts  edge geometry, shared by the web app and its tests
 /web             the web app: DOM and SVG, no framework
   /src
     brief.ts     the question, the two lists, and the live marks
     diagram.ts   the canvas
-    overlay.ts   the formal layer, over the brief
+    panels.ts    the formal layer: the pane's other four tabs
     ledger.ts    tuple and transition function
-    theory.ts    grammar, hierarchy, class, and the hint
+    theory.ts    symbol by symbol, grammar, hierarchy, and the hint
     trace.ts     the stepper
     fonts/       the three bundled families, subset from the originals
 /ios             the Swift package: the same engine, held to a golden fixture

@@ -132,7 +132,24 @@
   overflow: hidden;
 }
 
+/* --------------------------------------------------------------------------
+   the pane
+
+   Four zones. Which level this is, the tabs, the tab's own content, and how
+   the machine is doing. Only the third changes.
+
+   The formal layer used to be a sheet that slid over all of this, reached by
+   a "The machine ›" link in the footer, with its own tabs and its own close
+   button. Making the brief the first tab instead of the backdrop costs one
+   seam in brief.ts and removes the link, the close button, the slide, the
+   escape handler, the drag-to-dismiss, and the bookkeeping that put the
+   phone's sheet back afterwards. It also fixes something the overlay could
+   not: the verdict no longer disappears the moment you go to read the
+   transition function, which is exactly when you want it.
+   -------------------------------------------------------------------------- */
+
 .pane {
+  --pane-x: 22px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -145,26 +162,68 @@
   display: none;
 }
 
-/* --------------------------------------------------------------------------
-   the brief
-   -------------------------------------------------------------------------- */
-
-.brief {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  flex: 1;
-  padding: calc(18px + var(--safe-top)) 22px calc(16px + var(--safe-bottom))
-    calc(22px + var(--safe-left));
-}
-
-.brief-top {
+.pane-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 14px;
   flex: none;
+  padding: calc(18px + var(--safe-top)) var(--pane-x) 11px
+    calc(var(--pane-x) + var(--safe-left));
 }
+
+.pane-tabs {
+  display: flex;
+  gap: 2px;
+  flex: none;
+  padding: 0 var(--pane-x) 0 calc(var(--pane-x) + var(--safe-left));
+  border-bottom: 1px solid var(--hairline);
+  /* Five labels fit a 320px pane, but only just; a narrower one may scroll. */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.pane-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.pane-tab {
+  min-height: 34px;
+  padding: 0 7px 9px;
+  margin-bottom: -1px;
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+}
+
+.pane-tab:first-child {
+  padding-left: 0;
+}
+
+.pane-tab:hover {
+  color: var(--ink);
+}
+
+.pane-tab.is-on {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+
+.pane-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px var(--pane-x) 20px calc(var(--pane-x) + var(--safe-left));
+}
+
+.pane-body > [hidden] {
+  display: none;
+}
+
+/* --------------------------------------------------------------------------
+   the brief, which is the first tab
+   -------------------------------------------------------------------------- */
 
 .back {
   width: 26px;
@@ -217,10 +276,6 @@
   grid-template-columns: 1fr 1fr;
   gap: 20px;
   padding-top: 18px;
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
 }
 
 .brief-split .t-label {
@@ -276,12 +331,12 @@
   box-shadow: inset 0 0 0 1px var(--rule);
 }
 
-/* the foot --------------------------------------------------------------- */
+/* the foot, which belongs to the pane rather than to the brief ------------ */
 
-.brief-foot {
+.pane-foot {
   flex: none;
-  padding-top: 14px;
-  margin-top: 14px;
+  padding: 14px var(--pane-x) calc(16px + var(--safe-bottom))
+    calc(var(--pane-x) + var(--safe-left));
   border-top: 1px solid var(--hairline);
 }
 
@@ -292,11 +347,11 @@
   color: var(--muted);
 }
 
-.brief.is-solved .brief-score {
+.pane-foot.is-solved .brief-score {
   color: var(--pass);
 }
 
-.brief.is-broken .brief-score {
+.pane-foot.is-broken .brief-score {
   color: var(--fail);
 }
 
@@ -306,7 +361,7 @@
   min-height: 1.4em;
 }
 
-.brief.is-broken .brief-why {
+.pane-foot.is-broken .brief-why {
   color: var(--fail);
 }
 
@@ -739,96 +794,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   the overlay: the formal layer, over the brief
-   -------------------------------------------------------------------------- */
-
-.overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 6;
-  display: flex;
-  flex-direction: column;
-  background: var(--surface);
-  transform: translateX(-8px);
-  opacity: 0;
-  transition:
-    transform 0.18s ease,
-    opacity 0.18s ease;
-}
-
-.overlay.is-open {
-  transform: none;
-  opacity: 1;
-}
-
-.overlay[hidden] {
-  display: none;
-}
-
-.ov-grab {
-  display: none;
-}
-
-.ov-head {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  padding: calc(14px + var(--safe-top)) 12px 0 calc(14px + var(--safe-left));
-  border-bottom: 1px solid var(--hairline);
-  flex: none;
-}
-
-.ov-tabs {
-  display: flex;
-  gap: 2px;
-  overflow-x: auto;
-  flex: 1;
-}
-
-.ov-tab {
-  padding: 8px 10px 9px;
-  font-size: 13px;
-  color: var(--muted);
-  border-bottom: 2px solid transparent;
-  white-space: nowrap;
-  min-height: 38px;
-}
-
-.ov-tab.is-on {
-  color: var(--ink);
-  border-bottom-color: var(--ink);
-  font-weight: 500;
-}
-
-.ov-close {
-  width: 34px;
-  height: 34px;
-  margin-bottom: 3px;
-  display: grid;
-  place-items: center;
-  border-radius: 8px;
-  color: var(--muted);
-  font-size: 19px;
-  line-height: 1;
-  flex: none;
-}
-
-.ov-close:hover {
-  background: var(--sunken);
-  color: var(--ink);
-}
-
-.ov-body {
-  flex: 1 1 0;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 16px calc(18px + var(--safe-right)) calc(24px + var(--safe-bottom))
-    calc(18px + var(--safe-left));
-}
-
-/* --------------------------------------------------------------------------
-   the ledger, inside the overlay
+   the ledger, inside the machine tab
    -------------------------------------------------------------------------- */
 
 .band-head {
@@ -1474,8 +1440,8 @@ table.subset-table tr.is-start td:first-child::after {
     border-top: 1px solid var(--rule);
     border-radius: var(--r-sheet) var(--r-sheet) 0 0;
     box-shadow: 0 -8px 30px -14px rgb(0 0 0 / 28%);
-    /* Peeking: the question and the score, nothing else. */
-    transform: translateY(calc(100% - 186px));
+    /* Peeking: which level, how it is going, and the tabs. */
+    transform: translateY(calc(100% - 202px));
     transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
   }
 
@@ -1500,17 +1466,33 @@ table.subset-table tr.is-start td:first-child::after {
     background: var(--rule);
   }
 
-  .brief {
-    padding-top: 4px;
+  .pane-head {
+    padding-top: 2px;
+    padding-bottom: 8px;
   }
 
-  /* Peeking shows the verdict before the lists, so the peek is worth having. */
-  .brief-foot {
-    order: -1;
+  /* The verdict moves above the tabs, so the peek is worth having: which
+     level, how the machine is doing, and a way into all five tabs, without
+     opening anything. */
+  .pane-grab {
+    order: 0;
+  }
+  .pane-head {
+    order: 1;
+  }
+  .pane-foot {
+    order: 2;
     border-top: 0;
     border-bottom: 1px solid var(--hairline);
-    margin: 0 0 4px;
-    padding: 0 0 12px;
+    padding-top: 0;
+    padding-bottom: 12px;
+  }
+  .pane-tabs {
+    order: 3;
+  }
+  .pane-body {
+    order: 4;
+    padding-top: 14px;
   }
 
   .brief-split {
@@ -1518,32 +1500,17 @@ table.subset-table tr.is-start td:first-child::after {
   }
 
   .stage {
-    padding-bottom: 186px;
+    padding-bottom: 202px;
   }
 
   .canvas-hint {
-    bottom: calc(196px + var(--safe-bottom));
+    bottom: calc(212px + var(--safe-bottom));
   }
 
   .empty-prompt {
-    bottom: 186px;
+    bottom: 202px;
   }
 
-  .ov-grab {
-    display: block;
-    width: 36px;
-    height: 4px;
-    border-radius: 999px;
-    background: var(--rule);
-    margin: 9px auto 2px;
-    flex: none;
-    touch-action: none;
-  }
-
-  .overlay {
-    border-radius: var(--r-sheet) var(--r-sheet) 0 0;
-    transform: translateY(10px);
-  }
 }
 
 @media (max-width: 460px) {
