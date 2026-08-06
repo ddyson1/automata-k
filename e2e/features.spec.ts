@@ -263,3 +263,89 @@ test('locked levels stay locked until the one before them is solved', async ({ p
   await expect(rows.filter({ hasText: 'Parity' })).toBeDisabled();
   await expect(rows.filter({ hasText: 'Beyond context free' })).toBeDisabled();
 });
+
+/**
+ * The theory panel used to hold a four column table in a horizontal scroller,
+ * 877 units of it in a 343 unit column, so two columns were always off the
+ * edge and the wheel only reached them about a third of the time. Nothing in
+ * the panel may be wider than the panel.
+ */
+test('nothing in the formal layer needs a sideways scroll', async ({ page }) => {
+  await reveal(page, 'tm-an-bn-cn');
+  await page.getByTestId('open-machine').click();
+
+  for (const tab of ['machine', 'theory', 'analysis', 'hint']) {
+    await page.getByTestId(`tab-${tab}`).click();
+    const over = await page.getByTestId('overlay').locator('.ov-body').evaluate((body) => {
+      const limit = body.clientWidth;
+      return [...body.querySelectorAll('*')]
+        // The subset table is allowed one: it grows a column per input symbol.
+        .filter((n) => !n.closest('.scroll-x'))
+        .filter((n) => Math.round(n.getBoundingClientRect().width) > limit + 1)
+        .map((n) => `${n.tagName.toLowerCase()}.${n.className}`);
+    });
+    expect(over, `${tab} tab`).toEqual([]);
+  }
+});
+
+/**
+ * The three analysis readings all decline on a PDA, which made three tabs that
+ * each produced a paragraph of grey prose and looked like three tabs that did
+ * nothing. They now say which apply before they are pressed.
+ */
+test('the analysis sub tabs say which of them apply to this machine', async ({ page }) => {
+  await reveal(page, 'pda-an-bn');
+  await page.getByTestId('open-machine').click();
+  await page.getByTestId('tab-analysis').click();
+
+  const tabs = page.getByTestId('overlay').locator('.tabs .tab');
+  await expect(tabs).toHaveCount(3);
+  await expect(tabs.filter({ has: page.locator('.tab-mark') })).toHaveCount(3);
+  await expect(page.getByTestId('analysis-none')).toBeVisible();
+
+  // On an NFA, minimisation is the only one that does not apply.
+  await reveal(page, 'nfa-third-last-1');
+  await page.getByTestId('open-machine').click();
+  await page.getByTestId('tab-analysis').click();
+  await expect(page.getByTestId('analysis-none')).toBeHidden();
+  await expect(page.getByTestId('tab-minimal')).toHaveClass(/is-off/);
+  await expect(page.getByTestId('tab-subset')).not.toHaveClass(/is-off/);
+  // The applicable one opens, rather than a declining one.
+  await expect(page.getByTestId('subset-table')).toBeVisible();
+
+  // And pressing each one changes the panel.
+  await page.getByTestId('tab-regex').click();
+  await expect(page.getByTestId('regex-source')).toBeVisible();
+  await page.getByTestId('tab-minimal').click();
+  await expect(page.getByTestId('analysis-declined')).toBeVisible();
+});
+
+/** Tidy has to leave every state where it can be seen, clear of its neighbours. */
+test('tidy spreads the states out instead of piling them up', async ({ page }) => {
+  await reveal(page, 'dfa-contains-01');
+  await page.getByTestId('tidy').click();
+
+  const centres = await page.locator('.state').evaluateAll((nodes) =>
+    nodes.map((n) => {
+      const r = n.getBoundingClientRect();
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    }),
+  );
+  expect(centres.length).toBe(3);
+
+  // All on one line, left to right, and far enough apart for their self loops.
+  const ys = centres.map((c) => Math.round(c.y));
+  expect(Math.max(...ys) - Math.min(...ys)).toBeLessThanOrEqual(1);
+
+  const drawn = await page.locator('.state-ring').first().evaluate((n) => n.getBoundingClientRect().width / 2);
+  for (let i = 0; i < centres.length; i++) {
+    for (let j = i + 1; j < centres.length; j++) {
+      const gap = Math.hypot(
+        (centres[i] as { x: number }).x - (centres[j] as { x: number }).x,
+        (centres[i] as { y: number }).y - (centres[j] as { y: number }).y,
+      );
+      // 1.82 radii is how far a self loop reaches from its own centre.
+      expect(gap).toBeGreaterThan(1.82 * drawn + drawn);
+    }
+  }
+});

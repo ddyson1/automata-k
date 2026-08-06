@@ -18,6 +18,7 @@ import { LEVEL_BY_ID } from '../../../src/engine/levels';
 import type { Level, Machine, StateId, TransitionId } from '../../../src/engine/types';
 import { CANVAS } from '../../../src/engine/types';
 import { h, on, setText } from '../dom';
+import { fitIcon, redoIcon, tidyIcon, undoIcon } from '../icons';
 import { game } from '../store';
 import { success } from '../haptics';
 import { createDiagram } from '../components/diagram';
@@ -156,7 +157,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
   function cornerButton(
     label: string,
     testId: string,
-    glyph: string,
+    glyph: SVGElement,
     action: () => void,
   ): HTMLButtonElement {
     const node = h(
@@ -174,13 +175,15 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     return node;
   }
 
-  const undoButton = cornerButton('Undo', 'undo', '↺', () => game.undo(levelId));
-  const redoButton = cornerButton('Redo', 'redo', '↻', () => game.redo(levelId));
-  const tidyButton = cornerButton('Tidy', 'tidy', '⊞', () => {
+  const undoButton = cornerButton('Undo', 'undo', undoIcon(), () => game.undo(levelId));
+  const redoButton = cornerButton('Redo', 'redo', redoIcon(), () => game.redo(levelId));
+  const tidyButton = cornerButton('Arrange the diagram', 'tidy', tidyIcon(), () => {
     game.tidy(levelId);
     requestAnimationFrame(() => diagram.fit());
   });
-  const fitButton = cornerButton('Fit', 'fit', '⤢', () => diagram.fit());
+  const fitButton = cornerButton('Centre and fit to the screen', 'fit', fitIcon(), () =>
+    diagram.fit(),
+  );
 
   const corner = h('div', { class: 'corner' }, undoButton, redoButton, tidyButton, fitButton);
   const canvasHint = h('p', { class: 'canvas-hint', 'data-testid': 'canvas-hint' });

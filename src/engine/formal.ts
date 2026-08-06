@@ -428,6 +428,237 @@ export const HIERARCHY: HierarchyRow[] = [
 export const hierarchyRow = (type: ChomskyType): HierarchyRow =>
   HIERARCHY.find((h) => h.type === type) as HierarchyRow;
 
+// ---------------------------------------------------------------------------
+// the tutorial layer
+//
+// A tuple is five or seven letters and a student is expected to already know
+// what each one is for. Below, every letter says what it means in words a
+// first year would use, and then what it is in the machine currently on the
+// canvas, so the notation is never floating free of the drawing.
+// ---------------------------------------------------------------------------
+
+export interface TutorLine {
+  /** The component, e.g. "Q". */
+  symbol: string;
+  /** What it is called. */
+  name: string;
+  /** What it means. No notation in here at all. */
+  plain: string;
+  /** What it is in the machine on the canvas right now. */
+  yours: string;
+}
+
+/** What the class remembers, which is the thing that separates the four. */
+const MEMORY: Record<MachineKind, string> = {
+  DFA: 'Which circle it is standing in, and nothing else. That is the entire memory of a finite automaton.',
+  NFA: 'Which circles it is standing in. It may be in several at once, but the set is still all it knows.',
+  PDA: 'Which circle it is standing in, plus a stack it can push to and pop from, but only ever at the top.',
+  TM: 'Which circle it is standing in, plus a tape it can read, overwrite and walk along in both directions.',
+};
+
+export function tupleTutor(m: Machine, level: Level): TutorLine[] {
+  const l = labels(m);
+  const n = m.states.length;
+  const count = (k: number, one: string, many = `${one}s`): string =>
+    `${k} ${k === 1 ? one : many}`;
+
+  const lines: TutorLine[] = [
+    {
+      symbol: 'Q',
+      name: 'the states',
+      plain:
+        'Every circle on the canvas. One state is one fact worth remembering. ' +
+        MEMORY[level.type],
+      yours:
+        n === 0
+          ? 'nothing drawn yet'
+          : `${setOf(m.states.map((s) => s.label))}, so ${count(n, 'state')}`,
+    },
+    {
+      symbol: 'Σ',
+      name: 'the input alphabet',
+      plain:
+        'The symbols a string may be built from. The level fixes this: every string in the ' +
+        'two lists is written in exactly these symbols, and so is every arrow you can draw.',
+      yours: setOf(level.alphabet),
+    },
+  ];
+
+  if (level.type === 'PDA') {
+    lines.push({
+      symbol: 'Γ',
+      name: 'the stack alphabet',
+      plain:
+        'What may be pushed onto the stack. Not the same as the input alphabet: the stack is ' +
+        'scratch paper, and it may hold marks that never appear in any string.',
+      yours: setOf(level.stackAlphabet ?? [STACK_BOTTOM]),
+    });
+  }
+  if (level.type === 'TM') {
+    lines.push({
+      symbol: 'Γ',
+      name: 'the tape alphabet',
+      plain:
+        'What may appear on the tape. It always contains the input alphabet and the blank, ' +
+        'and usually a few scratch symbols the machine writes to cross things off.',
+      yours: setOf(level.tapeAlphabet ?? [...level.alphabet, BLANK]),
+    });
+  }
+
+  lines.push({
+    symbol: `q${SUB0}`,
+    name: 'the start state',
+    plain:
+      'Where the machine stands before it has read anything. The stub arrow coming in from ' +
+      'nowhere points at it. There is exactly one, always.',
+    yours: m.start === null ? 'not set yet' : (l.get(m.start) ?? '?'),
+  });
+
+  if (level.type === 'PDA') {
+    lines.push({
+      symbol: `Z${SUB0}`,
+      name: 'the bottom of the stack',
+      plain:
+        'A mark sitting on the stack before anything is pushed. Without it the machine could ' +
+        'not tell an empty stack from a stack it has not looked at.',
+      yours: STACK_BOTTOM,
+    });
+  }
+  if (level.type === 'TM') {
+    lines.push({
+      symbol: BLANK,
+      name: 'the blank',
+      plain:
+        'What every cell of the tape holds where nothing has been written. It is a symbol like ' +
+        'any other and the machine can read it, which is how it knows the input has run out.',
+      yours: BLANK,
+    });
+  }
+
+  const accepting = m.accepting.map((id) => l.get(id) ?? '?').sort();
+  lines.push({
+    symbol: 'F',
+    name: 'the accepting states',
+    plain:
+      'The double circles. Finish the string standing in one of these and the string is in the ' +
+      'language. F may be empty, and it may be all of Q; neither is an error, both are usually wrong.',
+    yours:
+      accepting.length === 0 ? 'none marked yet' : `${setOf(accepting)}, out of ${count(n, 'state')}`,
+  });
+
+  const summary = deltaSummary(m, level);
+  lines.push({
+    symbol: 'δ',
+    name: 'the transition function',
+    plain:
+      'The arrows, written down. Give it where you are and what you just read, and it says ' +
+      'where to go. Everything the machine does is in here; the rest of the tuple only says ' +
+      'what the pieces are made of.',
+    yours: `${count(m.transitions.length, 'arrow')}. ${summary.note}`,
+  });
+
+  return lines;
+}
+
+/** The δ signature, taken apart into the two halves that make it readable. */
+export interface DeltaTutor {
+  signature: string;
+  /** What you hand it. */
+  input: string;
+  /** What it hands back. */
+  output: string;
+  /** The sentence that makes the arrow make sense. */
+  reading: string;
+}
+
+export function deltaTutor(kind: MachineKind): DeltaTutor {
+  switch (kind) {
+    case 'DFA':
+      return {
+        signature: deltaSignature('DFA'),
+        input: 'a state, and one input symbol',
+        output: 'exactly one state',
+        reading:
+          'Exactly one is the whole of determinism. Not two, so there is never a choice to ' +
+          'make; not none, so the machine can never get stuck. That is why an unwired pair is ' +
+          'flagged: a DFA with a gap is not a slow DFA, it is not a DFA.',
+      };
+    case 'NFA':
+      return {
+        signature: deltaSignature('NFA'),
+        input: 'a state, and either an input symbol or ε',
+        output: 'a set of states, which may be empty',
+        reading:
+          'Handing back a set instead of a state is what nondeterminism is. The machine stands ' +
+          'in all of them at once, and the empty set is simply that branch dying. ε lets it ' +
+          'move without reading anything, so a single symbol can carry it several arrows deep.',
+      };
+    case 'PDA':
+      return {
+        signature: deltaSignature('PDA'),
+        input: 'a state, a symbol to read or ε, and a symbol to pop or ε',
+        output: 'a set of (next state, symbol to push) pairs',
+        reading:
+          'The stack is what a finite automaton has not got. Pop on the way in, push on the way ' +
+          'out, and matching pairs fall out for free: push while reading the first half, pop ' +
+          'while reading the second, and the stack empties exactly when the counts agree.',
+      };
+    case 'TM':
+      return {
+        signature: deltaSignature('TM'),
+        input: 'a state, and whatever is on the tape under the head',
+        output: 'the next state, a symbol to write over it, and L or R',
+        reading:
+          'Writing is the new power. The tape is input and workspace at once, so the machine can ' +
+          'cross a symbol off, walk back and look again. Nothing here says the walk ever ends, ' +
+          'and that is not an oversight: a Turing machine is allowed to run forever.',
+      };
+  }
+}
+
+export interface GlossEntry {
+  symbol: string;
+  plain: string;
+}
+
+/** Every piece of notation the formal layer puts on screen, in words. */
+export const NOTATION_GLOSSARY: GlossEntry[] = [
+  { symbol: '×', plain: 'and, as a pair. Q × Σ is every way of choosing a state and a symbol.' },
+  { symbol: '→', plain: 'gives back. Left of it is what you hand over, right of it what you get.' },
+  { symbol: '∪', plain: 'or. Σ ∪ {ε} means an input symbol, or nothing at all.' },
+  { symbol: '∩', plain: 'the things in both. A ∩ B is what A and B have in common.' },
+  { symbol: '∈', plain: 'is one of. q ∈ F says the state q is one of the accepting states.' },
+  { symbol: '∋', plain: 'contains, written the other way round, so the set comes first.' },
+  { symbol: '∅', plain: 'the empty set. Nothing in it, and not the same as ε.' },
+  { symbol: 'ε', plain: 'the empty string. Zero symbols long. Not a space, not a blank cell.' },
+  { symbol: 'P(', plain: 'P(Q) is every subset of Q at once. If Q has n states, P(Q) has 2^n of them.' },
+  { symbol: 'δ̂', plain: 'δ with a hat: δ run once per symbol, all the way along a string.' },
+  { symbol: '⊢', plain: 'steps to. ⊢* means after any number of steps, zero included.' },
+  { symbol: '|w|', plain: 'the length of w, counted in symbols.' },
+  { symbol: '*', plain: 'as in Σ*: every string over Σ, of any length, the empty one included.' },
+  { symbol: BLANK, plain: 'the blank tape symbol, so the machine can see where the input ran out.' },
+  { symbol: STACK_BOTTOM, plain: 'the mark at the bottom of the stack, put there before anything is pushed.' },
+];
+
+/**
+ * The glossary cut down to what this level actually shows. A student reading
+ * about a DFA has no use for a stack marker, and a wall of symbols nobody has
+ * met yet reads as noise rather than as help.
+ */
+export function glossaryFor(level: Level): GlossEntry[] {
+  const copy = MACHINE_CLASS[level.type];
+  const shown = [
+    copy.definition,
+    copy.acceptance,
+    copy.power,
+    level.theory,
+    level.setBuilder,
+    hierarchyRow(level.chomsky).productions,
+    ...HIERARCHY.map((r) => r.example),
+  ].join(' ');
+  return NOTATION_GLOSSARY.filter((e) => shown.includes(e.symbol));
+}
+
 /** One-line placement of a level in the hierarchy, for the level sheet. */
 export const hierarchyBlurb = (level: Level): string => {
   const row = hierarchyRow(level.chomsky);

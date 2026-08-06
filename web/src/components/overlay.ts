@@ -14,7 +14,7 @@ import type { DeltaLine } from '../../../src/engine/formal';
 import { h, on } from '../dom';
 import { createLedger } from './ledger';
 import type { Ledger } from './ledger';
-import { buildAnalysis } from './analysis';
+import { buildAnalysis, defaultSection } from './analysis';
 import type { AnalysisSection } from './analysis';
 import { buildHint, buildTheory } from './theory';
 
@@ -129,9 +129,7 @@ export function createOverlay(callbacks: OverlayCallbacks): Overlay {
       return;
     }
     if (tab === 'analysis') {
-      const fallback: AnalysisSection =
-        state.level.type === 'NFA' ? 'subset' : state.level.type === 'DFA' ? 'minimal' : 'regex';
-      buildAnalysis(body, state.machine, state.level, analysisTab ?? fallback, {
+      buildAnalysis(body, state.machine, state.level, analysisTab ?? defaultSection(state.level), {
         onAdopt: callbacks.onAdopt,
         onSection: (section) => {
           analysisTab = section;

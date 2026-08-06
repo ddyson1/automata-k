@@ -38,6 +38,12 @@ export const BEND_PARALLEL = 34;
  */
 const LOOP_CENTRE = 1.14;
 const LOOP_RADIUS = 0.68;
+/**
+ * How far a self loop reaches from the centre of its own state, in radii. A
+ * state carrying one takes up this much room, not one radius, which is what a
+ * layout has to leave between states.
+ */
+export const LOOP_REACH = LOOP_CENTRE + LOOP_RADIUS;
 /** Height of one chip row in a stack. */
 export const CHIP_ROW_HEIGHT = 24;
 /** Advance of one character in the chip's monospace face, at the chip's size. */

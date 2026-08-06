@@ -96,6 +96,37 @@ Assets are built with `base: './'` so every URL is relative and a project page a
 request ever reaches the server for a path it does not already have a file for.
 Pages needs no rewrite rules.
 
+### On a domain of its own
+
+At the registrar, on the apex record, four A records:
+
+```
+185.199.108.153   185.199.110.153
+185.199.109.153   185.199.111.153
+```
+
+and four AAAA, if the registrar takes them:
+
+```
+2606:50c0:8000::153   2606:50c0:8002::153
+2606:50c0:8001::153   2606:50c0:8003::153
+```
+
+`www` is a CNAME to `<owner>.github.io.` — the owner, not the repository. Delete
+whatever the registrar parked on the domain first, particularly its own A
+records and its `www`; a leftover one wins over GitHub roughly half the time and
+makes the failure intermittent, which is worse than it failing.
+
+Then Settings, then Pages, then Custom domain, then wait for the DNS check to
+pass before ticking Enforce HTTPS. The certificate is issued after that check,
+not before, so ticking early gives a name mismatch for a few minutes.
+
+Two consequences worth knowing before starting. A repository has one custom
+domain, so the old address stops serving this site and redirects to the new one.
+And a project repository with its own domain is served at that domain's **root**,
+not under `/<repo>/` — which the relative asset paths and hash routing above
+already handle, with nothing to rebuild.
+
 `.github/workflows/ci.yml` runs the same check on every other branch and every
 pull request. Both call `verify.yml`, so there is one definition of what passing
 means.

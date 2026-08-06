@@ -6,8 +6,8 @@
  * moveState once, on release. Nothing in this module runs per frame.
  */
 
+import { layoutMachine } from '../../src/engine/layout';
 import { LEVELS, isUnlocked } from '../../src/engine/levels';
-import { ringLayout } from '../../src/engine/minimize';
 import { solutionFor } from '../../src/engine/solutions';
 import type {
   Level,
@@ -253,7 +253,7 @@ class Game {
 
   tidy(levelId: string): void {
     this.edit(levelId, (m) => {
-      const points = ringLayout(m.states.length);
+      const points = layoutMachine(m);
       m.states.forEach((s, i) => {
         const p = points[i];
         if (p) {
