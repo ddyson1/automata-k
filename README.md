@@ -73,23 +73,6 @@ whose solution stopped matching its own language would fail the build.
 
 Par is the state count of a verified solution. Levels unlock in order.
 
-The level select is the hierarchy itself: nested bands, and every level a dot in
-the smallest band that can hold its **language**, carrying the mark of the
-**machine** you draw it with. Four of the tape levels sit inside the context
-free band, which is the argument of the last group made as a picture — a
-stronger machine, not a larger language.
-
-The type 0 band is empty, and not for want of a puzzle. Every level is graded by
-asking a predicate this program runs, so every language here is one a program can
-**decide**, and the decidable languages stop short of type 0. A type 0 level
-would need a machine allowed to run forever on a string it ought to reject, and
-no list of ticks could mark that row: `simulate.ts` reports a run that never
-halts as exactly that, never as a rejection. The **recursive** band is drawn for
-that reason. It is not one of Chomsky's four, and it is where all forty two
-levels live.
-
-![The nested bands, each naming the automaton that recognises it](docs/home.png)
-
 ## The machine, as a formal object
 
 Four more tabs beside the brief: the defining tuple, the transition function, a
@@ -210,7 +193,7 @@ production shows up immediately, including in the context sensitive grammar for
 Alongside those: validation tests, simulation cap tests, a property test
 determinising random NFAs, Hopcroft minimisation against par, state elimination
 checked against every level language, arrow geometry pinned by tests rather than
-by eye, and 52 Playwright tests over two viewports.
+by eye, and 48 Playwright tests over two viewports.
 
 ## Layout
 

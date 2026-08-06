@@ -9,13 +9,7 @@ import { expect, test, type Page } from '@playwright/test';
 const openLevelOne = async (page: Page): Promise<void> => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'automata-k' })).toBeVisible();
-  // A dot reads out on the first press and opens on the second. A mouse hovers
-  // before it clicks, so on a desktop the first press is already the second.
-  const first = page.locator('[data-testid="level-row"][data-level="dfa-ends-in-1"]');
-  await first.click();
-  if (await page.getByTestId('readout-play').isVisible()) {
-    await page.getByTestId('readout-play').click();
-  }
+  await page.getByTestId('level-row').filter({ hasText: 'Last symbol' }).click();
   await expect(page.getByTestId('stage')).toBeVisible();
 };
 
@@ -63,7 +57,7 @@ test('progress survives a reload', async ({ page }) => {
   await expect(page.getByTestId('solved-count')).toHaveText(/^1\/\d+$/);
   await expect(
     page.locator('[data-testid="level-row"][data-level="dfa-even-zeros"]'),
-  ).not.toHaveAttribute('aria-disabled', 'true');
+  ).toBeEnabled();
 });
 
 test('the machine tab highlights both ways', async ({ page }) => {
