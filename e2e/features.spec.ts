@@ -547,3 +547,65 @@ test('the clear action is absent on an untouched canvas', async ({ page }) => {
   await tab(page, 'hint');
   await expect(page.getByTestId('clear')).toBeVisible();
 });
+
+/**
+ * Four drawn glyphs in the corner and no words is a quiz. `title` was the old
+ * answer and a bad one: about a second of delay, unstyleable, and absent
+ * entirely on a touch screen. The label is the app's own now, so it has to be
+ * on every icon-only control and the browser's must be gone.
+ */
+test('every icon on the canvas carries its own label', async ({ page }) => {
+  await open(page, 'dfa-ends-in-1');
+
+  const labelled = await page
+    .locator('.corner-b, [data-testid="pane-grab"]')
+    .evaluateAll((nodes) =>
+      nodes.map((n) => ({
+        id: n.getAttribute('data-testid'),
+        tip: n.getAttribute('data-tip'),
+        aria: n.getAttribute('aria-label'),
+        title: n.getAttribute('title'),
+      })),
+    );
+
+  expect(labelled.length).toBe(5);
+  for (const n of labelled) {
+    expect(n.tip, `${n.id} has a label`).toBeTruthy();
+    // The two must agree, or the screen reader and the screen disagree.
+    expect(n.tip, `${n.id} label matches its aria-label`).toBe(n.aria);
+    expect(n.title, `${n.id} has no native tooltip to double up`).toBeNull();
+  }
+
+  // Hover draws it. The tip is a pseudo element, so it is read off the style
+  // rather than found in the DOM — there is no node to query.
+  const hidden = await page
+    .getByTestId('tidy')
+    .evaluate((n) => getComputedStyle(n, '::after').opacity);
+  expect(hidden, 'hidden until hovered').toBe('0');
+
+  await page.getByTestId('tidy').hover();
+  await expect
+    .poll(() =>
+      page.getByTestId('tidy').evaluate((n) => getComputedStyle(n, '::after').opacity),
+    )
+    .toBe('1');
+});
+
+/**
+ * A touch screen has no hover, so the only moment it can be told what a button
+ * does is just after the button is pressed.
+ */
+test('on a touch screen a tool says its name after it is pressed', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'there is a pointer here, so hover already says it');
+  await reveal(page, 'dfa-ends-in-1');
+
+  await expect(page.getByTestId('tidy')).not.toHaveClass(/is-saying/);
+  await page.getByTestId('tidy').click();
+  await expect(page.getByTestId('tidy')).toHaveClass(/is-saying/);
+  // The canvas hint sits in exactly this spot, so it stands down meanwhile.
+  await expect(page.locator('.stage')).toHaveClass(/is-tipping/);
+
+  // And it clears itself rather than staying up over the machine.
+  await expect(page.getByTestId('tidy')).not.toHaveClass(/is-saying/, { timeout: 4000 });
+  await expect(page.locator('.stage')).not.toHaveClass(/is-tipping/);
+});

@@ -268,7 +268,10 @@ drag. A state's own controls appear attached to it when it is selected, and an
 empty canvas says what to do in the middle of itself.
 
 Four quiet icons in one corner do the things with nothing to attach to: undo,
-redo, tidy, fit.
+redo, tidy, fit. Each draws its own label on hover and on keyboard focus, and
+flashes it after a press on a touch screen, which has no hover to draw it with.
+The browser's own `title` tooltip is not used: it takes about a second to
+appear, cannot be styled, and never shows on touch at all.
 
 Every level opens on a blank canvas. What you draw lives for the session, so
 moving between levels keeps it and a reload does not: arriving at a level and

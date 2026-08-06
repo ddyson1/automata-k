@@ -181,6 +181,17 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
 
   // -- corner controls ------------------------------------------------------
 
+  /**
+   * A corner control, with its name attached.
+   *
+   * Four drawn glyphs and no words is a quiz. `title` is not the answer: the
+   * browser's own tooltip takes about a second to appear, cannot be styled to
+   * look like it belongs here, and never appears at all on a touch screen,
+   * which is the case that needs it most. So the label is drawn by the app —
+   * on hover and on keyboard focus where there is a pointer, and as a brief
+   * flash after the press where there is not, which is the only moment a
+   * touch device can be told anything.
+   */
   function cornerButton(
     label: string,
     testId: string,
@@ -190,16 +201,40 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     const node = h(
       'button',
       {
-        class: 'corner-b',
+        class: 'corner-b tip',
         type: 'button',
         'data-testid': testId,
         'aria-label': label,
-        title: label,
+        // Read by CSS, not by a screen reader: aria-label already says this,
+        // and a reader that met both would say it twice.
+        'data-tip': label,
       },
       glyph,
     );
-    on(node, 'click', action);
+    on(node, 'click', () => {
+      action();
+      if (TOUCH) flashTip(node);
+    });
     return node;
+  }
+
+  /**
+   * Say what the button just did, once, where there is no hover to say it.
+   *
+   * The canvas hint stands down while it is up: on a phone both sit just above
+   * the tool pill, and two lines of small type on top of each other are worse
+   * than either alone.
+   */
+  let tipTimer: ReturnType<typeof setTimeout> | null = null;
+  function flashTip(node: HTMLElement): void {
+    if (tipTimer) clearTimeout(tipTimer);
+    for (const other of corner.children) other.classList.remove('is-saying');
+    node.classList.add('is-saying');
+    stage.classList.add('is-tipping');
+    tipTimer = setTimeout(() => {
+      node.classList.remove('is-saying');
+      stage.classList.remove('is-tipping');
+    }, 1500);
   }
 
   const undoButton = cornerButton('Undo', 'undo', undoIcon(), () => game.undo(levelId));
@@ -344,10 +379,11 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
   const paneGrab = h(
     'button',
     {
-      class: 'pane-grab',
+      class: 'pane-grab tip',
       type: 'button',
       'data-testid': 'pane-grab',
       'aria-label': 'Show the brief',
+      'data-tip': 'Show the brief',
     },
     h('span', { class: 'pane-grab-i', 'aria-hidden': 'true' }, '⌄'),
   );
@@ -386,7 +422,9 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
 
   function togglePane(want?: boolean): void {
     const open = pane.classList.toggle('is-open', want);
-    paneGrab.setAttribute('aria-label', open ? 'Hide the brief' : 'Show the brief');
+    const label = open ? 'Hide the brief' : 'Show the brief';
+    paneGrab.setAttribute('aria-label', label);
+    paneGrab.setAttribute('data-tip', label);
     setText(paneGrab.firstElementChild as HTMLElement, open ? '⌃' : '⌄');
   }
 

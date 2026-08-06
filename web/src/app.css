@@ -436,6 +436,13 @@
   color: var(--faint);
   margin: 0;
   pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .canvas-hint {
+    transition: none;
+  }
 }
 
 .empty-prompt {
@@ -491,6 +498,65 @@
 .corner-b:hover:not(:disabled) {
   color: var(--ink);
   background: var(--surface);
+}
+
+/* the label an icon button carries ---------------------------------------
+
+   Four drawn glyphs with no words is a quiz, and the browser's own `title`
+   is the wrong answer to it: about a second of delay, no way to make it look
+   like it belongs here, and nothing at all on a touch screen. This is drawn
+   by the app, off data-tip, so it appears at once and matches everything
+   around it. aria-label carries the same words for a screen reader, which is
+   why the tip itself is a pseudo element and never enters the a11y tree.
+   -------------------------------------------------------------------------- */
+
+.tip {
+  position: relative;
+}
+
+.tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 7px);
+  right: 0;
+  padding: 5px 9px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-control);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.01em;
+  line-height: 1.35;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-3px);
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease;
+}
+
+.tip:hover::after,
+.tip:focus-visible::after,
+.tip.is-saying::after {
+  opacity: 1;
+  transform: none;
+}
+
+/* A disabled Undo still says what it is. Hover fires on a disabled button;
+   focus does not, which is why this leans on hover alone. */
+.tip:disabled:hover::after {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tip::after {
+    transition: none;
+    transform: none;
+  }
 }
 
 .corner-b:disabled {
@@ -1631,8 +1697,27 @@ table.subset-table tr.is-start td:first-child::after {
     padding: 2px 4px;
   }
 
+  .corner .tip::after {
+    top: auto;
+    bottom: calc(100% + 7px);
+    left: 0;
+    right: auto;
+    transform: translateY(3px);
+  }
+
+  .corner .tip:hover::after,
+  .corner .tip:focus-visible::after,
+  .corner .tip.is-saying::after {
+    transform: none;
+  }
+
   .canvas-hint {
     bottom: calc(72px + var(--safe-bottom));
+  }
+
+  /* A tool is saying its name in this exact spot. */
+  .stage.is-tipping .canvas-hint {
+    opacity: 0;
   }
 
   .empty-prompt {
