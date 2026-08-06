@@ -11,6 +11,7 @@ import { LEVELS, isUnlocked } from '../../../src/engine/levels';
 import type { Level, MachineKind } from '../../../src/engine/types';
 import { h, on, setText } from '../dom';
 import { notation } from '../notation';
+import { setSound, soundOn } from '../sound';
 import { game } from '../store';
 import type { ThemeChoice } from '../store';
 import type { View } from './level';
@@ -51,6 +52,19 @@ export function createHomeView(navigate: (hash: string) => void): View {
     const next = order[(order.indexOf(game.theme) + 1) % order.length] as ThemeChoice;
     game.setTheme(next);
   });
+
+  // The one sound the app makes, and a way to stop it making it.
+  const soundButton = h(
+    'button',
+    { class: 'ghost', type: 'button', 'data-testid': 'sound' },
+    soundOn() ? 'Sound on' : 'Sound off',
+  );
+  on(soundButton, 'click', () => {
+    setSound(!soundOn());
+    soundButton.textContent = soundOn() ? 'Sound on' : 'Sound off';
+    soundButton.setAttribute('aria-pressed', String(soundOn()));
+  });
+  soundButton.setAttribute('aria-pressed', String(soundOn()));
 
   const resetButton = h(
     'button',
@@ -97,6 +111,7 @@ export function createHomeView(navigate: (hash: string) => void): View {
         h('span', { class: 't-label' }, 'Solved'),
         solvedCount,
         themeButton,
+        soundButton,
         resetButton,
       ),
     ),

@@ -1,15 +1,17 @@
 /**
  * A level, in the Brief direction.
  *
- * Two things on screen: the brief, and the canvas. The brief is the question in
- * plain English and the two lists that define the level, and those lists are
- * also the grader, so there is no results band anywhere. The canvas is
- * everything else, with no dock: a state is placed by double clicking, an arrow
- * is drawn by dragging off a rim, and the controls for a state appear attached
- * to that state when it is selected.
+ * Two things on screen: the pane, and the canvas. The pane is the question in
+ * plain English and the two lists that define the level, plus four more tabs
+ * holding the formal layer; those lists are also the grader, so there is no
+ * results band anywhere. The canvas is everything else, with no dock: a state
+ * is placed by double clicking, an arrow is drawn by dragging off a rim, and
+ * the controls for a state appear attached to that state when it is selected.
  *
  * Four quiet icons in the corner do the things that have no object to attach
- * to: undo, redo, tidy, fit. Everything formal is one disclosure away.
+ * to: undo, redo, tidy, fit.
+ *
+ * The checks run when asked rather than on every keystroke. See runChecks.
  */
 
 import { runSuite } from '../../../src/engine/simulate';
@@ -20,7 +22,8 @@ import { CANVAS } from '../../../src/engine/types';
 import { h, on, setText } from '../dom';
 import { fitIcon, redoIcon, tidyIcon, undoIcon } from '../icons';
 import { game } from '../store';
-import { success } from '../haptics';
+import { success, warn } from '../haptics';
+import { chime } from '../sound';
 import { createDiagram } from '../components/diagram';
 import type { Diagram } from '../components/diagram';
 import { createBrief } from '../components/brief';
@@ -30,11 +33,30 @@ import { createTrace } from '../components/trace';
 import { createSheet } from '../components/sheet';
 import { buildRuleEditor } from '../components/ruleEditor';
 
-const GRADE_DEBOUNCE_MS = 140;
-
 export interface View {
   el: HTMLElement;
   destroy(): void;
+}
+
+/**
+ * Everything about a machine that can change a verdict, and nothing else.
+ *
+ * Coordinates and labels are left out on purpose. Tidy rewrites every
+ * coordinate and Rename rewrites a label, and neither can turn a tick into a
+ * cross; losing a green run to having tidied the diagram would be a lie about
+ * what the run measured.
+ */
+function signature(m: Machine): string {
+  return JSON.stringify([
+    m.states.map((s) => s.id).sort(),
+    m.start,
+    [...m.accepting].sort(),
+    m.transitions
+      .map((t) =>
+        [t.from, t.to, t.read, t.pop ?? '', t.push ?? '', t.write ?? '', t.move ?? ''].join('\u0000'),
+      )
+      .sort(),
+  ]);
 }
 
 export function createLevelView(levelId: string, navigate: (hash: string) => void): View {
@@ -59,9 +81,11 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
   let selectedTransitions: TransitionId[] = [];
   let highlighted: readonly TransitionId[] = [];
   let traceActive: readonly StateId[] = [];
-  let gradeTimer: ReturnType<typeof setTimeout> | null = null;
   let suiteResult: SuiteResult = runSuite(game.machineFor(levelId), level);
-  let announcedSolved = game.isSolved(levelId);
+  /** The signature the current `suiteResult` was computed from. */
+  let gradedAs: string | null = null;
+  /** The machine has changed since the last run, so the marks are not current. */
+  let stale = false;
 
   const machine = (): Machine => game.machineFor(levelId);
 
@@ -265,6 +289,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
       pane.classList.remove('is-open');
       render();
     },
+    onRun: () => runChecks(),
     onNext: () => {
       const next = game.nextLevel(levelId);
       navigate(next ? `#/level/${next.id}` : '#/');
@@ -467,32 +492,44 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     });
   }
 
-  function scheduleGrade(): void {
-    if (gradeTimer) clearTimeout(gradeTimer);
-    gradeTimer = setTimeout(() => {
-      gradeTimer = null;
-      suiteResult = runSuite(machine(), level);
-      paintBrief();
-    }, GRADE_DEBOUNCE_MS);
+  /**
+   * Run the level's strings against what is drawn.
+   *
+   * Grading used to happen on a 140ms debounce after every edit, so the marks
+   * were always live. Live is honest but it has no moment in it: the answer
+   * arrives while you are still mid-thought, and by the time you look up it
+   * has already been true for a while. On a press there is something to press,
+   * something to wait for, and something to hear.
+   *
+   * `quiet` is for the run at startup, which is restoring a verdict rather
+   * than reaching one.
+   */
+  function runChecks({ quiet = false } = {}): void {
+    const current = machine();
+    suiteResult = runSuite(current, level);
+    gradedAs = signature(current);
+    stale = false;
+
+    if (suiteResult.solved) {
+      game.markSolved(levelId, current.states.length);
+      if (!quiet) {
+        success();
+        chime();
+        announce(`Every test agrees with ${current.states.length} states.`);
+      }
+    } else if (!quiet) {
+      if (suiteResult.error) warn();
+      announce(`${suiteResult.passed} of ${suiteResult.total} agree.`);
+    }
+    paintBrief();
   }
 
   function paintBrief(): void {
-    const current = machine();
-    if (suiteResult.solved) {
-      if (!announcedSolved) {
-        announcedSolved = true;
-        success();
-        announce(`Every test agrees with ${current.states.length} states.`);
-      }
-      game.markSolved(levelId, current.states.length);
-    } else if (announcedSolved && !game.isSolved(levelId)) {
-      announcedSolved = false;
-    }
-
     brief.update({
       level,
-      machine: current,
+      machine: machine(),
       result: suiteResult,
+      stale,
       playing: trace.input,
       solved: game.isSolved(levelId),
       best: game.progress.bestStates[levelId],
@@ -528,6 +565,8 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
           : 'Double click to place a state · drag from a rim to draw an arrow',
     );
 
+    stale = gradedAs === null || signature(current) !== gradedAs;
+
     if (tab !== 'brief') {
       panels.update({
         level,
@@ -537,7 +576,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
       });
     }
 
-    scheduleGrade();
+    paintBrief();
   }
 
   const unsubscribe = game.subscribe(() => render());
@@ -576,7 +615,8 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
 
   setTab('brief');
   render();
-  paintBrief();
+  // Restore the verdict for whatever was in storage, without the fanfare.
+  runChecks({ quiet: true });
   // Frame whatever was restored from storage, rather than trusting that the
   // authored coordinates suit this window.
   requestAnimationFrame(() => {
@@ -593,7 +633,6 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
       offResize();
       trace.stop();
       diagram.destroy();
-      if (gradeTimer) clearTimeout(gradeTimer);
     },
   };
 }

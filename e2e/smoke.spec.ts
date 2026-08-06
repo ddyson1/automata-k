@@ -2,8 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 
 /**
  * Section 9: one end-to-end smoke test per platform. Open level 1, take the
- * worked solution, watch the marks in the brief turn, and confirm progress
- * survives a reload.
+ * worked solution, run the checks, watch the marks in the brief turn, and
+ * confirm progress survives a reload.
  */
 
 const openLevelOne = async (page: Page): Promise<void> => {
@@ -16,6 +16,9 @@ const openLevelOne = async (page: Page): Promise<void> => {
 const reveal = async (page: Page): Promise<void> => {
   await page.getByTestId('tab-hint').click();
   await page.getByTestId('reveal').click();
+  // The solution is on the canvas but nothing is graded until it is asked for.
+  await expect(page.getByTestId('score')).toHaveText('Not checked yet');
+  await page.getByTestId('run').click();
   await expect(page.getByTestId('score')).toHaveText('All 12 agree');
 };
 
@@ -36,10 +39,9 @@ test('open level 1, take the solution, the marks in the brief turn', async ({ pa
   await expect(page.getByRole('button', { name: /^State q0/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /^State q1/ })).toBeVisible();
 
-  // No dock and no Run button anywhere: grading is continuous and lives in the
-  // same list the level was stated in.
+  // No dock: the verdict lives in the same list the level was stated in, and
+  // the only control is the one that asks for it.
   await expect(page.getByTestId('dock')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Run tests' })).toHaveCount(0);
   await expect(page.getByTestId('why')).toHaveText('2 states, par 2.');
 });
 
@@ -86,6 +88,10 @@ test('a failing machine crosses the strings it gets wrong', async ({ page }) => 
   if (!box) throw new Error('no canvas');
   await canvas.dblclick({ position: { x: box.width * 0.5, y: box.height * 0.4 } });
   await page.getByTestId('toggle-accepting').click();
+
+  // Nothing is crossed until the checks are asked for.
+  await expect(page.locator('.verdict.is-off')).toHaveCount(0);
+  await page.getByTestId('run').click();
 
   await expect(page.getByTestId('why')).toContainText('Shortest disagreement');
   await expect(page.locator('.verdict.is-off').first()).toBeVisible();

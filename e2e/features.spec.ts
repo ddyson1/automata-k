@@ -5,12 +5,18 @@ async function open(page: Page, levelId: string): Promise<void> {
   await expect(page.getByTestId('stage')).toBeVisible();
 }
 
-/** Open a level and put its verified solution on the canvas. */
+/** Open a level, put its verified solution on the canvas, and run the checks. */
 async function reveal(page: Page, levelId: string): Promise<void> {
   await open(page, levelId);
   await page.getByTestId('tab-hint').click();
   await page.getByTestId('reveal').click();
+  await run(page);
   await expect(page.getByTestId('score')).toContainText('All ');
+}
+
+/** Grading happens on a press, so every assertion about a mark needs one. */
+async function run(page: Page): Promise<void> {
+  await page.getByTestId('run').click();
 }
 
 /**
@@ -91,6 +97,9 @@ test('a rule opens from the ledger, and deleting it is felt immediately', async 
   await expect(page.getByTestId('rule-head')).toHaveText('q0 → q1');
   await page.getByTestId('rule-delete').click();
 
+  // The marks go blank the moment the machine stops being the one that ran.
+  await expect(page.getByTestId('score')).toHaveText('Not checked yet');
+  await run(page);
   await expect(page.getByTestId('score')).not.toHaveText('All 12 agree');
   await expect(page.getByTestId('why')).toContainText('Shortest disagreement');
   await expect(page.getByTestId('delta-note')).toHaveText(
@@ -117,14 +126,16 @@ test('an unwired pair is red in the ledger and activating it writes the rule', a
   );
 });
 
-test('grading is live: the marks change as the machine changes', async ({ page }) => {
+test('grading follows the run button, not the machine', async ({ page }) => {
   await reveal(page, 'dfa-ends-in-1');
 
   await page.getByRole('button', { name: /^State q1/ }).click();
   await page.getByTestId('toggle-accepting').click();
+  await run(page);
   await expect(page.getByTestId('score')).not.toHaveText('All 12 agree');
 
   await page.getByTestId('undo').click();
+  await run(page);
   await expect(page.getByTestId('score')).toHaveText('All 12 agree');
 });
 
@@ -139,6 +150,7 @@ test('a machine that is not a DFA is reported rather than simulated', async ({ p
     await page.getByTestId('rule-commit').click();
   }
 
+  await run(page);
   await expect(page.getByTestId('score')).toHaveText('Not a machine yet');
   await expect(page.getByTestId('why')).toContainText(/deterministic/i);
 });
@@ -343,6 +355,64 @@ test('the level line and the verdict survive every tab', async ({ page }) => {
     .locator('.pane-tabs')
     .evaluate((n) => ({ client: n.clientWidth, scroll: n.scrollWidth }));
   expect(strip.scroll, 'the tab strip fits').toBeLessThanOrEqual(strip.client);
+});
+
+/**
+ * Rearranging is not editing. Tidy rewrites every coordinate and Rename
+ * rewrites a label, and neither can turn a tick into a cross, so neither may
+ * throw away a run that is still true.
+ */
+test('moving states around does not invalidate a run', async ({ page }) => {
+  await reveal(page, 'dfa-contains-01');
+  await expect(page.getByTestId('score')).toHaveText('All 12 agree');
+
+  await page.getByTestId('tidy').click();
+  await expect(page.getByTestId('score')).toHaveText('All 12 agree');
+
+  // But an edit that could change a verdict does.
+  await page.getByRole('button', { name: /^State q0/ }).click();
+  await page.getByTestId('toggle-accepting').click();
+  await expect(page.getByTestId('score')).toHaveText('Not checked yet');
+});
+
+/** The one sound the app makes, and the fact that it can be turned off. */
+test('a passing run makes a sound, unless it is switched off', async ({ page }) => {
+  const played: number[] = [];
+  // Recorded off setValueAtTime rather than off the nodes. A param's `.value`
+  // reads the audio clock, and every note here is scheduled in the future, so
+  // at the moment it is created it still reports the 440 default. What is
+  // scheduled is the truth. Gains are all below 1 and pitches all above 100,
+  // so one threshold separates them.
+  await page.addInitScript(() => {
+    const w = window as unknown as { __notes: number[] };
+    w.__notes = [];
+    const real = AudioParam.prototype.setValueAtTime;
+    AudioParam.prototype.setValueAtTime = function patched(
+      this: AudioParam,
+      value: number,
+      when: number,
+    ) {
+      if (value > 100) w.__notes.push(value);
+      return real.call(this, value, when);
+    };
+  });
+
+  await reveal(page, 'dfa-ends-in-1');
+  played.push(...(await page.evaluate(() => (window as unknown as { __notes: number[] }).__notes)));
+  // Both notes, each with its octave partial: a fifth, not a single beep.
+  expect(played.map(Math.round).sort((a, b) => a - b)).toEqual([587, 880, 1175, 1760]);
+
+  // Off, from the home screen, and it stays off across a reload.
+  await page.getByTestId('back').click();
+  await page.getByTestId('sound').click();
+  await expect(page.getByTestId('sound')).toHaveText('Sound off');
+  await page.reload();
+  await expect(page.getByTestId('sound')).toHaveText('Sound off');
+
+  await page.evaluate(() => ((window as unknown as { __notes: number[] }).__notes.length = 0));
+  await reveal(page, 'dfa-ends-in-1');
+  const after = await page.evaluate(() => (window as unknown as { __notes: number[] }).__notes);
+  expect(after, 'silent once switched off').toEqual([]);
 });
 
 /** Tidy has to leave every state where it can be seen, clear of its neighbours. */
