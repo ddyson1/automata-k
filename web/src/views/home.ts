@@ -1,7 +1,7 @@
 /**
  * The level list.
  *
- * Twelve rows climbing the hierarchy, grouped by machine class, each showing
+ * One row per level, climbing the hierarchy, grouped by machine class, each showing
  * the language it asks for. Locked levels stay visible and stay readable: the
  * shape of the whole climb is the point, and hiding the top of it would make
  * the game smaller than the subject.
@@ -11,6 +11,7 @@ import { LEVELS, isUnlocked } from '../../../src/engine/levels';
 import type { Level, MachineKind } from '../../../src/engine/types';
 import { h, on, setText } from '../dom';
 import { notation } from '../notation';
+import { setSound, soundOn } from '../sound';
 import { game } from '../store';
 import type { ThemeChoice } from '../store';
 import type { View } from './level';
@@ -52,6 +53,19 @@ export function createHomeView(navigate: (hash: string) => void): View {
     game.setTheme(next);
   });
 
+  // The one sound the app makes, and a way to stop it making it.
+  const soundButton = h(
+    'button',
+    { class: 'ghost', type: 'button', 'data-testid': 'sound' },
+    soundOn() ? 'Sound on' : 'Sound off',
+  );
+  on(soundButton, 'click', () => {
+    setSound(!soundOn());
+    soundButton.textContent = soundOn() ? 'Sound on' : 'Sound off';
+    soundButton.setAttribute('aria-pressed', String(soundOn()));
+  });
+  soundButton.setAttribute('aria-pressed', String(soundOn()));
+
   const resetButton = h(
     'button',
     { class: 'ghost', type: 'button', 'data-testid': 'reset' },
@@ -89,7 +103,7 @@ export function createHomeView(navigate: (hash: string) => void): View {
         'p',
         { class: 't-body muted' },
         'Draw a machine. It is graded against the language, not against an answer key. ' +
-          'Twelve levels, from finite automata to Turing machines.',
+          `${LEVELS.length} levels, from finite automata to Turing machines.`,
       ),
       h(
         'div',
@@ -97,6 +111,7 @@ export function createHomeView(navigate: (hash: string) => void): View {
         h('span', { class: 't-label' }, 'Solved'),
         solvedCount,
         themeButton,
+        soundButton,
         resetButton,
       ),
     ),
@@ -121,11 +136,18 @@ export function createHomeView(navigate: (hash: string) => void): View {
     const setBuilder = h('code', { class: 't-mono-sm sel' });
     setBuilder.appendChild(notation(level.setBuilder));
 
+    // An unsolved level with work saved on it used to read exactly like an
+    // untouched one, so opening it and meeting your own half finished machine
+    // came as a surprise. Say so here instead.
+    const drawn = game.machineFor(level.id).states.length;
+
     const status = solved
       ? `${best ?? level.par} states, par ${level.par}${shown ? ', shown' : ''}`
-      : unlocked
-        ? `par ${level.par}`
-        : 'Locked';
+      : !unlocked
+        ? 'Locked'
+        : drawn > 0
+          ? `${drawn} state${drawn === 1 ? '' : 's'} drawn, par ${level.par}`
+          : `par ${level.par}`;
 
     const node = h(
       'button',

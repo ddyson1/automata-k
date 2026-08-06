@@ -7,9 +7,15 @@
  * it promised an expand and delivered a zoom to fit.
  *
  * Drawn rather than typed, so each one can say what its button does: Tidy is a
- * diagram being straightened into a row, Fit is a frame closing around a shape.
- * Undo and redo are drawn too, only so all four carry the same weight; a
- * hairline SVG next to a 15px glyph looks like a rendering fault.
+ * laid out graph, Fit is a frame closing around a shape. Undo and redo are
+ * drawn too, only so all four carry the same weight; a hairline SVG next to a
+ * 15px glyph looks like a rendering fault.
+ *
+ * None of them carries the whole meaning on its own, and none has to. Every
+ * one of these buttons draws its own label on hover and on focus, and flashes
+ * it after a press where there is no hover to draw it — see .tip in app.css.
+ * The rule these were judged against is that a glyph must be distinct from the
+ * three sitting beside it, not that it must be guessable in isolation.
  */
 
 import { svg } from './dom';
@@ -45,16 +51,27 @@ export const redoIcon = (): SVGSVGElement =>
   icon(path('M20 9h-9a5 5 0 0 0 0 10h5'), path('M16 5l4 4-4 4'));
 
 /**
- * Tidy: a wand.
+ * Tidy: a laid out graph.
  *
- * Everything made of circles and lines was tried first, at the size these
- * actually render. Three joined dots come out as an overflow menu, two come
- * out as a link, and the fork comes out as the share glyph. What was missing
- * from the old ⊞ was the verb, not the noun, so the icon carries the verb and
- * the tooltip carries the noun.
+ * The third go at this. ⊞ was a grid, and Tidy neither draws one nor snaps to
+ * one. The wand carried a verb, but the wrong one — it says "do something
+ * automatic", and at 18px in the corner it reads as a pushpin.
+ *
+ * Twelve candidates were drawn at 18px rather than argued about, and most died
+ * on sight: three states in a row collapse into an ellipsis, layered bands are
+ * the settings-sliders glyph, and four arrows gathering inward are Fit's own
+ * corner brackets pointed the other way — sitting right next to Fit. What
+ * survived is the thing the button leaves behind: states on ranks with the
+ * edges between them, which is exactly what layoutMachine computes.
  */
 export const tidyIcon = (): SVGSVGElement =>
-  icon(path('M4 20 14.5 9.5'), path('M13.6 4.4 15 7.9l3.5 1.4L15 10.7l-1.4 3.5-1.4-3.5-3.5-1.4 3.5-1.4z'));
+  icon(
+    svg('circle', { cx: 12, cy: 5.5, r: 2.4 }),
+    svg('circle', { cx: 6, cy: 18, r: 2.4 }),
+    svg('circle', { cx: 18, cy: 18, r: 2.4 }),
+    path('M12 7.9v2.6'),
+    path('M6 15.6V13h12v2.6'),
+  );
 
 /**
  * Fit: corner brackets, and nothing inside them.

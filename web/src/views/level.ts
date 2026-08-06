@@ -1,15 +1,20 @@
 /**
  * A level, in the Brief direction.
  *
- * Two things on screen: the brief, and the canvas. The brief is the question in
- * plain English and the two lists that define the level, and those lists are
- * also the grader, so there is no results band anywhere. The canvas is
- * everything else, with no dock: a state is placed by double clicking, an arrow
- * is drawn by dragging off a rim, and the controls for a state appear attached
- * to that state when it is selected.
+ * Two things on screen: the pane, and the canvas. The pane is the question in
+ * plain English and the two lists that define the level, plus four more tabs
+ * holding the formal layer; those lists are also the grader, so there is no
+ * results band anywhere. The canvas is everything else, with no dock: a state
+ * is placed by double clicking — tapping twice, where there is no mouse — an
+ * arrow is drawn by dragging off a rim, and the controls for a state appear
+ * attached to that state when it is selected.
  *
- * Four quiet icons in the corner do the things that have no object to attach
- * to: undo, redo, tidy, fit. Everything formal is one disclosure away.
+ * Four quiet icons in one corner do the things that have no object to attach
+ * to: undo, redo, tidy, fit. On a phone that corner is the bottom left, in
+ * reach of a thumb, and the brief is a rail across the top rather than a sheet
+ * across the bottom. See the pane rail below, and the narrow block in app.css.
+ *
+ * The checks run when asked rather than on every keystroke. See runChecks.
  */
 
 import { runSuite } from '../../../src/engine/simulate';
@@ -17,10 +22,11 @@ import type { SuiteResult } from '../../../src/engine/simulate';
 import { LEVEL_BY_ID } from '../../../src/engine/levels';
 import type { Level, Machine, StateId, TransitionId } from '../../../src/engine/types';
 import { CANVAS } from '../../../src/engine/types';
-import { h, on, setText } from '../dom';
+import { TOUCH, h, on, setText } from '../dom';
 import { fitIcon, redoIcon, tidyIcon, undoIcon } from '../icons';
 import { game } from '../store';
-import { success } from '../haptics';
+import { success, warn } from '../haptics';
+import { chime } from '../sound';
 import { createDiagram } from '../components/diagram';
 import type { Diagram } from '../components/diagram';
 import { createBrief } from '../components/brief';
@@ -30,11 +36,30 @@ import { createTrace } from '../components/trace';
 import { createSheet } from '../components/sheet';
 import { buildRuleEditor } from '../components/ruleEditor';
 
-const GRADE_DEBOUNCE_MS = 140;
-
 export interface View {
   el: HTMLElement;
   destroy(): void;
+}
+
+/**
+ * Everything about a machine that can change a verdict, and nothing else.
+ *
+ * Coordinates and labels are left out on purpose. Tidy rewrites every
+ * coordinate and Rename rewrites a label, and neither can turn a tick into a
+ * cross; losing a green run to having tidied the diagram would be a lie about
+ * what the run measured.
+ */
+function signature(m: Machine): string {
+  return JSON.stringify([
+    m.states.map((s) => s.id).sort(),
+    m.start,
+    [...m.accepting].sort(),
+    m.transitions
+      .map((t) =>
+        [t.from, t.to, t.read, t.pop ?? '', t.push ?? '', t.write ?? '', t.move ?? ''].join('\u0000'),
+      )
+      .sort(),
+  ]);
 }
 
 export function createLevelView(levelId: string, navigate: (hash: string) => void): View {
@@ -59,9 +84,11 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
   let selectedTransitions: TransitionId[] = [];
   let highlighted: readonly TransitionId[] = [];
   let traceActive: readonly StateId[] = [];
-  let gradeTimer: ReturnType<typeof setTimeout> | null = null;
   let suiteResult: SuiteResult = runSuite(game.machineFor(levelId), level);
-  let announcedSolved = game.isSolved(levelId);
+  /** The signature the current `suiteResult` was computed from. */
+  let gradedAs: string | null = null;
+  /** The machine has changed since the last run, so the marks are not current. */
+  let stale = false;
 
   const machine = (): Machine => game.machineFor(levelId);
 
@@ -154,6 +181,17 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
 
   // -- corner controls ------------------------------------------------------
 
+  /**
+   * A corner control, with its name attached.
+   *
+   * Four drawn glyphs and no words is a quiz. `title` is not the answer: the
+   * browser's own tooltip takes about a second to appear, cannot be styled to
+   * look like it belongs here, and never appears at all on a touch screen,
+   * which is the case that needs it most. So the label is drawn by the app —
+   * on hover and on keyboard focus where there is a pointer, and as a brief
+   * flash after the press where there is not, which is the only moment a
+   * touch device can be told anything.
+   */
   function cornerButton(
     label: string,
     testId: string,
@@ -163,16 +201,40 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     const node = h(
       'button',
       {
-        class: 'corner-b',
+        class: 'corner-b tip',
         type: 'button',
         'data-testid': testId,
         'aria-label': label,
-        title: label,
+        // Read by CSS, not by a screen reader: aria-label already says this,
+        // and a reader that met both would say it twice.
+        'data-tip': label,
       },
       glyph,
     );
-    on(node, 'click', action);
+    on(node, 'click', () => {
+      action();
+      if (TOUCH) flashTip(node);
+    });
     return node;
+  }
+
+  /**
+   * Say what the button just did, once, where there is no hover to say it.
+   *
+   * The canvas hint stands down while it is up: on a phone both sit just above
+   * the tool pill, and two lines of small type on top of each other are worse
+   * than either alone.
+   */
+  let tipTimer: ReturnType<typeof setTimeout> | null = null;
+  function flashTip(node: HTMLElement): void {
+    if (tipTimer) clearTimeout(tipTimer);
+    for (const other of corner.children) other.classList.remove('is-saying');
+    node.classList.add('is-saying');
+    stage.classList.add('is-tipping');
+    tipTimer = setTimeout(() => {
+      node.classList.remove('is-saying');
+      stage.classList.remove('is-tipping');
+    }, 1500);
   }
 
   const undoButton = cornerButton('Undo', 'undo', undoIcon(), () => game.undo(levelId));
@@ -194,7 +256,13 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     'div',
     { class: 'empty-prompt', 'data-testid': 'empty-prompt', hidden: true },
     h('span', { class: 'empty-ring', 'aria-hidden': 'true' }),
-    h('p', { class: 't-body' }, 'Double click here to place your first state'),
+    h(
+      'p',
+      { class: 't-body' },
+      TOUCH
+        ? 'Tap twice here to place your first state'
+        : 'Double click here to place your first state',
+    ),
   );
 
   // -- trace ----------------------------------------------------------------
@@ -249,6 +317,13 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
       showCanvas();
       announce(`Canvas replaced with ${description}.`);
     },
+    onClear: () => {
+      game.clear(levelId);
+      selectedState = null;
+      selectedTransitions = [];
+      showCanvas();
+      announce('The canvas is empty. Undo puts it back.');
+    },
     onReveal: () => {
       game.reveal(levelId);
       showCanvas();
@@ -261,10 +336,11 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     onTrace: (input) => {
       trace.play(machine(), level, input);
       // You asked a question about the machine, so get out of the machine's
-      // way. On a phone that means the pane drops back to peeking.
-      pane.classList.remove('is-open');
+      // way. On a phone the pane closes back to its rail.
+      togglePane(false);
       render();
     },
+    onRun: () => runChecks(),
     onNext: () => {
       const next = game.nextLevel(levelId);
       navigate(next ? `#/level/${next.id}` : '#/');
@@ -300,24 +376,68 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
 
   const paneBody = h('div', { class: 'pane-body' }, brief.body, panels.el);
 
-  const paneGrab = h('button', {
-    class: 'pane-grab',
-    type: 'button',
-    'data-testid': 'pane-grab',
-    'aria-label': 'Show the brief',
-  });
+  const paneGrab = h(
+    'button',
+    {
+      class: 'pane-grab tip',
+      type: 'button',
+      'data-testid': 'pane-grab',
+      'aria-label': 'Show the brief',
+      'data-tip': 'Show the brief',
+    },
+    h('span', { class: 'pane-grab-i', 'aria-hidden': 'true' }, '⌄'),
+  );
+
+  /**
+   * Which level this is, what it asks, and how the machine is doing.
+   *
+   * On a wide window this is simply the top of the pane. On a phone it is the
+   * whole of the pane until you open it: a rail across the top carrying the
+   * question, with the canvas taking everything below.
+   *
+   * The sheet it replaces spent 202px of a 664px screen on a verdict line and
+   * five tab labels, and never had room for the question at all. The rail is
+   * 150px and the question is the thing it is mostly made of. During a trace
+   * it collapses to its title line, so the transport is the only panel with
+   * any height to it — 33% of the screen covered where the sheet and the
+   * transport together took 57%.
+   */
+  const paneRail = h(
+    'div',
+    { class: 'pane-rail', 'data-testid': 'pane-rail' },
+    brief.head,
+    brief.statement,
+    brief.mark,
+    paneGrab,
+  );
+
   const pane = h(
     'div',
     { class: 'pane', 'data-testid': 'pane' },
-    paneGrab,
-    brief.head,
+    paneRail,
     tabStrip,
     paneBody,
-    brief.foot,
+    brief.actions,
   );
-  on(paneGrab, 'click', () => {
-    const open = pane.classList.toggle('is-open');
-    paneGrab.setAttribute('aria-label', open ? 'Hide the brief' : 'Show the brief');
+
+  function togglePane(want?: boolean): void {
+    const open = pane.classList.toggle('is-open', want);
+    const label = open ? 'Hide the brief' : 'Show the brief';
+    paneGrab.setAttribute('aria-label', label);
+    paneGrab.setAttribute('data-tip', label);
+    setText(paneGrab.firstElementChild as HTMLElement, open ? '⌃' : '⌄');
+  }
+
+  on(paneGrab, 'click', (event) => {
+    event.stopPropagation();
+    togglePane();
+  });
+
+  // The rail is the button. Anything with its own job inside it — Back, the
+  // chevron — keeps that job; the rest of the rail opens the level.
+  on(paneRail, 'click', (event) => {
+    if ((event.target as HTMLElement).closest('button') !== null) return;
+    togglePane(true);
   });
 
   function setTab(next: PaneTab): void {
@@ -342,7 +462,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
         shownSolution: game.wasShown(levelId),
       });
       panels.show(next);
-      pane.classList.add('is-open');
+      togglePane(true);
     }
     paneBody.scrollTop = 0;
   }
@@ -350,7 +470,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
   /** Something has just landed on the canvas. Go and look at it. */
   function showCanvas(): void {
     setTab('brief');
-    pane.classList.remove('is-open');
+    togglePane(false);
     requestAnimationFrame(() => diagram.fit());
   }
 
@@ -467,32 +587,44 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     });
   }
 
-  function scheduleGrade(): void {
-    if (gradeTimer) clearTimeout(gradeTimer);
-    gradeTimer = setTimeout(() => {
-      gradeTimer = null;
-      suiteResult = runSuite(machine(), level);
-      paintBrief();
-    }, GRADE_DEBOUNCE_MS);
+  /**
+   * Run the level's strings against what is drawn.
+   *
+   * Grading used to happen on a 140ms debounce after every edit, so the marks
+   * were always live. Live is honest but it has no moment in it: the answer
+   * arrives while you are still mid-thought, and by the time you look up it
+   * has already been true for a while. On a press there is something to press,
+   * something to wait for, and something to hear.
+   *
+   * `quiet` is for the run at startup, which is restoring a verdict rather
+   * than reaching one.
+   */
+  function runChecks({ quiet = false } = {}): void {
+    const current = machine();
+    suiteResult = runSuite(current, level);
+    gradedAs = signature(current);
+    stale = false;
+
+    if (suiteResult.solved) {
+      game.markSolved(levelId, current.states.length);
+      if (!quiet) {
+        success();
+        chime();
+        announce(`Every test agrees with ${current.states.length} states.`);
+      }
+    } else if (!quiet) {
+      if (suiteResult.error) warn();
+      announce(`${suiteResult.passed} of ${suiteResult.total} agree.`);
+    }
+    paintBrief();
   }
 
   function paintBrief(): void {
-    const current = machine();
-    if (suiteResult.solved) {
-      if (!announcedSolved) {
-        announcedSolved = true;
-        success();
-        announce(`Every test agrees with ${current.states.length} states.`);
-      }
-      game.markSolved(levelId, current.states.length);
-    } else if (announcedSolved && !game.isSolved(levelId)) {
-      announcedSolved = false;
-    }
-
     brief.update({
       level,
-      machine: current,
+      machine: machine(),
       result: suiteResult,
+      stale,
       playing: trace.input,
       solved: game.isSolved(levelId),
       best: game.progress.bestStates[levelId],
@@ -525,8 +657,15 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
         ? ''
         : selectedState !== null
           ? 'Drag the grip to draw an arrow · hold a state to rename it'
-          : 'Double click to place a state · drag from a rim to draw an arrow',
+          : TOUCH
+            ? 'Tap twice to place a state · drag from a rim to connect'
+            : 'Double click to place a state · drag from a rim to draw an arrow',
     );
+
+    // Nothing but the transport belongs over the canvas while a string plays.
+    el.classList.toggle('is-tracing', trace.input !== null);
+
+    stale = gradedAs === null || signature(current) !== gradedAs;
 
     if (tab !== 'brief') {
       panels.update({
@@ -537,7 +676,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
       });
     }
 
-    scheduleGrade();
+    paintBrief();
   }
 
   const unsubscribe = game.subscribe(() => render());
@@ -574,9 +713,18 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
 
   const offResize = on(window as unknown as EventTarget, 'resize', () => placeStateBar());
 
+  // The stage sits under the rail, and the rail is as tall as the question
+  // makes it — one line on level 1, three on level 41 — so its height is
+  // measured rather than assumed. A constant here was wrong on most levels.
+  const railWatch = new ResizeObserver(() => {
+    el.style.setProperty('--rail', `${Math.round(paneRail.getBoundingClientRect().height)}px`);
+  });
+  railWatch.observe(paneRail);
+
   setTab('brief');
   render();
-  paintBrief();
+  // Restore the verdict for whatever was in storage, without the fanfare.
+  runChecks({ quiet: true });
   // Frame whatever was restored from storage, rather than trusting that the
   // authored coordinates suit this window.
   requestAnimationFrame(() => {
@@ -591,9 +739,9 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
       unsubscribe();
       offKeys();
       offResize();
+      railWatch.disconnect();
       trace.stop();
       diagram.destroy();
-      if (gradeTimer) clearTimeout(gradeTimer);
     },
   };
 }

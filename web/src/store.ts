@@ -4,6 +4,18 @@
  * Positions committed here are the authoritative ones. During a drag the
  * diagram writes transform attributes straight onto its own SVG nodes and calls
  * moveState once, on release. Nothing in this module runs per frame.
+ *
+ * What you draw lives for the session and no longer than it. Drafts used to be
+ * written to localStorage under their own key and read back on boot, so opening
+ * a level could hand you a machine from a sitting you no longer remembered —
+ * indistinguishable, on arrival, from a starting position the game had put
+ * there. Every level now opens on a blank canvas. Moving between levels within
+ * a session still keeps what you drew, because that is one train of thought;
+ * a reload is a new one.
+ *
+ * Progress is a different thing and still persists: which levels are solved,
+ * the smallest state count each was solved with, whether the answer was
+ * revealed, the theme and the sound.
  */
 
 import { layoutMachine } from '../../src/engine/layout';
@@ -19,8 +31,9 @@ import type {
 import { storage } from './storage';
 
 const PROGRESS_KEY = 'automata-k.progress.v1';
-const DRAFTS_KEY = 'automata-k.drafts.v1';
 const THEME_KEY = 'automata-k.theme.v1';
+/** Drafts are no longer saved. Anyone who has some from an older build gets them cleared. */
+const STALE_DRAFTS_KEY = 'automata-k.drafts.v1';
 const HISTORY_LIMIT = 60;
 const PERSIST_DEBOUNCE_MS = 250;
 
@@ -84,12 +97,10 @@ class Game {
     this.progress.bestStates ??= {};
     this.theme = storage.read<ThemeChoice>(THEME_KEY, 'system');
 
-    const saved = storage.read<Record<string, Machine>>(DRAFTS_KEY, {});
-    for (const [id, machine] of Object.entries(saved)) {
-      if (machine && Array.isArray(machine.states)) {
-        this.drafts.set(id, { machine, past: [], future: [] });
-      }
-    }
+    // Nothing is restored onto a canvas. Sweeping the old key means a player
+    // carrying drafts from an earlier build is not left holding bytes that
+    // nothing will ever read again.
+    storage.remove(STALE_DRAFTS_KEY);
   }
 
   // -- subscription ---------------------------------------------------------
@@ -119,12 +130,7 @@ class Game {
       clearTimeout(this.saveTimer);
       this.saveTimer = null;
     }
-    const machines: Record<string, Machine> = {};
-    for (const [id, draft] of this.drafts) {
-      if (draft.machine.states.length > 0) machines[id] = draft.machine;
-    }
     storage.write(PROGRESS_KEY, this.progress);
-    storage.write(DRAFTS_KEY, machines);
     storage.write(THEME_KEY, this.theme);
   }
 
@@ -173,7 +179,8 @@ class Game {
       past: [...draft.past, before].slice(-HISTORY_LIMIT),
       future: [],
     });
-    this.schedulePersist();
+    // No persist: the canvas is session state. Only progress and preferences
+    // reach storage, and those have their own callers.
     this.emit();
   }
 
@@ -274,6 +281,9 @@ class Game {
     if (!solution) return;
     if (!this.progress.shownSolution.includes(levelId)) {
       this.progress.shownSolution = [...this.progress.shownSolution, levelId];
+      // This one is progress, not canvas, so it is saved. edit no longer does
+      // it on this method's behalf.
+      this.schedulePersist();
     }
     this.edit(levelId, (m) => Object.assign(m, cloneMachine(solution)));
   }
@@ -291,7 +301,6 @@ class Game {
       past: draft.past.slice(0, -1),
       future: [draft.machine, ...draft.future].slice(0, HISTORY_LIMIT),
     });
-    this.schedulePersist();
     this.emit();
   }
 
@@ -304,7 +313,6 @@ class Game {
       past: [...draft.past, draft.machine].slice(-HISTORY_LIMIT),
       future: draft.future.slice(1),
     });
-    this.schedulePersist();
     this.emit();
   }
 

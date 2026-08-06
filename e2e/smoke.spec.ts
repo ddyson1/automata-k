@@ -2,8 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 
 /**
  * Section 9: one end-to-end smoke test per platform. Open level 1, take the
- * worked solution, watch the marks in the brief turn, and confirm progress
- * survives a reload.
+ * worked solution, run the checks, watch the marks in the brief turn, and
+ * confirm progress survives a reload while the canvas does not.
  */
 
 const openLevelOne = async (page: Page): Promise<void> => {
@@ -13,9 +13,22 @@ const openLevelOne = async (page: Page): Promise<void> => {
   await expect(page.getByTestId('stage')).toBeVisible();
 };
 
+/** Open the pane where it is a rail, then show one of its tabs. */
+const tab = async (page: Page, key: string): Promise<void> => {
+  const grab = page.getByTestId('pane-grab');
+  if (await grab.isVisible()) {
+    const open = await page.getByTestId('pane').evaluate((el) => el.classList.contains('is-open'));
+    if (!open) await grab.click();
+  }
+  await page.getByTestId(`tab-${key}`).click();
+};
+
 const reveal = async (page: Page): Promise<void> => {
-  await page.getByTestId('tab-hint').click();
+  await tab(page, 'hint');
   await page.getByTestId('reveal').click();
+  // The solution is on the canvas but nothing is graded until it is asked for.
+  await expect(page.getByTestId('score')).toHaveText('Not checked yet');
+  await page.getByTestId('run').click();
   await expect(page.getByTestId('score')).toHaveText('All 12 agree');
 };
 
@@ -36,30 +49,37 @@ test('open level 1, take the solution, the marks in the brief turn', async ({ pa
   await expect(page.getByRole('button', { name: /^State q0/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /^State q1/ })).toBeVisible();
 
-  // No dock and no Run button anywhere: grading is continuous and lives in the
-  // same list the level was stated in.
+  // No dock: the verdict lives in the same list the level was stated in, and
+  // the only control is the one that asks for it.
   await expect(page.getByTestId('dock')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Run tests' })).toHaveCount(0);
   await expect(page.getByTestId('why')).toHaveText('2 states, par 2.');
 });
 
-test('progress survives a reload', async ({ page }) => {
+/**
+ * Progress persists; the canvas does not. Solving a level is a fact about the
+ * player and is kept. The machine that got them there is working memory, and
+ * finding it waiting on a fresh visit reads as a puzzle that came half solved.
+ */
+test('progress survives a reload and the canvas does not', async ({ page }) => {
   await openLevelOne(page);
   await reveal(page);
 
   await page.reload();
-  await expect(page.getByRole('button', { name: /^State q1/ })).toBeVisible();
-  await expect(page.getByTestId('score')).toHaveText('All 12 agree');
+  await expect(page.locator('.state')).toHaveCount(0);
+  await expect(page.getByTestId('empty-prompt')).toBeVisible();
+  await expect(page.getByTestId('score')).toHaveText('Nothing drawn yet');
 
   await page.getByTestId('back').click();
-  await expect(page.getByTestId('solved-count')).toHaveText('1/12');
-  await expect(page.getByTestId('level-row').filter({ hasText: 'Parity' })).toBeEnabled();
+  await expect(page.getByTestId('solved-count')).toHaveText(/^1\/\d+$/);
+  await expect(
+    page.locator('[data-testid="level-row"][data-level="dfa-even-zeros"]'),
+  ).toBeEnabled();
 });
 
 test('the machine tab highlights both ways', async ({ page }) => {
   await openLevelOne(page);
   await reveal(page);
-  await page.getByTestId('tab-machine').click();
+  await tab(page, 'machine');
 
   await expect(page.getByTestId('panel')).toBeVisible();
   // The level line and the verdict stay put while the machine is on show.
@@ -73,7 +93,7 @@ test('the machine tab highlights both ways', async ({ page }) => {
   await expect(page.locator('.chip.is-lit')).toHaveCount(1);
 
   // Back to the brief: the tabs are the pane's own, so there is nothing to close.
-  await page.getByTestId('tab-brief').click();
+  await tab(page, 'brief');
   await expect(page.getByTestId('panel')).toBeHidden();
   await expect(page.getByTestId('brief')).toBeVisible();
 });
@@ -87,6 +107,13 @@ test('a failing machine crosses the strings it gets wrong', async ({ page }) => 
   await canvas.dblclick({ position: { x: box.width * 0.5, y: box.height * 0.4 } });
   await page.getByTestId('toggle-accepting').click();
 
+  // Nothing is crossed until the checks are asked for.
+  await expect(page.locator('.verdict.is-off')).toHaveCount(0);
+  await page.getByTestId('run').click();
+
+  // The rail carries the verdict wherever you are; the crossed strings are in
+  // the list, which on a phone means opening the pane to look at them.
   await expect(page.getByTestId('why')).toContainText('Shortest disagreement');
+  await tab(page, 'brief');
   await expect(page.locator('.verdict.is-off').first()).toBeVisible();
 });

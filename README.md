@@ -1,7 +1,7 @@
 # automata-k
 
 **Draw a machine. It gets graded against the language, not against an answer key.**
-Twelve levels climb the Chomsky hierarchy, from finite automata to Turing machines.
+Forty two levels climb the Chomsky hierarchy, from finite automata to Turing machines.
 
 [**Play it →**](https://devindyson.com/automata-k/)
 
@@ -24,22 +24,52 @@ Nothing anywhere stores an expected verdict. Every level carries an `accepts`
 predicate, and both the game and its test suite ask that predicate. A level
 whose solution stopped matching its own language would fail the build.
 
-## The twelve
+## The forty two
 
 | # | Level | Language | Machine | Type | Par |
 |---|-------|----------|---------|------|-----|
 | 1 | Last symbol | <code>L = { w ∈ {0,1}* : w ends with 1 }</code> | DFA | 3 | 2 |
-| 2 | Parity | <code>L = { w ∈ {0,1}* : &#124;w&#124;<sub>0</sub> is even }</code> | DFA | 3 | 2 |
-| 3 | Substring | <code>L = { w ∈ {0,1}* : w = x01y for some x, y ∈ {0,1}* }</code> | DFA | 3 | 3 |
-| 4 | Forbidden pair | <code>L = { w ∈ {0,1}* : 11 is not a substring of w }</code> | DFA | 3 | 3 |
-| 5 | Empty move | <code>L = { a<sup>i</sup>b<sup>j</sup> : i ≥ 0, j ≥ 0 }</code> | NFA | 3 | 2 |
-| 6 | Three blocks | <code>L = { a<sup>i</sup>b<sup>j</sup>c<sup>k</sup> : i, j, k ≥ 0 }</code> | NFA | 3 | 3 |
-| 7 | Guess the end | <code>L = { w ∈ {0,1}* : &#124;w&#124; ≥ 3 and the 3rd symbol from the right is 1 }</code> | NFA | 3 | 4 |
-| 8 | Brackets | <code>L = { w ∈ {(,)}* : no prefix has more ) than (, and w has equally many of each }</code> | PDA | 2 | 2 |
-| 9 | Matching counts | <code>L = { a<sup>n</sup>b<sup>n</sup> : n ≥ 0 }</code> | PDA | 2 | 3 |
-| 10 | Mirror | <code>L = { w w<sup>R</sup> : w ∈ {a,b}* }</code> | PDA | 2 | 3 |
-| 11 | Cross off | <code>L = { a<sup>n</sup>b<sup>n</sup> : n ≥ 0 }</code> | TM | 2 | 5 |
-| 12 | Beyond context free | <code>L = { a<sup>n</sup>b<sup>n</sup>c<sup>n</sup> : n ≥ 0 }</code> | TM | 1 | 6 |
+| 2 | Parity | <code>L = { w ∈ {0,1}* : &#124;w&#124;₀ is even }</code> | DFA | 3 | 2 |
+| 3 | Counting in threes | <code>L = { w ∈ {a,b}* : &#124;w&#124; ≡ 0 mod 3 }</code> | DFA | 3 | 3 |
+| 4 | Substring | <code>L = { w ∈ {0,1}* : w = x01y for some x, y ∈ {0,1}* }</code> | DFA | 3 | 3 |
+| 5 | Two zeros to finish | <code>L = { w ∈ {0,1}* : w ends with 00 }</code> | DFA | 3 | 3 |
+| 6 | Forbidden pair | <code>L = { w ∈ {0,1}* : 11 is not a substring of w }</code> | DFA | 3 | 3 |
+| 7 | At least two | <code>L = { w ∈ {0,1}* : &#124;w&#124;₁ ≥ 2 }</code> | DFA | 3 | 3 |
+| 8 | Divisible by three | <code>L = { w ∈ {0,1}* : the binary number w is divisible by 3 }</code> | DFA | 3 | 3 |
+| 9 | Never twice in a row | <code>L = { w ∈ {a,b}* : no two adjacent symbols of w are equal }</code> | DFA | 3 | 4 |
+| 10 | Exactly two | <code>L = { w ∈ {0,1}* : &#124;w&#124;₀ = 2 }</code> | DFA | 3 | 4 |
+| 11 | How it begins | <code>L = { w ∈ {a,b}* : w begins with ab }</code> | DFA | 3 | 4 |
+| 12 | Both even | <code>L = { w ∈ {0,1}* : &#124;w&#124;₀ is even and &#124;w&#124;₁ is even }</code> | DFA | 3 | 4 |
+| 13 | Third from the left | <code>L = { w ∈ {0,1}* : &#124;w&#124; ≥ 3 and w₃ = 1 }</code> | DFA | 3 | 5 |
+| 14 | Matching ends | <code>L = { w ∈ {0,1}⁺ : w₁ = w_&#124;w&#124; }</code> | DFA | 3 | 5 |
+| 15 | Empty move | <code>L = { a<sup>i</sup>b<sup>j</sup> : i ≥ 0, j ≥ 0 }</code> | NFA | 3 | 2 |
+| 16 | One or the other | <code>L = { aⁿ : n ≥ 0 } ∪ { bⁿ : n ≥ 0 }</code> | NFA | 3 | 3 |
+| 17 | Three blocks | <code>L = { a<sup>i</sup>b<sup>j</sup>c<sup>k</sup> : i ≥ 0, j ≥ 0, k ≥ 0 }</code> | NFA | 3 | 3 |
+| 18 | Second from the right | <code>L = { w ∈ {a,b}* : &#124;w&#124; ≥ 2 and w_{&#124;w&#124;-1} = a }</code> | NFA | 3 | 3 |
+| 19 | Three to finish | <code>L = { w ∈ {a,b}* : w ends with abb }</code> | NFA | 3 | 4 |
+| 20 | Either ending | <code>L = { w ∈ {a,b}* : w ends with ab or ba }</code> | NFA | 3 | 4 |
+| 21 | Guess the end | <code>L = { w ∈ {0,1}* : &#124;w&#124; ≥ 3 and the 3rd symbol from the right is 1 }</code> | NFA | 3 | 4 |
+| 22 | A pair, either way | <code>L = { w ∈ {a,b}* : aa or bb is a substring of w }</code> | NFA | 3 | 4 |
+| 23 | Either parity | <code>L = { w ∈ {a,b}* : &#124;w&#124;ₐ is even or &#124;w&#124;_b is even }</code> | NFA | 3 | 5 |
+| 24 | Two or three | <code>L = { aⁿ : n ≡ 0 mod 2 or n ≡ 0 mod 3 }</code> | NFA | 3 | 6 |
+| 25 | Brackets | <code>L = { w ∈ {(,)}* : no prefix has more ) than (, and w has equally many of each }</code> | PDA | 2 | 2 |
+| 26 | Matching counts | <code>L = { a<sup>n</sup>b<sup>n</sup> : n ≥ 0 }</code> | PDA | 2 | 3 |
+| 27 | At least as many | <code>L = { aⁿbᵐ : 0 ≤ n ≤ m }</code> | PDA | 2 | 3 |
+| 28 | No more than | <code>L = { aⁿbᵐ : m ≤ n }</code> | PDA | 2 | 4 |
+| 29 | Twice as many | <code>L = { aⁿb²ⁿ : n ≥ 0 }</code> | PDA | 2 | 4 |
+| 30 | Half as many | <code>L = { a²ⁿbⁿ : n ≥ 0 }</code> | PDA | 2 | 4 |
+| 31 | One pair, then anything | <code>L = { aⁿbⁿcᵐ : n ≥ 0, m ≥ 0 }</code> | PDA | 2 | 3 |
+| 32 | Two kinds of bracket | <code>L = the properly nested strings over { (, ), [, ] }</code> | PDA | 2 | 2 |
+| 33 | Equal counts, any order | <code>L = { w ∈ {a,b}* : &#124;w&#124;ₐ = &#124;w&#124;_b }</code> | PDA | 2 | 2 |
+| 34 | Marked middle | <code>L = { w c wᴿ : w ∈ {a,b}* }</code> | PDA | 2 | 3 |
+| 35 | Mirror | <code>L = { w w<sup>R</sup> : w ∈ {a,b}* }</code> | PDA | 2 | 3 |
+| 36 | Odd mirror | <code>L = { w ∈ {a,b}* : w = wᴿ and &#124;w&#124; is odd }</code> | PDA | 2 | 3 |
+| 37 | Cross off | <code>L = { a<sup>n</sup>b<sup>n</sup> : n ≥ 0 }</code> | TM | 2 | 5 |
+| 38 | Cross off a pair | <code>L = { w ∈ {a,b}* : &#124;w&#124;ₐ = &#124;w&#124;_b }</code> | TM | 2 | 6 |
+| 39 | Reads the same backwards | <code>L = { w ∈ {a,b}* : w = wᴿ }</code> | TM | 2 | 7 |
+| 40 | Everything but | <code>L = { w ∈ {a,b}* : w ≠ wᴿ }</code> | TM | 2 | 7 |
+| 41 | Beyond context free | <code>L = { a<sup>n</sup>b<sup>n</sup>c<sup>n</sup> : n ≥ 0 }</code> | TM | 1 | 6 |
+| 42 | Four blocks | <code>L = { aⁿbⁿcⁿdⁿ : n ≥ 0 }</code> | TM | 1 | 7 |
 
 Par is the state count of a verified solution. Levels unlock in order.
 
@@ -151,7 +181,7 @@ Two checks are the definition of done, and both print their counts.
 
 **Engine and solutions.** Every level's verified solution is run against its own
 test suite and against every string over its alphabet up to length 6, length 9
-for <code>a<sup>n</sup>b<sup>n</sup>c<sup>n</sup></code>, and compared to the level's `accepts` predicate. 31887 strings,
+for <code>a<sup>n</sup>b<sup>n</sup>c<sup>n</sup></code>, and compared to the level's `accepts` predicate. 130100 strings,
 zero mismatches. The suite also asserts each solution's state count equals par.
 
 **Grammars.** Every grammar in the formal layer is derived by breadth-first
@@ -163,7 +193,7 @@ production shows up immediately, including in the context sensitive grammar for
 Alongside those: validation tests, simulation cap tests, a property test
 determinising random NFAs, Hopcroft minimisation against par, state elimination
 checked against every level language, arrow geometry pinned by tests rather than
-by eye, and 36 Playwright tests over two viewports.
+by eye, and 48 Playwright tests over two viewports.
 
 ## Layout
 
@@ -175,7 +205,7 @@ by eye, and 36 Playwright tests over two viewports.
     validate.ts  well-formedness per machine class
     minimize.ts  Hopcroft, reachability, completion, subset construction
     regex.ts     state elimination
-    levels.ts    the twelve levels, each with an accepts predicate
+    levels.ts    the levels, each with an accepts predicate
     solutions.ts one verified machine per level
     formal.ts    tuple rendering, delta notation, grammars, hierarchy copy
     layout.ts    arranging a machine so the diagram reads
@@ -238,12 +268,35 @@ drag. A state's own controls appear attached to it when it is selected, and an
 empty canvas says what to do in the middle of itself.
 
 Four quiet icons in one corner do the things with nothing to attach to: undo,
-redo, tidy, fit.
+redo, tidy, fit. Each draws its own label on hover and on keyboard focus, and
+flashes it after a press on a touch screen, which has no hover to draw it with.
+The browser's own `title` tooltip is not used: it takes about a second to
+appear, cannot be styled, and never shows on touch at all.
 
-On a phone the canvas is the screen and the brief is a sheet that peeks, showing
-the verdict, and pulls up for the lists. Anything that turns attention to the
-machine, taking the worked solution or starting a trace, drops it back to
-peeking.
+Every level opens on a blank canvas. What you draw lives for the session, so
+moving between levels keeps it and a reload does not: arriving at a level and
+finding a machine from a sitting you no longer remember is indistinguishable
+from one the game put there, and a puzzle that appears half solved by nobody is
+worse than one you have to start. Within a session the level list says which
+levels have work on them, and Stuck takes it all off again — an edit like any
+other, so undo puts the machine back.
+
+Progress is a separate thing and does persist: which levels are solved, the
+smallest state count each was solved with, whether the answer was revealed, the
+theme and the sound.
+
+On a phone the brief is a rail across the top rather than a sheet across the
+bottom. It carries which level this is, what the level asks in words and in
+set-builder, and the verdict once a run has happened — the question stays on
+screen while you draw, which the sheet never had room for. Tapping the rail
+anywhere opens the same five tabs full screen. Run docks bottom right and the
+four tools bottom left, in reach of a thumb, and a trace collapses the rail to
+its title line and takes the bottom outright rather than stacking a second
+panel over the canvas.
+
+Measured on a 390 × 664 viewport, that is 23% of the screen spent on furniture
+while drawing against 30% before, 33% during a trace against 57%, and the
+question visible throughout rather than never.
 
 ## Design
 
@@ -290,7 +343,7 @@ The TypeScript engine is the proven one. Rather than describe it twice,
 `scripts/golden.ts` freezes the proof into `ios/Tests/.../golden.json`: every
 level's shape, verified solution and grammar, plus the language itself as a
 bitmap over the canonical enumeration of Σ* up to that level's depth, one bit
-per string. 31887 bits across 12 levels. `tests/golden.test.ts` regenerates the
+per string. 130100 bits across 42 levels. `tests/golden.test.ts` regenerates the
 fixture and checks it against the live predicate string for string, so a stale
 fixture cannot pass, and the Swift tests hold the port to the same bits.
 
@@ -313,7 +366,7 @@ tests, which is the part that has to be right before any of it is worth drawing.
 
 The build brief referenced a prototype at `/reference/prototype.jsx` as the
 behavioural specification. That file was not present in this repository, so the
-twelve levels, their verified solutions and the formal-layer copy are authored
+levels, their verified solutions and the formal-layer copy are authored
 to the written spec instead, and proved correct by the suites above.
 `levels.ts`, `solutions.ts` and `formal.ts` are isolated, so dropping in the
 original content is a contained change followed by a re-run of both checks.

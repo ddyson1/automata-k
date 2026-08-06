@@ -28,7 +28,8 @@
  * more room than a 340 unit wide coordinate frame has.
  */
 
-import { CANVAS, type Machine, type StateId } from './types';
+import { transitionChip } from './formal';
+import { CANVAS, type Machine, type MachineKind, type StateId } from './types';
 
 export interface Point {
   x: number;
@@ -37,24 +38,66 @@ export interface Point {
 
 const R = CANVAS.stateRadius;
 
-/** Room between columns for an arrow and the chip riding on it. */
+/** Least room between columns: an arrow, and a one character chip on it. */
 const COL_PITCH = 2 * R + 66;
 
-/** Room between rows for a self loop clear of the state above or below it. */
+/** Least room between rows: a self loop clear of the state above or below. */
 const ROW_PITCH = 2 * R + 48;
+
+/**
+ * Advance of one character in the chip's face, at the chip's size, and the
+ * height of one chip in a stack. Duplicated from the drawing code rather than
+ * imported, because the engine does not depend on the UI; the geometry tests
+ * hold the two to the same numbers.
+ */
+const CHIP_CHAR_W = 7.2;
+const CHIP_ROW_H = 24;
+
+/** The class a machine's rules imply. A layout is never told the level. */
+function kindOf(m: Machine): MachineKind {
+  for (const t of m.transitions) {
+    if (t.move !== undefined || t.write !== undefined) return 'TM';
+    if (t.pop !== undefined || t.push !== undefined) return 'PDA';
+  }
+  return 'DFA';
+}
+
+/**
+ * Pitches wide enough for what this machine actually writes on its arrows.
+ *
+ * A DFA labels an arrow with one character; a Turing machine writes things
+ * like "⊔ → ⊔, R", and several rules between the same pair stack up. Spacing
+ * every machine as though it were a DFA is what left the dense levels with
+ * their chips lying on top of each other after a tidy.
+ */
+function pitches(m: Machine): { col: number; row: number } {
+  const kind = kindOf(m);
+  let widest = 1;
+  const perEdge = new Map<string, number>();
+  for (const t of m.transitions) {
+    widest = Math.max(widest, transitionChip(t, kind).length);
+    const key = `${t.from}\u0000${t.to}`;
+    perEdge.set(key, (perEdge.get(key) ?? 0) + 1);
+  }
+  const stacked = Math.max(1, ...perEdge.values());
+  return {
+    col: Math.max(COL_PITCH, 2 * R + widest * CHIP_CHAR_W + 30),
+    row: Math.max(ROW_PITCH, 2 * R + stacked * CHIP_ROW_H + 24),
+  };
+}
 
 /** Above this, a rank with no structure to it is better off as a grid. */
 const GRID_ABOVE = 3;
 
 /** Lay out `n` states with nothing joining them: a squarish grid, centred. */
-function gridLayout(n: number): Point[] {
+function gridLayout(n: number, col: number, row: number): Point[] {
   const cols = Math.ceil(Math.sqrt(n));
   const rows = Math.ceil(n / cols);
-  const x0 = CANVAS.width / 2 - ((cols - 1) * COL_PITCH) / 2;
-  const y0 = CANVAS.height / 2 - ((rows - 1) * ROW_PITCH) / 2;
+  const x0 = CANVAS.width / 2 - ((cols - 1) * col) / 2;
+  const y0 = CANVAS.height / 2 - ((rows - 1) * row) / 2;
   return Array.from({ length: n }, (_, i) => ({
-    x: Math.round(x0 + (i % cols) * COL_PITCH),
-    y: Math.round(y0 + Math.floor(i / cols) * ROW_PITCH),
+    x: Math.round(x0 + (i % cols) * col),
+    y: Math.round(y0 + Math.floor(i / cols) * row),
   }));
 }
 
@@ -69,6 +112,7 @@ export function layoutMachine(m: Machine): Point[] {
   if (n === 0) return [];
   if (n === 1) return [{ x: CANVAS.width / 2, y: CANVAS.height / 2 }];
 
+  const { col: COL, row: ROW } = pitches(m);
   const index = new Map<StateId, number>(m.states.map((s, i) => [s.id, i]));
 
   const out: number[][] = m.states.map(() => []);
@@ -108,7 +152,7 @@ export function layoutMachine(m: Machine): Point[] {
   const depth = Math.max(...rank) + 1;
   // One rank and more than a handful means there is no sequence to show: a
   // scatter of unconnected states, or a set that all loop on themselves.
-  if (depth === 1 && n > GRID_ABOVE) return gridLayout(n);
+  if (depth === 1 && n > GRID_ABOVE) return gridLayout(n, COL, ROW);
 
   const columns: number[][] = Array.from({ length: depth }, () => []);
   for (let i = 0; i < n; i++) (columns[rank[i] as number] as number[]).push(i);
@@ -138,18 +182,18 @@ export function layoutMachine(m: Machine): Point[] {
     }
   }
 
-  const x0 = CANVAS.width / 2 - ((depth - 1) * COL_PITCH) / 2;
+  const x0 = CANVAS.width / 2 - ((depth - 1) * COL) / 2;
   const midY = CANVAS.height / 2;
   const points = new Array<Point>(n);
 
-  columns.forEach((col, c) => {
+  columns.forEach((column, c) => {
     // Every column is centred on the same line, so a chain is level and a
     // fork opens symmetrically about it.
-    const top = midY - ((col.length - 1) * ROW_PITCH) / 2;
-    col.forEach((i, j) => {
+    const top = midY - ((column.length - 1) * ROW) / 2;
+    column.forEach((i, j) => {
       points[i] = {
-        x: Math.round(x0 + c * COL_PITCH),
-        y: Math.round(top + j * ROW_PITCH),
+        x: Math.round(x0 + c * COL),
+        y: Math.round(top + j * ROW),
       };
     });
   });

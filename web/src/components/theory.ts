@@ -186,11 +186,14 @@ export function buildTheory(into: HTMLElement, level: Level, machine: Machine): 
 export interface HintOptions {
   level: Level;
   shown: boolean;
+  /** Whether there is anything on the canvas to take off it. */
+  drawn: boolean;
   onReveal: () => void;
+  onClear: () => void;
 }
 
 export function buildHint(into: HTMLElement, options: HintOptions): void {
-  const { level, shown } = options;
+  const { level, shown, drawn } = options;
 
   const reveal = h(
     'button',
@@ -198,6 +201,13 @@ export function buildHint(into: HTMLElement, options: HintOptions): void {
     shown ? 'Show it again' : 'Put a worked solution on the canvas',
   );
   on(reveal, 'click', () => options.onReveal());
+
+  const clear = h(
+    'button',
+    { class: 'action is-danger', type: 'button', 'data-testid': 'clear' },
+    'Take everything off the canvas',
+  );
+  on(clear, 'click', () => options.onClear());
 
   fill(
     into,
@@ -214,5 +224,18 @@ export function buildHint(into: HTMLElement, options: HintOptions): void {
       ),
       h('div', { class: 'sheet-actions' }, reveal),
     ),
+    // Every level opens blank, so this is for getting back to blank without
+    // reloading and losing the other levels you have open work on.
+    drawn
+      ? block(
+          'Start again',
+          h(
+            'p',
+            { class: 't-small muted' },
+            'Empties this level and leaves every other one alone. Undo puts it back.',
+          ),
+          h('div', { class: 'sheet-actions' }, clear),
+        )
+      : null,
   );
 }
