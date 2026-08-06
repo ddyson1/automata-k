@@ -450,8 +450,33 @@ test('the rings hold levels by language, not by machine', async ({ page }) => {
   // And the two that no stack can manage sit outside them.
   expect(contextSensitive).toEqual(['tm-an-bn-cn', 'tm-abcd']);
 
-  // Type 0 has nothing in it, and says so rather than showing an empty box.
+  // Type 0 has nothing in it, and says why rather than showing an empty box.
   await expect(page.locator('[data-testid="ring-0"] > .ring-empty')).toBeVisible();
+  await expect(page.locator('[data-testid="ring-recursive"] > .ring-empty')).toBeVisible();
+});
+
+/**
+ * The bands name the weakest machine that recognises all of them, which is the
+ * column the textbook table has and the level list never did. The recursive
+ * band is in there too: it is not one of Chomsky's four, and it is the reason
+ * the type 0 ring is empty rather than unfinished.
+ */
+test('every band names the automaton that recognises it', async ({ page }) => {
+  await page.goto('/');
+  const named = async (ring: string): Promise<string> =>
+    page.locator(`[data-testid="ring-${ring}"] > .ring-label .ring-machine`).innerText();
+
+  expect(await named('3')).toBe('Finite automaton');
+  expect(await named('2')).toBe('Pushdown automaton, nondeterministic');
+  expect(await named('1')).toBe('Linear bounded automaton');
+  expect(await named('recursive')).toBe('Turing machine that always halts');
+  expect(await named('0')).toBe('Turing machine');
+
+  // The bands nest, outermost first, and the decidable one sits between.
+  const order = await page
+    .locator('.ring')
+    .evaluateAll((rs) => rs.map((r) => (r as HTMLElement).dataset.testid));
+  expect(order).toEqual(['ring-0', 'ring-recursive', 'ring-1', 'ring-2', 'ring-3']);
 });
 
 /** Tidy has to leave every state where it can be seen, clear of its neighbours. */

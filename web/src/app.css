@@ -74,17 +74,27 @@
 }
 
 .ring {
-  position: relative;
   border: 1px solid var(--rule);
-  border-radius: 14px;
-  padding: 28px 12px 12px;
-  margin-top: 14px;
+  border-radius: 13px;
+  padding: 9px 10px 10px;
+  margin-top: 12px;
 }
 
+/* The class, then the weakest machine that recognises all of it. Five rings
+   nest now, so the label is in flow rather than absolutely placed: an absolute
+   one costs 28px of top padding per ring, which is 140px of inset by the time
+   the regular languages are reached. */
 .ring-label {
-  position: absolute;
-  top: 9px;
-  left: 13px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 0 0 2px;
+}
+
+.ring-machine {
+  font-family: var(--mono);
+  font-size: 10.5px;
 }
 
 /* The innermost ring is the one with the most in it, and the fill says so. */
@@ -93,7 +103,7 @@
 }
 
 .ring-empty {
-  margin: 2px 0 0;
+  margin: 4px 0 0;
 }
 
 .dots {
@@ -240,7 +250,15 @@
 
 .ring-note {
   margin: 12px 0 0;
-  max-width: 68ch;
+  max-width: 72ch;
+}
+
+.ring-note p {
+  margin: 0 0 8px;
+}
+
+.ring-note p:last-child {
+  margin-bottom: 0;
 }
 
 .home-foot {

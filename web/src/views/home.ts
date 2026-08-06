@@ -23,12 +23,36 @@ import { game } from '../store';
 import type { ThemeChoice } from '../store';
 import type { View } from './level';
 
-/** The rings, outermost first. Each holds the levels whose language it names. */
-const RINGS: { type: ChomskyType; label: string }[] = [
-  { type: 0, label: 'Type 0 · recursively enumerable' },
-  { type: 1, label: 'Type 1 · context sensitive' },
-  { type: 2, label: 'Type 2 · context free' },
-  { type: 3, label: 'Type 3 · regular' },
+/**
+ * The rings, outermost first: the class, the weakest machine that recognises
+ * everything in it, and why the band is empty where it is.
+ *
+ * The recursive band is not one of Chomsky's four. It belongs here anyway,
+ * because it is where every level in this game actually lives and it is the
+ * reason the type 0 ring is empty rather than unfinished.
+ */
+const RINGS: {
+  /** null for the recursive band, which the hierarchy does not number. */
+  type: ChomskyType | null;
+  label: string;
+  machine: string;
+  note?: string;
+}[] = [
+  {
+    type: 0,
+    label: 'Type 0 · recursively enumerable',
+    machine: 'Turing machine',
+    note: 'Empty, and it has to be. Nothing in here can be graded.',
+  },
+  {
+    type: null,
+    label: 'Recursive · decidable',
+    machine: 'Turing machine that always halts',
+    note: 'No level of its own, but every level in the game is somewhere inside it.',
+  },
+  { type: 1, label: 'Type 1 · context sensitive', machine: 'Linear bounded automaton' },
+  { type: 2, label: 'Type 2 · context free', machine: 'Pushdown automaton, nondeterministic' },
+  { type: 3, label: 'Type 3 · regular', machine: 'Finite automaton' },
 ];
 
 /** What you draw, as opposed to what the ring says the language is. */
@@ -194,11 +218,26 @@ export function createHomeView(navigate: (hash: string) => void): View {
       ),
     ),
     h(
-      'p',
-      { class: 't-small muted ring-note' },
-      'A level sits in the smallest ring that can hold its language. Four of the tape ' +
-        'levels sit in the context free ring, which is the argument of the last group: ' +
-        'a stronger machine, not a larger language.',
+      'div',
+      { class: 'ring-note' },
+      h(
+        'p',
+        { class: 't-small muted' },
+        'A level sits in the smallest ring that can hold its language, and carries the mark ' +
+          'of the machine you draw it with. Four of the tape levels sit in the context free ' +
+          'ring, which is the argument of the last group: a stronger machine, not a larger ' +
+          'language.',
+      ),
+      h(
+        'p',
+        { class: 't-small muted' },
+        'The type 0 ring is empty for a reason rather than for want of a puzzle. Every level ' +
+          'is graded by asking a predicate this program can run, so every language here is one ' +
+          'a program can decide, and the decidable languages stop short of type 0. A type 0 ' +
+          'level would need a machine allowed to run forever on a string it ought to reject, ' +
+          'and no list of ticks could ever mark that row: a run that never halts is reported ' +
+          'as exactly that, not as a rejection.',
+      ),
     ),
     h(
       'footer',
@@ -266,20 +305,21 @@ export function createHomeView(navigate: (hash: string) => void): View {
     // The rings are built inside out so each one can be put inside the last.
     let inner: HTMLElement | null = null;
     for (const ring of [...RINGS].reverse()) {
-      const held = LEVELS.filter((l) => l.chomsky === ring.type);
+      const key = ring.type === null ? 'recursive' : String(ring.type);
+      const held = ring.type === null ? [] : LEVELS.filter((l) => l.chomsky === ring.type);
       const box = h(
         'div',
-        { class: `ring ring-${ring.type}`, 'data-testid': `ring-${ring.type}` },
-        h('span', { class: 't-label ring-label' }, ring.label),
+        { class: `ring ring-${key}`, 'data-testid': `ring-${key}` },
+        h(
+          'p',
+          { class: 'ring-label' },
+          h('span', { class: 't-label' }, ring.label),
+          h('span', { class: 't-small faint ring-machine' }, ring.machine),
+        ),
       );
       if (inner) box.appendChild(inner);
-      if (held.length > 0) {
-        box.appendChild(h('div', { class: 'dots' }, ...held.map(dot)));
-      } else {
-        box.appendChild(
-          h('p', { class: 't-small faint ring-empty' }, 'Nothing here yet. There is room.'),
-        );
-      }
+      if (held.length > 0) box.appendChild(h('div', { class: 'dots' }, ...held.map(dot)));
+      else if (ring.note) box.appendChild(h('p', { class: 't-small faint ring-empty' }, ring.note));
       inner = box;
     }
     rings.textContent = '';
