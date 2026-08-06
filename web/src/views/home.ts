@@ -136,11 +136,18 @@ export function createHomeView(navigate: (hash: string) => void): View {
     const setBuilder = h('code', { class: 't-mono-sm sel' });
     setBuilder.appendChild(notation(level.setBuilder));
 
+    // An unsolved level with work saved on it used to read exactly like an
+    // untouched one, so opening it and meeting your own half finished machine
+    // came as a surprise. Say so here instead.
+    const drawn = game.machineFor(level.id).states.length;
+
     const status = solved
       ? `${best ?? level.par} states, par ${level.par}${shown ? ', shown' : ''}`
-      : unlocked
-        ? `par ${level.par}`
-        : 'Locked';
+      : !unlocked
+        ? 'Locked'
+        : drawn > 0
+          ? `${drawn} state${drawn === 1 ? '' : 's'} drawn, par ${level.par}`
+          : `par ${level.par}`;
 
     const node = h(
       'button',

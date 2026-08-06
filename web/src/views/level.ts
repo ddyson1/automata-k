@@ -273,6 +273,13 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
       showCanvas();
       announce(`Canvas replaced with ${description}.`);
     },
+    onClear: () => {
+      game.clear(levelId);
+      selectedState = null;
+      selectedTransitions = [];
+      showCanvas();
+      announce('The canvas is empty. Undo puts it back.');
+    },
     onReveal: () => {
       game.reveal(levelId);
       showCanvas();

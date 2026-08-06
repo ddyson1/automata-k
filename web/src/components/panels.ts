@@ -36,6 +36,7 @@ export interface PanelCallbacks {
   onActivateRule: (line: DeltaLine) => void;
   onAdopt: (machine: Machine, description: string) => void;
   onReveal: () => void;
+  onClear: () => void;
 }
 
 export interface PanelState {
@@ -96,7 +97,9 @@ export function createPanels(callbacks: PanelCallbacks): Panels {
     buildHint(el, {
       level: state.level,
       shown: state.shownSolution,
+      drawn: state.machine.states.length > 0,
       onReveal: callbacks.onReveal,
+      onClear: callbacks.onClear,
     });
   }
 

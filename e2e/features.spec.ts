@@ -446,3 +446,70 @@ test('tidy spreads the states out instead of piling them up', async ({ page }) =
     }
   }
 });
+
+/**
+ * A level keeps what you drew on it, so coming back to one you abandoned means
+ * meeting your own half finished machine. That is the point — but until now the
+ * only way back to a blank canvas was Reset progress, which empties all forty
+ * two levels to escape one.
+ */
+test('a level can be emptied without touching the other levels', async ({ page }) => {
+  await reveal(page, 'dfa-ends-in-1');
+  const before = await page.locator('.state').count();
+  expect(before).toBeGreaterThan(0);
+
+  // Something on another level, to prove clearing is not global. Level two,
+  // which the reveal above just unlocked, so the list shows it as it would in
+  // ordinary play rather than as Locked.
+  await open(page, 'dfa-even-zeros');
+  await place(page, 0.35, 0.32);
+  await expect(page.locator('.state')).toHaveCount(1);
+
+  // And the home screen says which levels have work saved on them, so meeting
+  // your own half finished machine is not a surprise.
+  const row = (id: string) => page.locator(`[data-testid="level-row"][data-level="${id}"]`);
+  await page.getByTestId('back').click();
+  await expect(row('dfa-even-zeros')).toContainText('1 state drawn');
+
+  await open(page, 'dfa-ends-in-1');
+  await page.getByTestId('tab-hint').click();
+  await page.getByTestId('clear').click();
+  await expect(page.locator('.state')).toHaveCount(0);
+  await expect(page.getByTestId('empty-prompt')).toBeVisible();
+
+  // It is an edit like any other, so undo puts the machine back.
+  await page.getByTestId('undo').click();
+  await expect(page.locator('.state')).toHaveCount(before);
+
+  // Clear it for good and reload. The empty canvas is what got saved, not a
+  // repaint — and the undo stack does not survive a reload, which is exactly
+  // the limit the copy on the button states.
+  await page.getByTestId('tab-hint').click();
+  await page.getByTestId('clear').click();
+  await page.reload();
+  await expect(page.locator('.state')).toHaveCount(0);
+  await expect(page.getByTestId('undo')).toBeDisabled();
+
+  // The other level is untouched.
+  await open(page, 'dfa-even-zeros');
+  await expect(page.locator('.state')).toHaveCount(1);
+
+  // And the cleared one reads like a level nobody has drawn on again.
+  await page.getByTestId('back').click();
+  await expect(row('dfa-ends-in-1')).not.toContainText('drawn');
+});
+
+/** Nothing drawn, nothing to take off: the offer only exists when it applies. */
+test('the clear action is absent on an untouched canvas', async ({ page }) => {
+  await open(page, 'dfa-ends-in-1');
+  await page.getByTestId('tab-hint').click();
+  await expect(page.getByTestId('reveal')).toBeVisible();
+  await expect(page.getByTestId('clear')).toHaveCount(0);
+
+  // A reload puts the pane back where it opens, so the canvas is reachable on
+  // a phone — where the pane is a sheet over it — as well as on a desktop.
+  await page.reload();
+  await place(page, 0.35, 0.32);
+  await page.getByTestId('tab-hint').click();
+  await expect(page.getByTestId('clear')).toBeVisible();
+});

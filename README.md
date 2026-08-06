@@ -270,6 +270,11 @@ empty canvas says what to do in the middle of itself.
 Four quiet icons in one corner do the things with nothing to attach to: undo,
 redo, tidy, fit.
 
+A level keeps whatever you drew on it, per level, for as long as the browser
+keeps anything, so the level list says which unsolved levels have work saved on
+them and Stuck offers to take it all off again. Clearing is an edit like any
+other, so undo puts the machine back.
+
 On a phone the canvas is the screen and the brief is a sheet that peeks, showing
 the verdict, and pulls up for the lists. Anything that turns attention to the
 machine, taking the worked solution or starting a trace, drops it back to
