@@ -38,11 +38,40 @@ const SECTIONS: { key: AnalysisSection; label: string }[] = [
   { key: 'regex', label: 'Regex' },
 ];
 
+/**
+ * Whether a reading applies to a class of machine at all.
+ *
+ * This is a property of the level, not of what has been drawn, so it is known
+ * before anything is clicked. It has to be shown, too: on a PDA or a TM all
+ * three readings decline, and three tabs that each produce a paragraph of grey
+ * prose are indistinguishable from three tabs that do nothing. Saying so up
+ * front is the difference between "this is broken" and "this is the point".
+ */
+export const appliesTo = (section: AnalysisSection, level: Level): boolean =>
+  section === 'minimal' ? level.type === 'DFA' : level.type === 'DFA' || level.type === 'NFA';
+
+/**
+ * The reading to open on: the first that applies. Where none does, Minimal,
+ * so the panel opens on the leftmost tab and the marks explain the rest.
+ */
+export const defaultSection = (level: Level): AnalysisSection =>
+  SECTIONS.find((s) => appliesTo(s.key, level))?.key ?? 'minimal';
+
 const block = (label: string, ...children: Child[]): HTMLElement =>
   h('div', { class: 'note-block' }, h('span', { class: 't-label' }, label), ...children);
 
+/**
+ * A reading that does not apply, said plainly. Bordered rather than muted:
+ * "nothing here, and here is why" has to look like an answer, because it is
+ * one, and grey text in an empty panel reads as a failure to load.
+ */
 const declined = (why: string): Node[] => [
-  h('p', { class: 't-body muted', 'data-testid': 'analysis-declined' }, why),
+  h(
+    'div',
+    { class: 'declined', 'data-testid': 'analysis-declined' },
+    h('span', { class: 't-label' }, 'Not for this machine'),
+    h('p', { class: 't-body' }, why),
+  ),
 ];
 
 const labelsOf = (machine: Machine, ids: readonly string[]): string =>
@@ -246,6 +275,7 @@ export function buildAnalysis(
   let active: AnalysisSection = initial;
   const panel = h('div', { class: 'note-panel' });
   const tabs = h('div', { class: 'tabs', role: 'tablist' });
+  const available = SECTIONS.filter((s) => appliesTo(s.key, level));
 
   const paint = (): void => {
     for (const node of tabs.children) {
@@ -263,16 +293,20 @@ export function buildAnalysis(
   };
 
   for (const section of SECTIONS) {
+    const applies = appliesTo(section.key, level);
     const node = h(
       'button',
       {
-        class: 'tab',
+        class: applies ? 'tab' : 'tab is-off',
         type: 'button',
         role: 'tab',
         'data-section': section.key,
         'data-testid': `tab-${section.key}`,
+        title: applies ? null : `Does not apply to a ${level.type}`,
       },
       section.label,
+      // A tab that is going to decline says so before it is pressed, not after.
+      applies ? null : h('span', { class: 'tab-mark', 'aria-hidden': 'true' }, '—'),
     );
     on(node, 'click', () => {
       active = section.key;
@@ -282,6 +316,19 @@ export function buildAnalysis(
     tabs.appendChild(node);
   }
 
-  fill(into, tabs, panel);
+  fill(
+    into,
+    tabs,
+    available.length === 0
+      ? h(
+          'p',
+          { class: 't-small muted analysis-none', 'data-testid': 'analysis-none' },
+          `None of the three apply to a ${level.type}, and that is worth knowing rather than ` +
+            'hiding. Each one below says which wall it runs into, and those walls are exactly ' +
+            'what separates this level from the finite automata behind it.',
+        )
+      : null,
+    panel,
+  );
   paint();
 }

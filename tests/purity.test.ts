@@ -27,6 +27,10 @@ describe('engine purity', () => {
   it('ships every file the layout in section 3 names', () => {
     expect(engineFiles.sort()).toEqual([
       'formal.ts',
+      // Not in section 3's list. Arranging a diagram is a reading of the graph
+      // and nothing else, so it is pure and it belongs here, but it is not
+      // minimisation and it does not belong in minimize.ts alongside it.
+      'layout.ts',
       'levels.ts',
       'minimize.ts',
       'regex.ts',

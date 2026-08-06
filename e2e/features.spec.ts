@@ -8,7 +8,7 @@ async function open(page: Page, levelId: string): Promise<void> {
 /** Open a level and put its verified solution on the canvas. */
 async function reveal(page: Page, levelId: string): Promise<void> {
   await open(page, levelId);
-  await page.getByTestId('open-hint').click();
+  await page.getByTestId('tab-hint').click();
   await page.getByTestId('reveal').click();
   await expect(page.getByTestId('score')).toContainText('All ');
 }
@@ -79,13 +79,13 @@ test('the grip on a selected state draws an arrow, and opens its rule', async ({
   await expect(page.getByTestId('rule-head')).toHaveText('q0 → q1');
   await page.getByTestId('rule-commit').click();
 
-  await page.getByTestId('open-machine').click();
+  await page.getByTestId('tab-machine').click();
   await expect(page.getByRole('button', { name: /δ\(q0, 0\) = q1/ })).toBeVisible();
 });
 
 test('a rule opens from the ledger, and deleting it is felt immediately', async ({ page }) => {
   await reveal(page, 'dfa-ends-in-1');
-  await page.getByTestId('open-machine').click();
+  await page.getByTestId('tab-machine').click();
 
   await page.getByRole('button', { name: /δ\(q0, 1\) = q1/ }).click();
   await expect(page.getByTestId('rule-head')).toHaveText('q0 → q1');
@@ -101,7 +101,7 @@ test('a rule opens from the ledger, and deleting it is felt immediately', async 
 test('an unwired pair is red in the ledger and activating it writes the rule', async ({ page }) => {
   await open(page, 'dfa-ends-in-1');
   await place(page, 0.5, 0.4);
-  await page.getByTestId('open-machine').click();
+  await page.getByTestId('tab-machine').click();
 
   await expect(page.getByRole('button', { name: /δ\(q0, 0\) = undefined/ })).toBeVisible();
   await expect(page.getByTestId('delta-note')).toHaveText(
@@ -186,10 +186,9 @@ test('undo and redo walk the edit history', async ({ page }) => {
   await expect(page.getByRole('button', { name: /^State q1/ })).toBeVisible();
 });
 
-test('the overlay carries the theory and the analyses', async ({ page }) => {
+test('the pane carries the theory and the analyses', async ({ page }) => {
   await reveal(page, 'tm-an-bn-cn');
-  await page.getByTestId('open-machine').click();
-  const overlay = page.getByTestId('overlay');
+  const overlay = page.getByTestId('panel');
 
   await page.getByTestId('tab-theory').click();
   await expect(overlay.getByText('S → ε | aBC | aSBC')).toBeVisible();
@@ -203,10 +202,9 @@ test('the overlay carries the theory and the analyses', async ({ page }) => {
 
 test('analysis reports minimality, determinisation and a regex', async ({ page }) => {
   await reveal(page, 'dfa-ends-in-1');
-  await page.getByTestId('open-machine').click();
   await page.getByTestId('tab-analysis').click();
 
-  const overlay = page.getByTestId('overlay');
+  const overlay = page.getByTestId('panel');
   await expect(overlay.getByTestId('minimal-verdict')).toContainText('Minimal.');
 
   await page.getByTestId('tab-regex').click();
@@ -262,4 +260,117 @@ test('locked levels stay locked until the one before them is solved', async ({ p
   await expect(rows.filter({ hasText: 'Last symbol' })).toBeEnabled();
   await expect(rows.filter({ hasText: 'Parity' })).toBeDisabled();
   await expect(rows.filter({ hasText: 'Beyond context free' })).toBeDisabled();
+});
+
+/**
+ * The theory panel used to hold a four column table in a horizontal scroller,
+ * 877 units of it in a 343 unit column, so two columns were always off the
+ * edge and the wheel only reached them about a third of the time. Nothing in
+ * the panel may be wider than the panel.
+ */
+test('nothing in the formal layer needs a sideways scroll', async ({ page }) => {
+  await reveal(page, 'tm-an-bn-cn');
+
+  for (const tab of ['brief', 'machine', 'theory', 'analysis', 'hint']) {
+    await page.getByTestId(`tab-${tab}`).click();
+    // The pane's scroll box, which is the container in every tab including
+    // the brief; the panel itself is hidden while the brief is showing.
+    const over = await page.locator('.pane-body').evaluate((body) => {
+      const limit = body.clientWidth;
+      return [...body.querySelectorAll('*')]
+        // The subset table is allowed one: it grows a column per input symbol.
+        .filter((n) => !n.closest('.scroll-x'))
+        .filter((n) => Math.round(n.getBoundingClientRect().width) > limit + 1)
+        .map((n) => `${n.tagName.toLowerCase()}.${n.className}`);
+    });
+    expect(over, `${tab} tab`).toEqual([]);
+  }
+});
+
+/**
+ * The three analysis readings all decline on a PDA, which made three tabs that
+ * each produced a paragraph of grey prose and looked like three tabs that did
+ * nothing. They now say which apply before they are pressed.
+ */
+test('the analysis sub tabs say which of them apply to this machine', async ({ page }) => {
+  await reveal(page, 'pda-an-bn');
+  await page.getByTestId('tab-analysis').click();
+
+  const tabs = page.getByTestId('panel').locator('.tabs .tab');
+  await expect(tabs).toHaveCount(3);
+  await expect(tabs.filter({ has: page.locator('.tab-mark') })).toHaveCount(3);
+  await expect(page.getByTestId('analysis-none')).toBeVisible();
+
+  // On an NFA, minimisation is the only one that does not apply.
+  await reveal(page, 'nfa-third-last-1');
+  await page.getByTestId('tab-analysis').click();
+  await expect(page.getByTestId('analysis-none')).toBeHidden();
+  await expect(page.getByTestId('tab-minimal')).toHaveClass(/is-off/);
+  await expect(page.getByTestId('tab-subset')).not.toHaveClass(/is-off/);
+  // The applicable one opens, rather than a declining one.
+  await expect(page.getByTestId('subset-table')).toBeVisible();
+
+  // And pressing each one changes the panel.
+  await page.getByTestId('tab-regex').click();
+  await expect(page.getByTestId('regex-source')).toBeVisible();
+  await page.getByTestId('tab-minimal').click();
+  await expect(page.getByTestId('analysis-declined')).toBeVisible();
+});
+
+/**
+ * The formal layer used to be a sheet over the brief, so going to read the
+ * transition function took the verdict off screen — exactly when you wanted
+ * it. As tabs of the pane it cannot: the level line is above them and the
+ * verdict is below them, on every tab.
+ */
+test('the level line and the verdict survive every tab', async ({ page }) => {
+  await reveal(page, 'dfa-ends-in-1');
+
+  for (const tab of ['brief', 'machine', 'theory', 'analysis', 'hint']) {
+    await page.getByTestId(`tab-${tab}`).click();
+    await expect(page.getByTestId('back'), tab).toBeVisible();
+    await expect(page.getByTestId('score'), tab).toHaveText('All 12 agree');
+    await expect(page.getByTestId(`tab-${tab}`), tab).toHaveClass(/is-on/);
+  }
+
+  // Only one thing is showing at a time.
+  await page.getByTestId('tab-brief').click();
+  await expect(page.getByTestId('brief')).toBeVisible();
+  await expect(page.getByTestId('panel')).toBeHidden();
+
+  // Five tabs have to fit the pane rather than scroll sideways.
+  const strip = await page
+    .locator('.pane-tabs')
+    .evaluate((n) => ({ client: n.clientWidth, scroll: n.scrollWidth }));
+  expect(strip.scroll, 'the tab strip fits').toBeLessThanOrEqual(strip.client);
+});
+
+/** Tidy has to leave every state where it can be seen, clear of its neighbours. */
+test('tidy spreads the states out instead of piling them up', async ({ page }) => {
+  await reveal(page, 'dfa-contains-01');
+  await page.getByTestId('tidy').click();
+
+  const centres = await page.locator('.state').evaluateAll((nodes) =>
+    nodes.map((n) => {
+      const r = n.getBoundingClientRect();
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    }),
+  );
+  expect(centres.length).toBe(3);
+
+  // All on one line, left to right, and far enough apart for their self loops.
+  const ys = centres.map((c) => Math.round(c.y));
+  expect(Math.max(...ys) - Math.min(...ys)).toBeLessThanOrEqual(1);
+
+  const drawn = await page.locator('.state-ring').first().evaluate((n) => n.getBoundingClientRect().width / 2);
+  for (let i = 0; i < centres.length; i++) {
+    for (let j = i + 1; j < centres.length; j++) {
+      const gap = Math.hypot(
+        (centres[i] as { x: number }).x - (centres[j] as { x: number }).x,
+        (centres[i] as { y: number }).y - (centres[j] as { y: number }).y,
+      );
+      // 1.82 radii is how far a self loop reaches from its own centre.
+      expect(gap).toBeGreaterThan(1.82 * drawn + drawn);
+    }
+  }
 });

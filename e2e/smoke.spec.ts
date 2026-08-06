@@ -14,7 +14,7 @@ const openLevelOne = async (page: Page): Promise<void> => {
 };
 
 const reveal = async (page: Page): Promise<void> => {
-  await page.getByTestId('open-hint').click();
+  await page.getByTestId('tab-hint').click();
   await page.getByTestId('reveal').click();
   await expect(page.getByTestId('score')).toHaveText('All 12 agree');
 };
@@ -56,12 +56,14 @@ test('progress survives a reload', async ({ page }) => {
   await expect(page.getByTestId('level-row').filter({ hasText: 'Parity' })).toBeEnabled();
 });
 
-test('the machine overlay highlights both ways', async ({ page }) => {
+test('the machine tab highlights both ways', async ({ page }) => {
   await openLevelOne(page);
   await reveal(page);
-  await page.getByTestId('open-machine').click();
+  await page.getByTestId('tab-machine').click();
 
-  await expect(page.getByTestId('overlay')).toBeVisible();
+  await expect(page.getByTestId('panel')).toBeVisible();
+  // The level line and the verdict stay put while the machine is on show.
+  await expect(page.getByTestId('score')).toBeVisible();
   await expect(page.getByTestId('delta-signature')).toHaveText('δ : Q × Σ → Q');
   await expect(page.getByTestId('delta-note')).toHaveText('δ is total: all 4 pairs defined.');
   await expect(page.getByTestId('delta-list').getByRole('listitem')).toHaveCount(4);
@@ -70,8 +72,10 @@ test('the machine overlay highlights both ways', async ({ page }) => {
   await page.getByRole('button', { name: /δ\(q0, 1\) = q1/ }).hover();
   await expect(page.locator('.chip.is-lit')).toHaveCount(1);
 
-  await page.getByTestId('overlay-close').click();
-  await expect(page.getByTestId('overlay')).toBeHidden();
+  // Back to the brief: the tabs are the pane's own, so there is nothing to close.
+  await page.getByTestId('tab-brief').click();
+  await expect(page.getByTestId('panel')).toBeHidden();
+  await expect(page.getByTestId('brief')).toBeVisible();
 });
 
 test('a failing machine crosses the strings it gets wrong', async ({ page }) => {

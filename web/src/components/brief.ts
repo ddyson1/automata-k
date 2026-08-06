@@ -9,6 +9,12 @@
  *
  * Tapping a string runs it, so the thing you are reading is also the thing you
  * can step through.
+ *
+ * Three pieces rather than one block, because the pane arranges them around
+ * its tabs. The head and the foot are permanent — which level this is, and how
+ * the machine is currently doing — and only the middle is a tab. That is worth
+ * the extra seam: the verdict used to disappear the moment you went to read
+ * the transition function, which is exactly when you wanted it.
  */
 
 import { shortestCounterexample } from '../../../src/engine/simulate';
@@ -21,8 +27,6 @@ import { setNotation } from '../notation';
 export interface BriefCallbacks {
   onBack: () => void;
   onTrace: (input: string) => void;
-  onOpenMachine: () => void;
-  onOpenHint: () => void;
   onNext: () => void;
 }
 
@@ -39,7 +43,12 @@ export interface BriefState {
 }
 
 export interface Brief {
-  el: HTMLElement;
+  /** Which level this is. Above the tabs, so it never moves. */
+  head: HTMLElement;
+  /** The question and the two lists. The first tab. */
+  body: HTMLElement;
+  /** How the machine is doing, and what to do next. Below the tabs, always. */
+  foot: HTMLElement;
   update(state: BriefState): void;
 }
 
@@ -70,22 +79,6 @@ export function createBrief(callbacks: BriefCallbacks): Brief {
   const score = h('p', { class: 'brief-score', 'data-testid': 'score' });
   const why = h('p', { class: 't-small brief-why', 'data-testid': 'why' });
 
-  const machineLink = h(
-    'button',
-    { class: 'brief-link', type: 'button', 'data-testid': 'open-machine' },
-    'The machine',
-    h('span', { 'aria-hidden': 'true' }, '›'),
-  );
-  on(machineLink, 'click', () => callbacks.onOpenMachine());
-
-  const hintLink = h(
-    'button',
-    { class: 'brief-link', type: 'button', 'data-testid': 'open-hint' },
-    'Stuck',
-    h('span', { 'aria-hidden': 'true' }, '›'),
-  );
-  on(hintLink, 'click', () => callbacks.onOpenHint());
-
   const nextLink = h(
     'button',
     { class: 'brief-link is-next', type: 'button', 'data-testid': 'next-level', hidden: true },
@@ -94,35 +87,27 @@ export function createBrief(callbacks: BriefCallbacks): Brief {
   );
   on(nextLink, 'click', () => callbacks.onNext());
 
-  const el = h(
+  const head = h('div', { class: 'pane-head' }, back, eyebrow);
+
+  const body = h(
     'section',
     { class: 'brief', 'data-testid': 'brief' },
-    h('div', { class: 'brief-top' }, back, eyebrow),
     question,
     language,
     h(
       'div',
       { class: 'brief-split' },
-      h(
-        'section',
-        {},
-        h('p', { class: 't-label' }, 'These must be accepted'),
-        acceptList,
-      ),
-      h(
-        'section',
-        {},
-        h('p', { class: 't-label' }, 'These must be rejected'),
-        rejectList,
-      ),
+      h('section', {}, h('p', { class: 't-label' }, 'These must be accepted'), acceptList),
+      h('section', {}, h('p', { class: 't-label' }, 'These must be rejected'), rejectList),
     ),
-    h(
-      'footer',
-      { class: 'brief-foot' },
-      score,
-      why,
-      h('div', { class: 'brief-links' }, machineLink, hintLink, nextLink),
-    ),
+  );
+
+  const foot = h(
+    'footer',
+    { class: 'pane-foot', 'data-testid': 'pane-foot' },
+    score,
+    why,
+    h('div', { class: 'brief-links' }, nextLink),
   );
 
   /** Rows are rebuilt only when the level changes; the marks update in place. */
@@ -161,7 +146,9 @@ export function createBrief(callbacks: BriefCallbacks): Brief {
   }
 
   return {
-    el,
+    head,
+    body,
+    foot,
     update(state) {
       const { level, result } = state;
       buildRows(level);
@@ -184,8 +171,9 @@ export function createBrief(callbacks: BriefCallbacks): Brief {
         setText(entry.mark, !started ? '·' : ok ? '✓' : '✕');
       }
 
-      el.classList.toggle('is-solved', result.solved);
-      el.classList.toggle('is-broken', started && Boolean(result.error));
+      // The verdict now lives in the foot, so the foot carries the state.
+      foot.classList.toggle('is-solved', result.solved);
+      foot.classList.toggle('is-broken', started && Boolean(result.error));
 
       if (!started) {
         setText(score, 'Nothing drawn yet');

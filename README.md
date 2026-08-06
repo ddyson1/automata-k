@@ -3,7 +3,7 @@
 **Draw a machine. It gets graded against the language, not against an answer key.**
 Twelve levels climb the Chomsky hierarchy, from finite automata to Turing machines.
 
-[**Play it →**](https://ddyson1.github.io/automata-k/)
+[**Play it →**](https://devindyson.com/automata-k/)
 
 [![ci](https://github.com/ddyson1/automata-k/actions/workflows/ci.yml/badge.svg)](https://github.com/ddyson1/automata-k/actions/workflows/ci.yml)
 [![pages](https://github.com/ddyson1/automata-k/actions/workflows/pages.yml/badge.svg)](https://github.com/ddyson1/automata-k/actions/workflows/pages.yml)
@@ -45,13 +45,19 @@ Par is the state count of a verified solution. Levels unlock in order.
 
 ## The machine, as a formal object
 
-One disclosure away from the canvas: the defining tuple, the transition
-function, a grammar that generates the same language, where the level sits in
-the hierarchy, and the analyses. Pointing at a rule lights the arrow it came
-from; selecting an arrow lights its rule. On a deterministic class the unwired
-pairs are listed in red with a running count.
+Four more tabs beside the brief: the defining tuple, the transition function, a
+grammar that generates the same language, where the level sits in the hierarchy,
+and the analyses. Which level you are on stays above the tabs and how the machine
+is doing stays below them, so reading δ never costs you the score. Pointing at a
+rule lights the arrow it came from; selecting an arrow lights its rule. On a
+deterministic class the unwired pairs are listed in red with a running count.
 
-![The tuple and the transition function, over the brief](docs/machine.png)
+![The tuple and the transition function, beside the canvas](docs/machine.png)
+
+Theory explains rather than states. Every letter of the tuple says what it means
+in words with no notation in it, and then what it is in the machine you have
+drawn: `Q` is "one state is one fact worth remembering", and under it `{q0, q1}`,
+so 2 states. δ is taken apart into what you hand it and what it hands back.
 
 Analysis will decline rather than guess: a machine that is not a well-formed DFA
 has no minimal form, the subset construction does not apply to a stack, and
@@ -84,10 +90,48 @@ requests, and keeps progress in localStorage.
 on every push to `main`, after the full check has passed. It also puts
 `automata-k.html`, the whole game in one file, next to the site.
 
+Settings, then Pages, then Source must read **GitHub Actions**. On the other
+setting GitHub runs its own Jekyll builder against the same site and publishes
+`README.md` rendered as the front page, so the URL answers with the readme
+instead of the game. Both deploys go green and the last one finished is the
+site, which makes it a coin toss rather than an error. The deploy job therefore
+fetches the URL it just published and fails unless the app came back.
+
 Assets are built with `base: './'` so every URL is relative and a project page at
 `/<repo>/` works exactly like a domain root, and routing is by hash so no
 request ever reaches the server for a path it does not already have a file for.
 Pages needs no rewrite rules.
+
+### On a domain of its own
+
+At the registrar, on the apex record, four A records:
+
+```
+185.199.108.153   185.199.110.153
+185.199.109.153   185.199.111.153
+```
+
+and four AAAA, if the registrar takes them:
+
+```
+2606:50c0:8000::153   2606:50c0:8002::153
+2606:50c0:8001::153   2606:50c0:8003::153
+```
+
+`www` is a CNAME to `<owner>.github.io.` — the owner, not the repository. Delete
+whatever the registrar parked on the domain first, particularly its own A
+records and its `www`; a leftover one wins over GitHub roughly half the time and
+makes the failure intermittent, which is worse than it failing.
+
+Then Settings, then Pages, then Custom domain, then wait for the DNS check to
+pass before ticking Enforce HTTPS. The certificate is issued after that check,
+not before, so ticking early gives a name mismatch for a few minutes.
+
+Two consequences worth knowing before starting. A repository has one custom
+domain, so the old address stops serving this site and redirects to the new one.
+And a project repository with its own domain is served at that domain's **root**,
+not under `/<repo>/` — which the relative asset paths and hash routing above
+already handle, with nothing to rebuild.
 
 `.github/workflows/ci.yml` runs the same check on every other branch and every
 pull request. Both call `verify.yml`, so there is one definition of what passing
@@ -134,15 +178,16 @@ by eye, and 36 Playwright tests over two viewports.
     levels.ts    the twelve levels, each with an accepts predicate
     solutions.ts one verified machine per level
     formal.ts    tuple rendering, delta notation, grammars, hierarchy copy
+    layout.ts    arranging a machine so the diagram reads
   /ui
     geometry.ts  edge geometry, shared by the web app and its tests
 /web             the web app: DOM and SVG, no framework
   /src
     brief.ts     the question, the two lists, and the live marks
     diagram.ts   the canvas
-    overlay.ts   the formal layer, over the brief
+    panels.ts    the formal layer: the pane's other four tabs
     ledger.ts    tuple and transition function
-    theory.ts    grammar, hierarchy, class, and the hint
+    theory.ts    symbol by symbol, grammar, hierarchy, and the hint
     trace.ts     the stepper
     fonts/       the three bundled families, subset from the originals
 /ios             the Swift package: the same engine, held to a golden fixture
