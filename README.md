@@ -73,6 +73,14 @@ whose solution stopped matching its own language would fail the build.
 
 Par is the state count of a verified solution. Levels unlock in order.
 
+The level select is the hierarchy itself: four rings nested the way the classes
+are, and every level a dot in the smallest ring that can hold its **language**,
+carrying the mark of the **machine** you draw it with. Four of the tape levels
+sit inside the context free ring, which is the argument of the last group made
+as a picture — a stronger machine, not a larger language.
+
+![The four rings, with a level in each of the classes it belongs to](docs/home.png)
+
 ## The machine, as a formal object
 
 Four more tabs beside the brief: the defining tuple, the transition function, a
@@ -193,7 +201,7 @@ production shows up immediately, including in the context sensitive grammar for
 Alongside those: validation tests, simulation cap tests, a property test
 determinising random NFAs, Hopcroft minimisation against par, state elimination
 checked against every level language, arrow geometry pinned by tests rather than
-by eye, and 48 Playwright tests over two viewports.
+by eye, and 50 Playwright tests over two viewports.
 
 ## Layout
 

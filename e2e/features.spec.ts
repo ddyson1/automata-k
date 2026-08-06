@@ -271,9 +271,15 @@ test('locked levels stay locked until the one before them is solved', async ({ p
   // Selected by level id, not by title: titles are prose and two of them can
   // share a word, which is a flaky test rather than a broken game.
   const row = (id: string) => page.locator(`[data-testid="level-row"][data-level="${id}"]`);
-  await expect(row('dfa-ends-in-1')).toBeEnabled();
-  await expect(row('dfa-even-zeros')).toBeDisabled();
-  await expect(row('tm-an-bn-cn')).toBeDisabled();
+  await expect(row('dfa-ends-in-1')).not.toHaveAttribute('aria-disabled', 'true');
+  await expect(row('dfa-even-zeros')).toHaveAttribute('aria-disabled', 'true');
+  await expect(row('tm-an-bn-cn')).toHaveAttribute('aria-disabled', 'true');
+
+  // A locked level still says what it is and what unlocks it, by keyboard as
+  // well as by pointer: a level nobody can read is a level nobody can want.
+  await row('tm-an-bn-cn').focus();
+  await expect(page.getByTestId('readout')).toContainText('locked until level 40 is solved');
+  await expect(page.getByTestId('readout-play')).toBeHidden();
 });
 
 /**
@@ -415,6 +421,37 @@ test('a passing run makes a sound, unless it is switched off', async ({ page }) 
   await reveal(page, 'dfa-ends-in-1');
   const after = await page.evaluate(() => (window as unknown as { __notes: number[] }).__notes);
   expect(after, 'silent once switched off').toEqual([]);
+});
+
+/**
+ * The home screen is the hierarchy, and its claim has to hold: a level sits in
+ * the smallest ring that can hold its language, not in the ring of the machine
+ * you draw it with. Four tape levels sit in the context free ring, and that is
+ * the whole reason the picture is worth drawing.
+ */
+test('the rings hold levels by language, not by machine', async ({ page }) => {
+  await page.goto('/');
+
+  const inRing = async (type: number): Promise<string[]> =>
+    page
+      .locator(`[data-testid="ring-${type}"] > .dots > .dot`)
+      .evaluateAll((ds) => ds.map((d) => (d as HTMLElement).dataset.level as string));
+
+  const regular = await inRing(3);
+  const contextFree = await inRing(2);
+  const contextSensitive = await inRing(1);
+
+  expect(regular.length + contextFree.length + contextSensitive.length).toBe(42);
+  // Every finite automaton level is regular, and nothing else is.
+  expect(regular.every((id) => id.startsWith('dfa-') || id.startsWith('nfa-'))).toBe(true);
+  // Tape levels whose language a stack could manage sit with the stacks.
+  expect(contextFree).toContain('tm-palindrome');
+  expect(contextFree).toContain('tm-equal-ab');
+  // And the two that no stack can manage sit outside them.
+  expect(contextSensitive).toEqual(['tm-an-bn-cn', 'tm-abcd']);
+
+  // Type 0 has nothing in it, and says so rather than showing an empty box.
+  await expect(page.locator('[data-testid="ring-0"] > .ring-empty')).toBeVisible();
 });
 
 /** Tidy has to leave every state where it can be seen, clear of its neighbours. */
