@@ -24,8 +24,7 @@ import type { ThemeChoice } from '../store';
 import type { View } from './level';
 
 /**
- * The rings, outermost first: the class, the weakest machine that recognises
- * everything in it, and why the band is empty where it is.
+ * The rings, outermost first: the class, and why the band is empty where it is.
  *
  * The recursive band is not one of Chomsky's four. It belongs here anyway,
  * because it is where every level in this game actually lives and it is the
@@ -35,24 +34,21 @@ const RINGS: {
   /** null for the recursive band, which the hierarchy does not number. */
   type: ChomskyType | null;
   label: string;
-  machine: string;
   note?: string;
 }[] = [
   {
     type: 0,
     label: 'Type 0 · recursively enumerable',
-    machine: 'Turing machine',
     note: 'Empty, and it has to be. Nothing in here can be graded.',
   },
   {
     type: null,
     label: 'Recursive · decidable',
-    machine: 'Turing machine that always halts',
     note: 'No level of its own, but every level in the game is somewhere inside it.',
   },
-  { type: 1, label: 'Type 1 · context sensitive', machine: 'Linear bounded automaton' },
-  { type: 2, label: 'Type 2 · context free', machine: 'Pushdown automaton, nondeterministic' },
-  { type: 3, label: 'Type 3 · regular', machine: 'Finite automaton' },
+  { type: 1, label: 'Type 1 · context sensitive' },
+  { type: 2, label: 'Type 2 · context free' },
+  { type: 3, label: 'Type 3 · regular' },
 ];
 
 /** What you draw, as opposed to what the ring says the language is. */
@@ -310,12 +306,7 @@ export function createHomeView(navigate: (hash: string) => void): View {
       const box = h(
         'div',
         { class: `ring ring-${key}`, 'data-testid': `ring-${key}` },
-        h(
-          'p',
-          { class: 'ring-label' },
-          h('span', { class: 't-label' }, ring.label),
-          h('span', { class: 't-small faint ring-machine' }, ring.machine),
-        ),
+        h('p', { class: 't-label ring-label' }, ring.label),
       );
       if (inner) box.appendChild(inner);
       if (held.length > 0) box.appendChild(h('div', { class: 'dots' }, ...held.map(dot)));

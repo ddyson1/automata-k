@@ -80,21 +80,11 @@
   margin-top: 12px;
 }
 
-/* The class, then the weakest machine that recognises all of it. Five rings
-   nest now, so the label is in flow rather than absolutely placed: an absolute
-   one costs 28px of top padding per ring, which is 140px of inset by the time
-   the regular languages are reached. */
+/* In flow rather than absolutely placed. Five bands nest, and an absolute
+   label costs 28px of top padding on each of them, which is 140px of inset by
+   the time the regular languages are reached. */
 .ring-label {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 10px;
   margin: 0 0 2px;
-}
-
-.ring-machine {
-  font-family: var(--mono);
-  font-size: 10.5px;
 }
 
 /* The innermost ring is the one with the most in it, and the fill says so. */

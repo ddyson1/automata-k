@@ -73,9 +73,8 @@ whose solution stopped matching its own language would fail the build.
 
 Par is the state count of a verified solution. Levels unlock in order.
 
-The level select is the hierarchy itself: nested bands, each naming the weakest
-automaton that recognises everything in it, and every level a dot in the
-smallest band that can hold its **language**, carrying the mark of the
+The level select is the hierarchy itself: nested bands, and every level a dot in
+the smallest band that can hold its **language**, carrying the mark of the
 **machine** you draw it with. Four of the tape levels sit inside the context
 free band, which is the argument of the last group made as a picture — a
 stronger machine, not a larger language.
