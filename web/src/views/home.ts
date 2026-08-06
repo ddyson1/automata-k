@@ -103,7 +103,7 @@ export function createHomeView(navigate: (hash: string) => void): View {
         'p',
         { class: 't-body muted' },
         'Draw a machine. It is graded against the language, not against an answer key. ' +
-          'Twelve levels, from finite automata to Turing machines.',
+          `${LEVELS.length} levels, from finite automata to Turing machines.`,
       ),
       h(
         'div',

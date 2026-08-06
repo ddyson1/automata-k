@@ -27,13 +27,19 @@ const g = (
   ...(note ? { note } : {}),
 });
 
-export const LEVELS: Level[] = [
-  // -------------------------------------------------------------------------
+/**
+ * The campaign, in order. Position is the level number, so adding one is a
+ * single insert: nothing here is numbered by hand, and nothing renumbers.
+ */
+/**
+ * The campaign, in order. Position is the level number, so adding one is a
+ * single insert: nothing here is numbered by hand, and nothing renumbers.
+ */
+const CAMPAIGN: Omit<Level, 'index'>[] = [  // -------------------------------------------------------------------------
   // Regular languages, deterministic
   // -------------------------------------------------------------------------
   {
     id: 'dfa-ends-in-1',
-    index: 1,
     type: 'DFA',
     title: 'Last symbol',
     goal: 'Accept exactly the strings that end with 1.',
@@ -59,7 +65,6 @@ export const LEVELS: Level[] = [
   },
   {
     id: 'dfa-even-zeros',
-    index: 2,
     type: 'DFA',
     title: 'Parity',
     goal: 'Accept the strings containing an even number of 0s.',
@@ -86,8 +91,36 @@ export const LEVELS: Level[] = [
     exhaustiveMaxLength: 6,
   },
   {
+    id: 'dfa-length-mod-three',
+    type: 'DFA',
+    title: 'Counting in threes',
+    goal: 'Accept the strings whose length is a multiple of three.',
+    alphabet: ['a', 'b'],
+    par: 3,
+    tests: ['', 'aaa', 'aba', 'bbb', 'aabbaa', 'ababab', 'a', 'b', 'ab', 'ba', 'aaaa', 'abab'],
+    accepts: (w) => w.length % 3 === 0,
+    theory:
+      'Nothing about the symbols matters, only how many there have been, and only that count modulo three. A machine that counted properly would need a state per length and there is no end to those, so it counts the remainder instead and goes round.',
+    hint: 'Three states in a ring. Every symbol steps one place round it, whichever symbol it is. Accept where you started.',
+    setBuilder: 'L = { w ∈ {a,b}* : |w| ≡ 0 mod 3 }',
+    grammar: g(
+      ['A', 'B', 'C'],
+      ['a', 'b'],
+      [
+        ['A', 'aB'],
+        ['A', 'bB'],
+        ['A', ''],
+        ['B', 'aC'],
+        ['B', 'bC'],
+        ['C', 'aA'],
+        ['C', 'bA'],
+      ],
+    ),
+    chomsky: 3,
+    exhaustiveMaxLength: 6,
+  },
+  {
     id: 'dfa-contains-01',
-    index: 3,
     type: 'DFA',
     title: 'Substring',
     goal: 'Accept the strings that contain 01 somewhere inside them.',
@@ -115,8 +148,36 @@ export const LEVELS: Level[] = [
     exhaustiveMaxLength: 6,
   },
   {
+    id: 'dfa-ends-in-00',
+    type: 'DFA',
+    title: 'Two zeros to finish',
+    goal: 'Accept the strings that end with 00.',
+    alphabet: ['0', '1'],
+    par: 3,
+    tests: ['00', '000', '100', '1100', '0100', '10100', '', '0', '1', '01', '10', '1101'],
+    accepts: (w) => w.endsWith('00'),
+    theory:
+      'A machine cannot look back at what it has read, so it carries the answer forward: how much of the ending it is currently sitting on. Reading a 1 throws that progress away, and reading a 0 adds to it, up to the two that are needed.',
+    hint: 'Three states: no run of zeros, one zero, two or more. A 1 sends every one of them back to the first.',
+    setBuilder: 'L = { w ∈ {0,1}* : w ends with 00 }',
+    grammar: g(
+      ['S', 'A', 'B'],
+      ['0', '1'],
+      [
+        ['S', '0A'],
+        ['S', '1S'],
+        ['A', '0B'],
+        ['A', '1S'],
+        ['B', '0B'],
+        ['B', '1S'],
+        ['B', ''],
+      ],
+    ),
+    chomsky: 3,
+    exhaustiveMaxLength: 6,
+  },
+  {
     id: 'dfa-no-11',
-    index: 4,
     type: 'DFA',
     title: 'Forbidden pair',
     goal: 'Accept the strings with no two 1s next to each other.',
@@ -142,10 +203,37 @@ export const LEVELS: Level[] = [
     chomsky: 3,
     exhaustiveMaxLength: 6,
   },
-
+  {
+    id: 'dfa-at-least-two-ones',
+    type: 'DFA',
+    title: 'At least two',
+    goal: 'Accept the strings containing at least two 1s.',
+    alphabet: ['0', '1'],
+    par: 3,
+    tests: ['11', '011', '110', '1010', '0110', '111', '', '0', '1', '00', '01', '000'],
+    accepts: (w) => count(w, '1') >= 2,
+    theory:
+      'Counting to a threshold needs one state per amount counted so far and one more for "enough", and no more than that: past two, the machine stops caring how many there are. That last state absorbs everything, which is what makes the language regular however large the threshold.',
+    hint: 'Three states: none seen, one seen, two or more. The last one loops on both symbols and never lets go.',
+    setBuilder: 'L = { w ∈ {0,1}* : |w|₁ ≥ 2 }',
+    grammar: g(
+      ['A', 'B', 'C'],
+      ['0', '1'],
+      [
+        ['A', '0A'],
+        ['A', '1B'],
+        ['B', '0B'],
+        ['B', '1C'],
+        ['C', '0C'],
+        ['C', '1C'],
+        ['C', ''],
+      ],
+    ),
+    chomsky: 3,
+    exhaustiveMaxLength: 6,
+  },
   {
     id: 'dfa-div-by-three',
-    index: 5,
     type: 'DFA',
     title: 'Divisible by three',
     goal: 'Accept the strings that read, as a binary number, as a multiple of three.',
@@ -179,8 +267,91 @@ export const LEVELS: Level[] = [
     exhaustiveMaxLength: 6,
   },
   {
+    id: 'dfa-alternating',
+    type: 'DFA',
+    title: 'Never twice in a row',
+    goal: 'Accept the strings that never repeat a symbol twice in a row.',
+    alphabet: ['a', 'b'],
+    par: 4,
+    tests: ['', 'a', 'b', 'ab', 'ba', 'aba', 'bab', 'abab', 'aa', 'bb', 'aab', 'abba'],
+    accepts: (w) => ![...w].some((c, i) => i > 0 && c === w[i - 1]),
+    theory:
+      'The only thing worth remembering is the symbol just read, so there is one state per symbol, plus the state before anything has been read. A repeat has nowhere to go, and the fourth state is where nowhere is.',
+    hint: 'One state for "last was a" and one for "last was b", both accepting. A repeat leads to a state with no way out, which is what a rejection looks like in a machine that must always have somewhere to go.',
+    setBuilder: 'L = { w ∈ {a,b}* : no two adjacent symbols of w are equal }',
+    grammar: g(
+      ['S', 'A', 'B'],
+      ['a', 'b'],
+      [
+        ['S', 'aA'],
+        ['S', 'bB'],
+        ['S', ''],
+        ['A', 'bB'],
+        ['A', ''],
+        ['B', 'aA'],
+        ['B', ''],
+      ],
+    ),
+    chomsky: 3,
+    exhaustiveMaxLength: 6,
+  },
+  {
+    id: 'dfa-exactly-two-zeros',
+    type: 'DFA',
+    title: 'Exactly two',
+    goal: 'Accept the strings containing exactly two 0s.',
+    alphabet: ['0', '1'],
+    par: 4,
+    tests: ['00', '001', '100', '0110', '1001', '10011', '', '0', '1', '000', '0001', '0000'],
+    accepts: (w) => count(w, '0') === 2,
+    theory:
+      'Exactly is at least and at most at once, and at most is the part that costs a state: the machine has to be able to notice a third 0 and refuse. Compare the level before, where past two nothing could go wrong and three states were enough.',
+    hint: 'Four states: none, one, two, and too many. Only the third accepts, and the fourth never lets go.',
+    setBuilder: 'L = { w ∈ {0,1}* : |w|₀ = 2 }',
+    grammar: g(
+      ['A', 'B', 'C'],
+      ['0', '1'],
+      [
+        ['A', '1A'],
+        ['A', '0B'],
+        ['B', '1B'],
+        ['B', '0C'],
+        ['C', '1C'],
+        ['C', ''],
+      ],
+    ),
+    chomsky: 3,
+    exhaustiveMaxLength: 6,
+  },
+  {
+    id: 'dfa-starts-with-ab',
+    type: 'DFA',
+    title: 'How it begins',
+    goal: 'Accept the strings that begin with ab.',
+    alphabet: ['a', 'b'],
+    par: 4,
+    tests: ['ab', 'aba', 'abb', 'abab', 'abbbb', 'ababab', '', 'a', 'b', 'aa', 'ba', 'bab'],
+    accepts: (w) => w.startsWith('ab'),
+    theory:
+      'The mirror of the ending levels, and much easier: a beginning is decided before the machine has read anything else, so the answer is settled after two symbols and the rest of the string cannot change it. Both accepting and rejecting become absorbing.',
+    hint: 'Two states to read the ab, one accepting state that loops on everything, and one dead state for every other opening.',
+    setBuilder: 'L = { w ∈ {a,b}* : w begins with ab }',
+    grammar: g(
+      ['S', 'B', 'C'],
+      ['a', 'b'],
+      [
+        ['S', 'aB'],
+        ['B', 'bC'],
+        ['C', 'aC'],
+        ['C', 'bC'],
+        ['C', ''],
+      ],
+    ),
+    chomsky: 3,
+    exhaustiveMaxLength: 6,
+  },
+  {
     id: 'dfa-even-both',
-    index: 6,
     type: 'DFA',
     title: 'Both even',
     goal: 'Accept the strings with an even number of 0s and an even number of 1s.',
@@ -211,8 +382,37 @@ export const LEVELS: Level[] = [
     exhaustiveMaxLength: 6,
   },
   {
+    id: 'dfa-third-is-1',
+    type: 'DFA',
+    title: 'Third from the left',
+    goal: 'Accept the strings at least three long whose third symbol is 1.',
+    alphabet: ['0', '1'],
+    par: 5,
+    tests: ['001', '011', '111', '0110', '1010', '00110', '', '0', '01', '000', '110', '0100'],
+    accepts: (w) => w.length >= 3 && w[2] === '1',
+    theory:
+      'Counting from the left is free: the machine steps to the third position and looks. Counting from the right is not, and the level in the next group asks for exactly that, which is where nondeterminism starts to pay.',
+    hint: 'Walk two states along on either symbol, then branch on the third: a 1 into an accepting state that loops, a 0 into one that does not.',
+    setBuilder: 'L = { w ∈ {0,1}* : |w| ≥ 3 and w₃ = 1 }',
+    grammar: g(
+      ['S', 'A', 'B', 'C'],
+      ['0', '1'],
+      [
+        ['S', '0A'],
+        ['S', '1A'],
+        ['A', '0B'],
+        ['A', '1B'],
+        ['B', '1C'],
+        ['C', '0C'],
+        ['C', '1C'],
+        ['C', ''],
+      ],
+    ),
+    chomsky: 3,
+    exhaustiveMaxLength: 6,
+  },
+  {
     id: 'dfa-same-ends',
-    index: 7,
     type: 'DFA',
     title: 'Matching ends',
     goal: 'Accept the non empty strings that begin and end with the same symbol.',
@@ -244,12 +444,12 @@ export const LEVELS: Level[] = [
     chomsky: 3,
     exhaustiveMaxLength: 6,
   },
+
   // -------------------------------------------------------------------------
   // Regular languages, nondeterministic with empty moves
   // -------------------------------------------------------------------------
   {
     id: 'nfa-a-then-b',
-    index: 8,
     type: 'NFA',
     title: 'Empty move',
     goal: 'Accept the strings that are some a s followed by some b s, either part possibly empty.',
@@ -275,8 +475,36 @@ export const LEVELS: Level[] = [
     exhaustiveMaxLength: 6,
   },
   {
+    id: 'nfa-all-one-symbol',
+    type: 'NFA',
+    title: 'One or the other',
+    goal: 'Accept the strings that are all a s or all b s.',
+    alphabet: ['a', 'b'],
+    par: 3,
+    tests: ['', 'a', 'b', 'aa', 'bb', 'aaa', 'bbb', 'ab', 'ba', 'aab', 'abb', 'bab'],
+    accepts: (w) => /^a*$/.test(w) || /^b*$/.test(w),
+    theory:
+      'A union of two languages is two machines side by side, and the start state simply belongs to both of them. Nothing here needs an empty move yet, because the first symbol already decides which half the string is in.',
+    hint: 'One start state, accepting, with an a arrow into a loop of a s and a b arrow into a loop of b s. Neither loop has a way back.',
+    setBuilder: 'L = { aⁿ : n ≥ 0 } ∪ { bⁿ : n ≥ 0 }',
+    grammar: g(
+      ['S', 'A', 'B'],
+      ['a', 'b'],
+      [
+        ['S', 'aA'],
+        ['S', 'bB'],
+        ['S', ''],
+        ['A', 'aA'],
+        ['A', ''],
+        ['B', 'bB'],
+        ['B', ''],
+      ],
+    ),
+    chomsky: 3,
+    exhaustiveMaxLength: 6,
+  },
+  {
     id: 'nfa-abc-blocks',
-    index: 9,
     type: 'NFA',
     title: 'Three blocks',
     goal: 'Accept some a s, then some b s, then some c s, any of the three possibly empty.',
@@ -304,8 +532,61 @@ export const LEVELS: Level[] = [
     exhaustiveMaxLength: 6,
   },
   {
+    id: 'nfa-second-last-a',
+    type: 'NFA',
+    title: 'Second from the right',
+    goal: 'Accept the strings whose second symbol from the right is a.',
+    alphabet: ['a', 'b'],
+    par: 3,
+    tests: ['aa', 'ab', 'aab', 'baa', 'abab', 'bbab', '', 'a', 'b', 'ba', 'bb', 'abba'],
+    accepts: (w) => w.length >= 2 && w[w.length - 2] === 'a',
+    theory:
+      'Reading left to right, nothing tells the machine that the end is coming. So it guesses: at some a it decides that this is the one, and if exactly one symbol follows, the guess was right. A deterministic machine would have to remember the last two symbols instead, which costs four states rather than three.',
+    hint: 'A loop on both symbols, one a arrow out of it, and then one arrow on either symbol into the accepting state.',
+    setBuilder: 'L = { w ∈ {a,b}* : |w| ≥ 2 and w_{|w|-1} = a }',
+    grammar: g(
+      ['S', 'A'],
+      ['a', 'b'],
+      [
+        ['S', 'aS'],
+        ['S', 'bS'],
+        ['S', 'aA'],
+        ['A', 'a'],
+        ['A', 'b'],
+      ],
+    ),
+    chomsky: 3,
+    exhaustiveMaxLength: 6,
+  },
+  {
+    id: 'nfa-ends-with-abb',
+    type: 'NFA',
+    title: 'Three to finish',
+    goal: 'Accept the strings that end with abb.',
+    alphabet: ['a', 'b'],
+    par: 4,
+    tests: ['abb', 'aabb', 'babb', 'abbabb', 'bbabb', 'ababb', '', 'a', 'ab', 'abba', 'bb', 'aab'],
+    accepts: (w) => w.endsWith('abb'),
+    theory:
+      'The textbook example of nondeterminism costing nothing to write. The machine loops on everything and then simply spells out the ending it wants; the deterministic version has to track how much of abb it has half seen, and put every wrong turn back in the right place.',
+    hint: 'A loop on both symbols, then a, then b, then b. Four states in a line and no cleverness anywhere.',
+    setBuilder: 'L = { w ∈ {a,b}* : w ends with abb }',
+    grammar: g(
+      ['S', 'A', 'B'],
+      ['a', 'b'],
+      [
+        ['S', 'aS'],
+        ['S', 'bS'],
+        ['S', 'aA'],
+        ['A', 'bB'],
+        ['B', 'b'],
+      ],
+    ),
+    chomsky: 3,
+    exhaustiveMaxLength: 6,
+  },
+  {
     id: 'nfa-ends-ab-or-ba',
-    index: 10,
     type: 'NFA',
     title: 'Either ending',
     goal: 'Accept the strings that end with ab or with ba.',
@@ -334,7 +615,6 @@ export const LEVELS: Level[] = [
   },
   {
     id: 'nfa-third-last-1',
-    index: 11,
     type: 'NFA',
     title: 'Guess the end',
     goal: 'Accept the strings whose third symbol from the end is a 1.',
@@ -362,10 +642,72 @@ export const LEVELS: Level[] = [
     chomsky: 3,
     exhaustiveMaxLength: 6,
   },
-
+  {
+    id: 'nfa-contains-aa-or-bb',
+    type: 'NFA',
+    title: 'A pair, either way',
+    goal: 'Accept the strings that contain aa or bb somewhere.',
+    alphabet: ['a', 'b'],
+    par: 4,
+    tests: ['aa', 'bb', 'aab', 'abb', 'abba', 'baab', '', 'a', 'b', 'ab', 'ba', 'abab'],
+    accepts: (w) => w.includes('aa') || w.includes('bb'),
+    theory:
+      'Two patterns, either of which will do, and the machine does not have to decide which it is looking for. It guesses at the start of a candidate pair and the guesses that fail simply die; only a branch that survives to the end counts.',
+    hint: 'A loop that reads anything, two short tails for the two pairs, and one accepting state at the end of both that loops on everything.',
+    setBuilder: 'L = { w ∈ {a,b}* : aa or bb is a substring of w }',
+    grammar: g(
+      ['S', 'A', 'B', 'C'],
+      ['a', 'b'],
+      [
+        ['S', 'aS'],
+        ['S', 'bS'],
+        ['S', 'aA'],
+        ['S', 'bB'],
+        ['A', 'aC'],
+        ['B', 'bC'],
+        ['C', 'aC'],
+        ['C', 'bC'],
+        ['C', ''],
+      ],
+    ),
+    chomsky: 3,
+    exhaustiveMaxLength: 6,
+  },
+  {
+    id: 'nfa-even-a-or-even-b',
+    type: 'NFA',
+    title: 'Either parity',
+    goal: 'Accept the strings with an even number of a s or an even number of b s.',
+    alphabet: ['a', 'b'],
+    par: 5,
+    tests: ['', 'aa', 'bb', 'ab', 'ba', 'aabb', 'abab', 'aba', 'bab', 'aaabbb', 'abb', 'aabbb'],
+    accepts: (w) => count(w, 'a') % 2 === 0 || count(w, 'b') % 2 === 0,
+    theory:
+      'Two machines that each watch one letter, joined by an empty move that picks one before anything is read. Determinising this is the product construction from the sixth level, and it comes out at four states rather than five, which is the usual way round: nondeterminism is easier to write and not always smaller.',
+    hint: 'A start state with two empty arrows, into a two state parity machine for a and a two state parity machine for b. Each machine ignores the letter it is not watching.',
+    setBuilder: 'L = { w ∈ {a,b}* : |w|ₐ is even or |w|_b is even }',
+    grammar: g(
+      ['A', 'B', 'C', 'D'],
+      ['a', 'b'],
+      [
+        ['A', 'aB'],
+        ['A', 'bC'],
+        ['A', ''],
+        ['B', 'aA'],
+        ['B', 'bD'],
+        ['B', ''],
+        ['C', 'aD'],
+        ['C', 'bA'],
+        ['C', ''],
+        ['D', 'aC'],
+        ['D', 'bB'],
+      ],
+    ),
+    chomsky: 3,
+    exhaustiveMaxLength: 6,
+  },
   {
     id: 'nfa-two-or-three',
-    index: 12,
     type: 'NFA',
     title: 'Two or three',
     goal: 'Accept the strings whose length is a multiple of two or a multiple of three.',
@@ -397,12 +739,12 @@ export const LEVELS: Level[] = [
     chomsky: 3,
     exhaustiveMaxLength: 9,
   },
+
   // -------------------------------------------------------------------------
   // Context free languages, pushdown automata
   // -------------------------------------------------------------------------
   {
     id: 'pda-balanced',
-    index: 13,
     type: 'PDA',
     title: 'Brackets',
     goal: 'Accept the strings of brackets that are balanced.',
@@ -435,7 +777,6 @@ export const LEVELS: Level[] = [
   },
   {
     id: 'pda-an-bn',
-    index: 14,
     type: 'PDA',
     title: 'Matching counts',
     goal: 'Accept a^nb^n: some a s followed by exactly as many b s.',
@@ -460,8 +801,63 @@ export const LEVELS: Level[] = [
     exhaustiveMaxLength: 6,
   },
   {
+    id: 'pda-an-le-bm',
+    type: 'PDA',
+    title: 'At least as many',
+    goal: 'Accept some a s followed by at least as many b s.',
+    alphabet: ['a', 'b'],
+    stackAlphabet: [STACK_BOTTOM, 'A'],
+    par: 3,
+    tests: ['', 'ab', 'abb', 'aabb', 'aabbb', 'b', 'a', 'ba', 'aab', 'abab', 'aaab', 'aa'],
+    accepts: (w) => /^a*b*$/.test(w) && count(w, 'a') <= count(w, 'b'),
+    theory:
+      'An inequality rather than an equality, and the stack takes it in its stride: push a mark per a, spend one per b, and when the marks run out keep reading b s. What the stack cannot do is notice that it has run out too early, which is exactly what makes the other direction a different machine.',
+    hint: 'Push on every a. Pop on every b until the bottom of the stack shows, then move on and let any remaining b s go past unchallenged.',
+    setBuilder: 'L = { aⁿbᵐ : 0 ≤ n ≤ m }',
+    grammar: g(
+      ['S', 'B'],
+      ['a', 'b'],
+      [
+        ['S', 'aSb'],
+        ['S', 'bB'],
+        ['S', ''],
+        ['B', 'bB'],
+        ['B', ''],
+      ],
+    ),
+    chomsky: 2,
+    exhaustiveMaxLength: 6,
+  },
+  {
+    id: 'pda-an-ge-bm',
+    type: 'PDA',
+    title: 'No more than',
+    goal: 'Accept some a s followed by no more b s than there were a s.',
+    alphabet: ['a', 'b'],
+    stackAlphabet: [STACK_BOTTOM, 'A'],
+    par: 4,
+    tests: ['', 'a', 'aa', 'ab', 'aab', 'aabb', 'aaab', 'b', 'abb', 'ba', 'abab', 'aabbb'],
+    accepts: (w) => /^a*b*$/.test(w) && count(w, 'a') >= count(w, 'b'),
+    theory:
+      'The other inequality, and it costs a state. The b s stop before the marks do, so the machine is left holding a stack it has to empty before it can see the bottom, and emptying it takes moves that read nothing at all.',
+    hint: 'Push on every a, pop on every b, and then a state that keeps popping on empty moves until the bottom of the stack is showing.',
+    setBuilder: 'L = { aⁿbᵐ : m ≤ n }',
+    grammar: g(
+      ['S', 'A'],
+      ['a', 'b'],
+      [
+        ['S', 'aSb'],
+        ['S', 'aA'],
+        ['S', ''],
+        ['A', 'aA'],
+        ['A', ''],
+      ],
+    ),
+    chomsky: 2,
+    exhaustiveMaxLength: 6,
+  },
+  {
     id: 'pda-a-then-bb',
-    index: 15,
     type: 'PDA',
     title: 'Twice as many',
     goal: 'Accept the strings of some a s followed by exactly twice as many b s.',
@@ -486,8 +882,60 @@ export const LEVELS: Level[] = [
     exhaustiveMaxLength: 6,
   },
   {
+    id: 'pda-a2n-bn',
+    type: 'PDA',
+    title: 'Half as many',
+    goal: 'Accept the strings of some a s followed by exactly half as many b s.',
+    alphabet: ['a', 'b'],
+    stackAlphabet: [STACK_BOTTOM, 'A'],
+    par: 4,
+    tests: ['', 'aab', 'aaaabb', 'a', 'ab', 'aaab', 'aabb', 'b', 'ba', 'abab', 'aa', 'aaaab'],
+    accepts: (w) => /^a*b*$/.test(w) && count(w, 'a') === 2 * count(w, 'b'),
+    theory:
+      'The mirror of the level before last: there the machine pushed two marks per symbol, here it pushes one mark per two. Either way the stack is a counter with a scale factor, and the scale is set by how many states the machine walks through per symbol read.',
+    hint: 'Read two a s to push one mark, which means passing through a second state and back. Then spend a mark per b.',
+    setBuilder: 'L = { a²ⁿbⁿ : n ≥ 0 }',
+    grammar: g(
+      ['S'],
+      ['a', 'b'],
+      [
+        ['S', 'aaSb'],
+        ['S', ''],
+      ],
+    ),
+    chomsky: 2,
+    exhaustiveMaxLength: 6,
+  },
+  {
+    id: 'pda-anbn-cm',
+    type: 'PDA',
+    title: 'One pair, then anything',
+    goal: 'Accept equal numbers of a s and b s, followed by any number of c s.',
+    alphabet: ['a', 'b', 'c'],
+    stackAlphabet: [STACK_BOTTOM, 'A'],
+    par: 3,
+    tests: ['', 'ab', 'abc', 'aabbcc', 'abccc', 'c', 'a', 'b', 'abbc', 'aabc', 'ba', 'acb'],
+    accepts: (w) => /^a*b*c*$/.test(w) && count(w, 'a') === count(w, 'b'),
+    theory:
+      'One stack matches one pair, and once it has been spent it is spent. The c s are free because nothing has to be counted against them; ask for aⁿbⁿcⁿ instead and the same machine has nothing left to count with, which is the wall the last group of levels is built on.',
+    hint: 'Push on a, pop on b, and once the bottom of the stack is showing, move to an accepting state that reads c s for as long as they keep coming.',
+    setBuilder: 'L = { aⁿbⁿcᵐ : n ≥ 0, m ≥ 0 }',
+    grammar: g(
+      ['S', 'A', 'B'],
+      ['a', 'b', 'c'],
+      [
+        ['S', 'AB'],
+        ['A', 'aAb'],
+        ['A', ''],
+        ['B', 'cB'],
+        ['B', ''],
+      ],
+    ),
+    chomsky: 2,
+    exhaustiveMaxLength: 6,
+  },
+  {
     id: 'pda-two-brackets',
-    index: 16,
     type: 'PDA',
     title: 'Two kinds of bracket',
     goal: 'Accept the strings where round and square brackets are both balanced and properly nested.',
@@ -521,7 +969,6 @@ export const LEVELS: Level[] = [
   },
   {
     id: 'pda-equal-ab',
-    index: 17,
     type: 'PDA',
     title: 'Equal counts, any order',
     goal: 'Accept the strings with equally many a s and b s, in any order.',
@@ -548,8 +995,37 @@ export const LEVELS: Level[] = [
     exhaustiveMaxLength: 6,
   },
   {
+    id: 'pda-wcw',
+    type: 'PDA',
+    title: 'Marked middle',
+    goal: 'Accept a string, then c, then the same string backwards.',
+    alphabet: ['a', 'b', 'c'],
+    stackAlphabet: [STACK_BOTTOM, 'A', 'B'],
+    par: 3,
+    tests: ['c', 'aca', 'bcb', 'abcba', 'aabcbaa', 'bacab', '', 'ac', 'abc', 'acb', 'abcab', 'cc'],
+    accepts: (w) => {
+      const i = w.indexOf('c');
+      if (i < 0 || w.indexOf('c', i + 1) >= 0) return false;
+      return w.slice(0, i) === [...w.slice(i + 1)].reverse().join('');
+    },
+    theory:
+      'The same shape as the mirror level, with one difference that changes everything: the c says where the middle is, so the machine never has to guess. This one is deterministic, and the mirror level is provably not, which is the first place the two kinds of pushdown automaton come apart.',
+    hint: 'Push every symbol until the c, then pop one per symbol, checking each pop matches what was read. Leave for the accepting state by popping the bottom of the stack.',
+    setBuilder: 'L = { w c wᴿ : w ∈ {a,b}* }',
+    grammar: g(
+      ['S'],
+      ['a', 'b', 'c'],
+      [
+        ['S', 'aSa'],
+        ['S', 'bSb'],
+        ['S', 'c'],
+      ],
+    ),
+    chomsky: 2,
+    exhaustiveMaxLength: 6,
+  },
+  {
     id: 'pda-palindrome',
-    index: 18,
     type: 'PDA',
     title: 'Mirror',
     goal: 'Accept the even-length palindromes over a and b.',
@@ -574,13 +1050,39 @@ export const LEVELS: Level[] = [
     chomsky: 2,
     exhaustiveMaxLength: 6,
   },
+  {
+    id: 'pda-odd-palindrome',
+    type: 'PDA',
+    title: 'Odd mirror',
+    goal: 'Accept the odd length strings that read the same backwards.',
+    alphabet: ['a', 'b'],
+    stackAlphabet: [STACK_BOTTOM, 'A', 'B'],
+    par: 3,
+    tests: ['a', 'b', 'aba', 'bab', 'aaa', 'ababa', '', 'ab', 'aa', 'abba', 'abab', 'aab'],
+    accepts: (w) => w.length % 2 === 1 && w === [...w].reverse().join(''),
+    theory:
+      'The mirror level guessed where the middle was and jumped across it. Here the middle is a symbol rather than a gap, so the machine guesses the same way but eats one symbol on the way through and never checks what it was. That single unchecked symbol is the whole difference between the two languages.',
+    hint: 'Push everything, then on some symbol move across to the popping half without pushing or popping anything, then pop one per symbol matching what is read.',
+    setBuilder: 'L = { w ∈ {a,b}* : w = wᴿ and |w| is odd }',
+    grammar: g(
+      ['S'],
+      ['a', 'b'],
+      [
+        ['S', 'aSa'],
+        ['S', 'bSb'],
+        ['S', 'a'],
+        ['S', 'b'],
+      ],
+    ),
+    chomsky: 2,
+    exhaustiveMaxLength: 6,
+  },
 
   // -------------------------------------------------------------------------
   // Turing machines
   // -------------------------------------------------------------------------
   {
     id: 'tm-an-bn',
-    index: 19,
     type: 'TM',
     title: 'Cross off',
     goal: 'Accept a^nb^n again, this time on a tape you can rewrite.',
@@ -605,8 +1107,34 @@ export const LEVELS: Level[] = [
     exhaustiveMaxLength: 6,
   },
   {
+    id: 'tm-equal-ab',
+    type: 'TM',
+    title: 'Cross off a pair',
+    goal: 'Accept the strings with equally many a s and b s, in any order.',
+    alphabet: ['a', 'b'],
+    tapeAlphabet: ['a', 'b', 'X', BLANK],
+    par: 6,
+    tests: ['', 'ab', 'ba', 'aabb', 'abab', 'abba', 'baab', 'a', 'b', 'aab', 'abb', 'aaab'],
+    accepts: (w) => count(w, 'a') === count(w, 'b'),
+    theory:
+      'A stack did this by holding whichever letter was in surplus. A tape does it by pairing them off: find an a, cross it out, find a b, cross that out, and start again. When no a is left the tape must be nothing but crossings, and the walk back that checks it is the part a stack could never do.',
+    hint: 'Five states and a loop between them: find an a and cross it, return to the left end, find a b and cross it, return to the left end. When there is no a to find, walk once more and accept only if nothing but crossings remains.',
+    setBuilder: 'L = { w ∈ {a,b}* : |w|ₐ = |w|_b }',
+    grammar: g(
+      ['S'],
+      ['a', 'b'],
+      [
+        ['S', 'aSbS'],
+        ['S', 'bSaS'],
+        ['S', ''],
+      ],
+      'Context free, which is why level 27 can do it with a stack. The tape is a second way, not a stronger one.',
+    ),
+    chomsky: 2,
+    exhaustiveMaxLength: 6,
+  },
+  {
     id: 'tm-palindrome',
-    index: 20,
     type: 'TM',
     title: 'Reads the same backwards',
     goal: 'Accept the strings that read the same forwards and backwards.',
@@ -635,8 +1163,38 @@ export const LEVELS: Level[] = [
     exhaustiveMaxLength: 6,
   },
   {
+    id: 'tm-not-palindrome',
+    type: 'TM',
+    title: 'Everything but',
+    goal: 'Accept the strings that do not read the same backwards.',
+    alphabet: ['a', 'b'],
+    tapeAlphabet: ['a', 'b', 'X', BLANK],
+    par: 7,
+    tests: ['ab', 'ba', 'abb', 'baa', 'aab', 'abab', '', 'a', 'b', 'aa', 'aba', 'abba'],
+    accepts: (w) => w !== [...w].reverse().join(''),
+    theory:
+      'The same machine as the level before, with accept and reject swapped: it accepts on the first mismatch and rejects when the ends run out having matched. Swapping the two is only sound because this machine always halts. A machine that could run forever has no complement to swap into, and that is the difference between deciding a language and merely recognising it.',
+    hint: 'Take the previous machine and move the accepting state. A mismatch between the two ends is now the good news, and running out of symbols with everything matched is the bad news.',
+    setBuilder: 'L = { w ∈ {a,b}* : w ≠ wᴿ }',
+    grammar: g(
+      ['S', 'T'],
+      ['a', 'b'],
+      [
+        ['S', 'aSa'],
+        ['S', 'bSb'],
+        ['S', 'aTb'],
+        ['S', 'bTa'],
+        ['T', 'aT'],
+        ['T', 'bT'],
+        ['T', ''],
+      ],
+      'Peel off matching pairs until the two ends disagree, which is what T sits between. Context free, and so is its complement here, which is not true of context free languages in general.',
+    ),
+    chomsky: 2,
+    exhaustiveMaxLength: 6,
+  },
+  {
     id: 'tm-an-bn-cn',
-    index: 21,
     type: 'TM',
     title: 'Beyond context free',
     goal: 'Accept a^nb^nc^n: equal runs of a, b and c in that order.',
@@ -681,7 +1239,51 @@ export const LEVELS: Level[] = [
     chomsky: 1,
     exhaustiveMaxLength: 9,
   },
+  {
+    id: 'tm-abcd',
+    type: 'TM',
+    title: 'Four blocks',
+    goal: 'Accept some a s, then as many b s, then as many c s, then as many d s.',
+    alphabet: ['a', 'b', 'c', 'd'],
+    tapeAlphabet: ['a', 'b', 'c', 'd', 'X', 'Y', 'Z', 'W', BLANK],
+    par: 7,
+    tests: ['', 'abcd', 'aabbccdd', 'a', 'ab', 'abc', 'abcdd', 'aabbccd', 'abdc', 'dcba', 'abbcd', 'aabbcd'],
+    accepts: (w) => {
+      const m = /^(a*)(b*)(c*)(d*)$/.exec(w);
+      if (!m) return false;
+      const n = m.slice(1).map((part) => part.length);
+      return n.every((k) => k === n[0]);
+    },
+    theory:
+      'One more block than the level that was already beyond context free, and the machine barely changes: another marker, another sweep. That is the point of the last group. Where the earlier classes needed a new machine for every new kind of counting, the tape needs only another lap.',
+    hint: 'One marker per letter. Cross the leftmost a, run right crossing the leftmost b, then c, then d, walk all the way back, and start again. When the a s are gone, everything to the right must already be crossed.',
+    setBuilder: 'L = { aⁿbⁿcⁿdⁿ : n ≥ 0 }',
+    grammar: g(
+      ['S', 'B', 'C', 'D'],
+      ['a', 'b', 'c', 'd'],
+      [
+        ['S', ''],
+        ['S', 'aBCD'],
+        ['S', 'aSBCD'],
+        ['CB', 'BC'],
+        ['DB', 'BD'],
+        ['DC', 'CD'],
+        ['aB', 'ab'],
+        ['bB', 'bb'],
+        ['bC', 'bc'],
+        ['cC', 'cc'],
+        ['cD', 'cd'],
+        ['dD', 'dd'],
+      ],
+      'Context sensitive, like aⁿbⁿcⁿ, and built the same way: make n of each marker, sort them into blocks, then turn them into letters from the left.',
+    ),
+    chomsky: 1,
+    exhaustiveMaxLength: 8,
+  },
+
 ];
+
+export const LEVELS: Level[] = CAMPAIGN.map((level, i) => ({ ...level, index: i + 1 }));
 
 export const LEVEL_BY_ID: Record<string, Level> = Object.fromEntries(
   LEVELS.map((l) => [l.id, l]),

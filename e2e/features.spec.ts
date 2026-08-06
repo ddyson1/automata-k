@@ -268,10 +268,12 @@ test('a state drags to a new position and commits once', async ({ page }) => {
 
 test('locked levels stay locked until the one before them is solved', async ({ page }) => {
   await page.goto('/');
-  const rows = page.getByTestId('level-row');
-  await expect(rows.filter({ hasText: 'Last symbol' })).toBeEnabled();
-  await expect(rows.filter({ hasText: 'Parity' })).toBeDisabled();
-  await expect(rows.filter({ hasText: 'Beyond context free' })).toBeDisabled();
+  // Selected by level id, not by title: titles are prose and two of them can
+  // share a word, which is a flaky test rather than a broken game.
+  const row = (id: string) => page.locator(`[data-testid="level-row"][data-level="${id}"]`);
+  await expect(row('dfa-ends-in-1')).toBeEnabled();
+  await expect(row('dfa-even-zeros')).toBeDisabled();
+  await expect(row('tm-an-bn-cn')).toBeDisabled();
 });
 
 /**

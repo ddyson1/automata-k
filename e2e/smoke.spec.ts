@@ -55,7 +55,9 @@ test('progress survives a reload', async ({ page }) => {
 
   await page.getByTestId('back').click();
   await expect(page.getByTestId('solved-count')).toHaveText(/^1\/\d+$/);
-  await expect(page.getByTestId('level-row').filter({ hasText: 'Parity' })).toBeEnabled();
+  await expect(
+    page.locator('[data-testid="level-row"][data-level="dfa-even-zeros"]'),
+  ).toBeEnabled();
 });
 
 test('the machine tab highlights both ways', async ({ page }) => {

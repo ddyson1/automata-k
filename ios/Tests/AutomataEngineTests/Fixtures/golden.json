@@ -2,9 +2,9 @@
   "version": 1,
   "generatedFrom": "src/engine, verified by tests/engine.test.ts and tests/grammar.test.ts",
   "totals": {
-    "levels": 21,
-    "strings": 38247,
-    "tests": 251
+    "levels": 42,
+    "strings": 130100,
+    "tests": 503
   },
   "levels": [
     {
@@ -243,8 +243,157 @@
       "stringCount": 127
     },
     {
-      "id": "dfa-contains-01",
+      "id": "dfa-length-mod-three",
       "index": 3,
+      "type": "DFA",
+      "title": "Counting in threes",
+      "alphabet": [
+        "a",
+        "b"
+      ],
+      "par": 3,
+      "maxLength": 6,
+      "tests": [
+        "",
+        "aaa",
+        "aba",
+        "bbb",
+        "aabbaa",
+        "ababab",
+        "a",
+        "b",
+        "ab",
+        "ba",
+        "aaaa",
+        "abab"
+      ],
+      "testVerdicts": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "solution": {
+        "states": [
+          {
+            "id": "q0",
+            "label": "r0",
+            "x": 170,
+            "y": 96
+          },
+          {
+            "id": "q1",
+            "label": "r1",
+            "x": 262,
+            "y": 268
+          },
+          {
+            "id": "q2",
+            "label": "r2",
+            "x": 78,
+            "y": 268
+          }
+        ],
+        "transitions": [
+          {
+            "id": "solL3-t0",
+            "from": "q0",
+            "to": "q1",
+            "read": "a"
+          },
+          {
+            "id": "solL3-t1",
+            "from": "q0",
+            "to": "q1",
+            "read": "b"
+          },
+          {
+            "id": "solL3-t2",
+            "from": "q1",
+            "to": "q2",
+            "read": "a"
+          },
+          {
+            "id": "solL3-t3",
+            "from": "q1",
+            "to": "q2",
+            "read": "b"
+          },
+          {
+            "id": "solL3-t4",
+            "from": "q2",
+            "to": "q0",
+            "read": "a"
+          },
+          {
+            "id": "solL3-t5",
+            "from": "q2",
+            "to": "q0",
+            "read": "b"
+          }
+        ],
+        "start": "q0",
+        "accepting": [
+          "q0"
+        ]
+      },
+      "grammar": {
+        "nonTerminals": [
+          "A",
+          "B",
+          "C"
+        ],
+        "terminals": [
+          "a",
+          "b"
+        ],
+        "start": "A",
+        "productions": [
+          {
+            "lhs": "A",
+            "rhs": "aB"
+          },
+          {
+            "lhs": "A",
+            "rhs": "bB"
+          },
+          {
+            "lhs": "A",
+            "rhs": ""
+          },
+          {
+            "lhs": "B",
+            "rhs": "aC"
+          },
+          {
+            "lhs": "B",
+            "rhs": "bC"
+          },
+          {
+            "lhs": "C",
+            "rhs": "aA"
+          },
+          {
+            "lhs": "C",
+            "rhs": "bA"
+          }
+        ],
+        "slack": 6
+      },
+      "languageBits": "gX8AAAAAAID/////////fw==",
+      "stringCount": 127
+    },
+    {
+      "id": "dfa-contains-01",
+      "index": 4,
       "type": "DFA",
       "title": "Substring",
       "alphabet": [
@@ -387,8 +536,157 @@
       "stringCount": 127
     },
     {
+      "id": "dfa-ends-in-00",
+      "index": 5,
+      "type": "DFA",
+      "title": "Two zeros to finish",
+      "alphabet": [
+        "0",
+        "1"
+      ],
+      "par": 3,
+      "maxLength": 6,
+      "tests": [
+        "00",
+        "000",
+        "100",
+        "1100",
+        "0100",
+        "10100",
+        "",
+        "0",
+        "1",
+        "01",
+        "10",
+        "1101"
+      ],
+      "testVerdicts": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "solution": {
+        "states": [
+          {
+            "id": "q0",
+            "label": "q0",
+            "x": 70,
+            "y": 230
+          },
+          {
+            "id": "q1",
+            "label": "q1",
+            "x": 170,
+            "y": 230
+          },
+          {
+            "id": "q2",
+            "label": "q2",
+            "x": 272,
+            "y": 230
+          }
+        ],
+        "transitions": [
+          {
+            "id": "solE0-t0",
+            "from": "q0",
+            "to": "q1",
+            "read": "0"
+          },
+          {
+            "id": "solE0-t1",
+            "from": "q0",
+            "to": "q0",
+            "read": "1"
+          },
+          {
+            "id": "solE0-t2",
+            "from": "q1",
+            "to": "q2",
+            "read": "0"
+          },
+          {
+            "id": "solE0-t3",
+            "from": "q1",
+            "to": "q0",
+            "read": "1"
+          },
+          {
+            "id": "solE0-t4",
+            "from": "q2",
+            "to": "q2",
+            "read": "0"
+          },
+          {
+            "id": "solE0-t5",
+            "from": "q2",
+            "to": "q0",
+            "read": "1"
+          }
+        ],
+        "start": "q0",
+        "accepting": [
+          "q2"
+        ]
+      },
+      "grammar": {
+        "nonTerminals": [
+          "S",
+          "A",
+          "B"
+        ],
+        "terminals": [
+          "0",
+          "1"
+        ],
+        "start": "S",
+        "productions": [
+          {
+            "lhs": "S",
+            "rhs": "0A"
+          },
+          {
+            "lhs": "S",
+            "rhs": "1S"
+          },
+          {
+            "lhs": "A",
+            "rhs": "0B"
+          },
+          {
+            "lhs": "A",
+            "rhs": "1S"
+          },
+          {
+            "lhs": "B",
+            "rhs": "0B"
+          },
+          {
+            "lhs": "B",
+            "rhs": "1S"
+          },
+          {
+            "lhs": "B",
+            "rhs": ""
+          }
+        ],
+        "slack": 6
+      },
+      "languageBits": "iIiIiIiIiIiIiIiIiIiICA==",
+      "stringCount": 127
+    },
+    {
       "id": "dfa-no-11",
-      "index": 4,
+      "index": 6,
       "type": "DFA",
       "title": "Forbidden pair",
       "alphabet": [
@@ -528,8 +826,157 @@
       "stringCount": 127
     },
     {
+      "id": "dfa-at-least-two-ones",
+      "index": 7,
+      "type": "DFA",
+      "title": "At least two",
+      "alphabet": [
+        "0",
+        "1"
+      ],
+      "par": 3,
+      "maxLength": 6,
+      "tests": [
+        "11",
+        "011",
+        "110",
+        "1010",
+        "0110",
+        "111",
+        "",
+        "0",
+        "1",
+        "00",
+        "01",
+        "000"
+      ],
+      "testVerdicts": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "solution": {
+        "states": [
+          {
+            "id": "q0",
+            "label": "q0",
+            "x": 70,
+            "y": 230
+          },
+          {
+            "id": "q1",
+            "label": "q1",
+            "x": 170,
+            "y": 230
+          },
+          {
+            "id": "q2",
+            "label": "q2",
+            "x": 272,
+            "y": 230
+          }
+        ],
+        "transitions": [
+          {
+            "id": "solA2-t0",
+            "from": "q0",
+            "to": "q0",
+            "read": "0"
+          },
+          {
+            "id": "solA2-t1",
+            "from": "q0",
+            "to": "q1",
+            "read": "1"
+          },
+          {
+            "id": "solA2-t2",
+            "from": "q1",
+            "to": "q1",
+            "read": "0"
+          },
+          {
+            "id": "solA2-t3",
+            "from": "q1",
+            "to": "q2",
+            "read": "1"
+          },
+          {
+            "id": "solA2-t4",
+            "from": "q2",
+            "to": "q2",
+            "read": "0"
+          },
+          {
+            "id": "solA2-t5",
+            "from": "q2",
+            "to": "q2",
+            "read": "1"
+          }
+        ],
+        "start": "q0",
+        "accepting": [
+          "q2"
+        ]
+      },
+      "grammar": {
+        "nonTerminals": [
+          "A",
+          "B",
+          "C"
+        ],
+        "terminals": [
+          "0",
+          "1"
+        ],
+        "start": "A",
+        "productions": [
+          {
+            "lhs": "A",
+            "rhs": "0A"
+          },
+          {
+            "lhs": "A",
+            "rhs": "1B"
+          },
+          {
+            "lhs": "B",
+            "rhs": "0B"
+          },
+          {
+            "lhs": "B",
+            "rhs": "1C"
+          },
+          {
+            "lhs": "C",
+            "rhs": "0C"
+          },
+          {
+            "lhs": "C",
+            "rhs": "1C"
+          },
+          {
+            "lhs": "C",
+            "rhs": ""
+          }
+        ],
+        "slack": 6
+      },
+      "languageBits": "QHR0f3R//390f/9/////fw==",
+      "stringCount": 127
+    },
+    {
       "id": "dfa-div-by-three",
-      "index": 5,
+      "index": 8,
       "type": "DFA",
       "title": "Divisible by three",
       "alphabet": [
@@ -677,8 +1124,499 @@
       "stringCount": 127
     },
     {
+      "id": "dfa-alternating",
+      "index": 9,
+      "type": "DFA",
+      "title": "Never twice in a row",
+      "alphabet": [
+        "a",
+        "b"
+      ],
+      "par": 4,
+      "maxLength": 6,
+      "tests": [
+        "",
+        "a",
+        "b",
+        "ab",
+        "ba",
+        "aba",
+        "bab",
+        "abab",
+        "aa",
+        "bb",
+        "aab",
+        "abba"
+      ],
+      "testVerdicts": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false
+      ],
+      "solution": {
+        "states": [
+          {
+            "id": "q0",
+            "label": "q0",
+            "x": 74,
+            "y": 230
+          },
+          {
+            "id": "q1",
+            "label": "qa",
+            "x": 180,
+            "y": 122
+          },
+          {
+            "id": "q2",
+            "label": "qb",
+            "x": 180,
+            "y": 338
+          },
+          {
+            "id": "q3",
+            "label": "dead",
+            "x": 292,
+            "y": 230
+          }
+        ],
+        "transitions": [
+          {
+            "id": "solAL-t0",
+            "from": "q0",
+            "to": "q1",
+            "read": "a"
+          },
+          {
+            "id": "solAL-t1",
+            "from": "q0",
+            "to": "q2",
+            "read": "b"
+          },
+          {
+            "id": "solAL-t2",
+            "from": "q1",
+            "to": "q3",
+            "read": "a"
+          },
+          {
+            "id": "solAL-t3",
+            "from": "q1",
+            "to": "q2",
+            "read": "b"
+          },
+          {
+            "id": "solAL-t4",
+            "from": "q2",
+            "to": "q1",
+            "read": "a"
+          },
+          {
+            "id": "solAL-t5",
+            "from": "q2",
+            "to": "q3",
+            "read": "b"
+          },
+          {
+            "id": "solAL-t6",
+            "from": "q3",
+            "to": "q3",
+            "read": "a"
+          },
+          {
+            "id": "solAL-t7",
+            "from": "q3",
+            "to": "q3",
+            "read": "b"
+          }
+        ],
+        "start": "q0",
+        "accepting": [
+          "q0",
+          "q1",
+          "q2"
+        ]
+      },
+      "grammar": {
+        "nonTerminals": [
+          "S",
+          "A",
+          "B"
+        ],
+        "terminals": [
+          "a",
+          "b"
+        ],
+        "start": "S",
+        "productions": [
+          {
+            "lhs": "S",
+            "rhs": "aA"
+          },
+          {
+            "lhs": "S",
+            "rhs": "bB"
+          },
+          {
+            "lhs": "S",
+            "rhs": ""
+          },
+          {
+            "lhs": "A",
+            "rhs": "bB"
+          },
+          {
+            "lhs": "A",
+            "rhs": ""
+          },
+          {
+            "lhs": "B",
+            "rhs": "aA"
+          },
+          {
+            "lhs": "B",
+            "rhs": ""
+          }
+        ],
+        "slack": 6
+      },
+      "languageBits": "NxIQAgACEAAAABAAAAIAAA==",
+      "stringCount": 127
+    },
+    {
+      "id": "dfa-exactly-two-zeros",
+      "index": 10,
+      "type": "DFA",
+      "title": "Exactly two",
+      "alphabet": [
+        "0",
+        "1"
+      ],
+      "par": 4,
+      "maxLength": 6,
+      "tests": [
+        "00",
+        "001",
+        "100",
+        "0110",
+        "1001",
+        "10011",
+        "",
+        "0",
+        "1",
+        "000",
+        "0001",
+        "0000"
+      ],
+      "testVerdicts": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "solution": {
+        "states": [
+          {
+            "id": "q0",
+            "label": "q0",
+            "x": 66,
+            "y": 168
+          },
+          {
+            "id": "q1",
+            "label": "q1",
+            "x": 170,
+            "y": 168
+          },
+          {
+            "id": "q2",
+            "label": "q2",
+            "x": 274,
+            "y": 168
+          },
+          {
+            "id": "q3",
+            "label": "dead",
+            "x": 170,
+            "y": 336
+          }
+        ],
+        "transitions": [
+          {
+            "id": "solX2-t0",
+            "from": "q0",
+            "to": "q0",
+            "read": "1"
+          },
+          {
+            "id": "solX2-t1",
+            "from": "q0",
+            "to": "q1",
+            "read": "0"
+          },
+          {
+            "id": "solX2-t2",
+            "from": "q1",
+            "to": "q1",
+            "read": "1"
+          },
+          {
+            "id": "solX2-t3",
+            "from": "q1",
+            "to": "q2",
+            "read": "0"
+          },
+          {
+            "id": "solX2-t4",
+            "from": "q2",
+            "to": "q2",
+            "read": "1"
+          },
+          {
+            "id": "solX2-t5",
+            "from": "q2",
+            "to": "q3",
+            "read": "0"
+          },
+          {
+            "id": "solX2-t6",
+            "from": "q3",
+            "to": "q3",
+            "read": "0"
+          },
+          {
+            "id": "solX2-t7",
+            "from": "q3",
+            "to": "q3",
+            "read": "1"
+          }
+        ],
+        "start": "q0",
+        "accepting": [
+          "q2"
+        ]
+      },
+      "grammar": {
+        "nonTerminals": [
+          "A",
+          "B",
+          "C"
+        ],
+        "terminals": [
+          "0",
+          "1"
+        ],
+        "start": "A",
+        "productions": [
+          {
+            "lhs": "A",
+            "rhs": "1A"
+          },
+          {
+            "lhs": "A",
+            "rhs": "0B"
+          },
+          {
+            "lhs": "B",
+            "rhs": "1B"
+          },
+          {
+            "lhs": "B",
+            "rhs": "0C"
+          },
+          {
+            "lhs": "C",
+            "rhs": "1C"
+          },
+          {
+            "lhs": "C",
+            "rhs": ""
+          }
+        ],
+        "slack": 6
+      },
+      "languageBits": "CAs0C0A0NAsAQEA0QDQ0Cw==",
+      "stringCount": 127
+    },
+    {
+      "id": "dfa-starts-with-ab",
+      "index": 11,
+      "type": "DFA",
+      "title": "How it begins",
+      "alphabet": [
+        "a",
+        "b"
+      ],
+      "par": 4,
+      "maxLength": 6,
+      "tests": [
+        "ab",
+        "aba",
+        "abb",
+        "abab",
+        "abbbb",
+        "ababab",
+        "",
+        "a",
+        "b",
+        "aa",
+        "ba",
+        "bab"
+      ],
+      "testVerdicts": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "solution": {
+        "states": [
+          {
+            "id": "q0",
+            "label": "q0",
+            "x": 66,
+            "y": 168
+          },
+          {
+            "id": "q1",
+            "label": "q1",
+            "x": 170,
+            "y": 168
+          },
+          {
+            "id": "q2",
+            "label": "q2",
+            "x": 274,
+            "y": 168
+          },
+          {
+            "id": "q3",
+            "label": "dead",
+            "x": 170,
+            "y": 336
+          }
+        ],
+        "transitions": [
+          {
+            "id": "solSA-t0",
+            "from": "q0",
+            "to": "q1",
+            "read": "a"
+          },
+          {
+            "id": "solSA-t1",
+            "from": "q0",
+            "to": "q3",
+            "read": "b"
+          },
+          {
+            "id": "solSA-t2",
+            "from": "q1",
+            "to": "q3",
+            "read": "a"
+          },
+          {
+            "id": "solSA-t3",
+            "from": "q1",
+            "to": "q2",
+            "read": "b"
+          },
+          {
+            "id": "solSA-t4",
+            "from": "q2",
+            "to": "q2",
+            "read": "a"
+          },
+          {
+            "id": "solSA-t5",
+            "from": "q2",
+            "to": "q2",
+            "read": "b"
+          },
+          {
+            "id": "solSA-t6",
+            "from": "q3",
+            "to": "q3",
+            "read": "a"
+          },
+          {
+            "id": "solSA-t7",
+            "from": "q3",
+            "to": "q3",
+            "read": "b"
+          }
+        ],
+        "start": "q0",
+        "accepting": [
+          "q2"
+        ]
+      },
+      "grammar": {
+        "nonTerminals": [
+          "S",
+          "B",
+          "C"
+        ],
+        "terminals": [
+          "a",
+          "b"
+        ],
+        "start": "S",
+        "productions": [
+          {
+            "lhs": "S",
+            "rhs": "aB"
+          },
+          {
+            "lhs": "B",
+            "rhs": "bC"
+          },
+          {
+            "lhs": "C",
+            "rhs": "aC"
+          },
+          {
+            "lhs": "C",
+            "rhs": "bC"
+          },
+          {
+            "lhs": "C",
+            "rhs": ""
+          }
+        ],
+        "slack": 6
+      },
+      "languageBits": "EAZ4AIB/AAAAgP9/AAAAAA==",
+      "stringCount": 127
+    },
+    {
       "id": "dfa-even-both",
-      "index": 6,
+      "index": 12,
       "type": "DFA",
       "title": "Both even",
       "alphabet": [
@@ -853,8 +1791,198 @@
       "stringCount": 127
     },
     {
+      "id": "dfa-third-is-1",
+      "index": 13,
+      "type": "DFA",
+      "title": "Third from the left",
+      "alphabet": [
+        "0",
+        "1"
+      ],
+      "par": 5,
+      "maxLength": 6,
+      "tests": [
+        "001",
+        "011",
+        "111",
+        "0110",
+        "1010",
+        "00110",
+        "",
+        "0",
+        "01",
+        "000",
+        "110",
+        "0100"
+      ],
+      "testVerdicts": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "solution": {
+        "states": [
+          {
+            "id": "q0",
+            "label": "q0",
+            "x": 62,
+            "y": 168
+          },
+          {
+            "id": "q1",
+            "label": "q1",
+            "x": 152,
+            "y": 168
+          },
+          {
+            "id": "q2",
+            "label": "q2",
+            "x": 242,
+            "y": 168
+          },
+          {
+            "id": "q3",
+            "label": "yes",
+            "x": 296,
+            "y": 320
+          },
+          {
+            "id": "q4",
+            "label": "dead",
+            "x": 152,
+            "y": 336
+          }
+        ],
+        "transitions": [
+          {
+            "id": "solT1-t0",
+            "from": "q0",
+            "to": "q1",
+            "read": "0"
+          },
+          {
+            "id": "solT1-t1",
+            "from": "q0",
+            "to": "q1",
+            "read": "1"
+          },
+          {
+            "id": "solT1-t2",
+            "from": "q1",
+            "to": "q2",
+            "read": "0"
+          },
+          {
+            "id": "solT1-t3",
+            "from": "q1",
+            "to": "q2",
+            "read": "1"
+          },
+          {
+            "id": "solT1-t4",
+            "from": "q2",
+            "to": "q3",
+            "read": "1"
+          },
+          {
+            "id": "solT1-t5",
+            "from": "q2",
+            "to": "q4",
+            "read": "0"
+          },
+          {
+            "id": "solT1-t6",
+            "from": "q3",
+            "to": "q3",
+            "read": "0"
+          },
+          {
+            "id": "solT1-t7",
+            "from": "q3",
+            "to": "q3",
+            "read": "1"
+          },
+          {
+            "id": "solT1-t8",
+            "from": "q4",
+            "to": "q4",
+            "read": "0"
+          },
+          {
+            "id": "solT1-t9",
+            "from": "q4",
+            "to": "q4",
+            "read": "1"
+          }
+        ],
+        "start": "q0",
+        "accepting": [
+          "q3"
+        ]
+      },
+      "grammar": {
+        "nonTerminals": [
+          "S",
+          "A",
+          "B",
+          "C"
+        ],
+        "terminals": [
+          "0",
+          "1"
+        ],
+        "start": "S",
+        "productions": [
+          {
+            "lhs": "S",
+            "rhs": "0A"
+          },
+          {
+            "lhs": "S",
+            "rhs": "1A"
+          },
+          {
+            "lhs": "A",
+            "rhs": "0B"
+          },
+          {
+            "lhs": "A",
+            "rhs": "1B"
+          },
+          {
+            "lhs": "B",
+            "rhs": "1C"
+          },
+          {
+            "lhs": "C",
+            "rhs": "0C"
+          },
+          {
+            "lhs": "C",
+            "rhs": "1C"
+          },
+          {
+            "lhs": "C",
+            "rhs": ""
+          }
+        ],
+        "slack": 6
+      },
+      "languageBits": "AFVmZnh4eHiAf4B/gH+Afw==",
+      "stringCount": 127
+    },
+    {
       "id": "dfa-same-ends",
-      "index": 7,
+      "index": 14,
       "type": "DFA",
       "title": "Matching ends",
       "alphabet": [
@@ -1054,7 +2182,7 @@
     },
     {
       "id": "nfa-a-then-b",
-      "index": 8,
+      "index": 15,
       "type": "NFA",
       "title": "Empty move",
       "alphabet": [
@@ -1166,8 +2294,147 @@
       "stringCount": 127
     },
     {
+      "id": "nfa-all-one-symbol",
+      "index": 16,
+      "type": "NFA",
+      "title": "One or the other",
+      "alphabet": [
+        "a",
+        "b"
+      ],
+      "par": 3,
+      "maxLength": 6,
+      "tests": [
+        "",
+        "a",
+        "b",
+        "aa",
+        "bb",
+        "aaa",
+        "bbb",
+        "ab",
+        "ba",
+        "aab",
+        "abb",
+        "bab"
+      ],
+      "testVerdicts": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "solution": {
+        "states": [
+          {
+            "id": "q0",
+            "label": "q0",
+            "x": 78,
+            "y": 230
+          },
+          {
+            "id": "q1",
+            "label": "qa",
+            "x": 262,
+            "y": 128
+          },
+          {
+            "id": "q2",
+            "label": "qb",
+            "x": 262,
+            "y": 332
+          }
+        ],
+        "transitions": [
+          {
+            "id": "solO1-t0",
+            "from": "q0",
+            "to": "q1",
+            "read": "a"
+          },
+          {
+            "id": "solO1-t1",
+            "from": "q0",
+            "to": "q2",
+            "read": "b"
+          },
+          {
+            "id": "solO1-t2",
+            "from": "q1",
+            "to": "q1",
+            "read": "a"
+          },
+          {
+            "id": "solO1-t3",
+            "from": "q2",
+            "to": "q2",
+            "read": "b"
+          }
+        ],
+        "start": "q0",
+        "accepting": [
+          "q0",
+          "q1",
+          "q2"
+        ]
+      },
+      "grammar": {
+        "nonTerminals": [
+          "S",
+          "A",
+          "B"
+        ],
+        "terminals": [
+          "a",
+          "b"
+        ],
+        "start": "S",
+        "productions": [
+          {
+            "lhs": "S",
+            "rhs": "aA"
+          },
+          {
+            "lhs": "S",
+            "rhs": "bB"
+          },
+          {
+            "lhs": "S",
+            "rhs": ""
+          },
+          {
+            "lhs": "A",
+            "rhs": "aA"
+          },
+          {
+            "lhs": "A",
+            "rhs": ""
+          },
+          {
+            "lhs": "B",
+            "rhs": "bB"
+          },
+          {
+            "lhs": "B",
+            "rhs": ""
+          }
+        ],
+        "slack": 6
+      },
+      "languageBits": "z8AAwAAAAMAAAAAAAAAAQA==",
+      "stringCount": 127
+    },
+    {
       "id": "nfa-abc-blocks",
-      "index": 9,
+      "index": 17,
       "type": "NFA",
       "title": "Three blocks",
       "alphabet": [
@@ -1309,8 +2576,283 @@
       "stringCount": 1093
     },
     {
+      "id": "nfa-second-last-a",
+      "index": 18,
+      "type": "NFA",
+      "title": "Second from the right",
+      "alphabet": [
+        "a",
+        "b"
+      ],
+      "par": 3,
+      "maxLength": 6,
+      "tests": [
+        "aa",
+        "ab",
+        "aab",
+        "baa",
+        "abab",
+        "bbab",
+        "",
+        "a",
+        "b",
+        "ba",
+        "bb",
+        "abba"
+      ],
+      "testVerdicts": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "solution": {
+        "states": [
+          {
+            "id": "q0",
+            "label": "q0",
+            "x": 70,
+            "y": 230
+          },
+          {
+            "id": "q1",
+            "label": "q1",
+            "x": 170,
+            "y": 230
+          },
+          {
+            "id": "q2",
+            "label": "q2",
+            "x": 272,
+            "y": 230
+          }
+        ],
+        "transitions": [
+          {
+            "id": "solS2-t0",
+            "from": "q0",
+            "to": "q0",
+            "read": "a"
+          },
+          {
+            "id": "solS2-t1",
+            "from": "q0",
+            "to": "q0",
+            "read": "b"
+          },
+          {
+            "id": "solS2-t2",
+            "from": "q0",
+            "to": "q1",
+            "read": "a"
+          },
+          {
+            "id": "solS2-t3",
+            "from": "q1",
+            "to": "q2",
+            "read": "a"
+          },
+          {
+            "id": "solS2-t4",
+            "from": "q1",
+            "to": "q2",
+            "read": "b"
+          }
+        ],
+        "start": "q0",
+        "accepting": [
+          "q2"
+        ]
+      },
+      "grammar": {
+        "nonTerminals": [
+          "S",
+          "A"
+        ],
+        "terminals": [
+          "a",
+          "b"
+        ],
+        "start": "S",
+        "productions": [
+          {
+            "lhs": "S",
+            "rhs": "aS"
+          },
+          {
+            "lhs": "S",
+            "rhs": "bS"
+          },
+          {
+            "lhs": "S",
+            "rhs": "aA"
+          },
+          {
+            "lhs": "A",
+            "rhs": "a"
+          },
+          {
+            "lhs": "A",
+            "rhs": "b"
+          }
+        ],
+        "slack": 6
+      },
+      "languageBits": "mJmZmZmZmZmZmZmZmZmZGQ==",
+      "stringCount": 127
+    },
+    {
+      "id": "nfa-ends-with-abb",
+      "index": 19,
+      "type": "NFA",
+      "title": "Three to finish",
+      "alphabet": [
+        "a",
+        "b"
+      ],
+      "par": 4,
+      "maxLength": 6,
+      "tests": [
+        "abb",
+        "aabb",
+        "babb",
+        "abbabb",
+        "bbabb",
+        "ababb",
+        "",
+        "a",
+        "ab",
+        "abba",
+        "bb",
+        "aab"
+      ],
+      "testVerdicts": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "solution": {
+        "states": [
+          {
+            "id": "q0",
+            "label": "q0",
+            "x": 58,
+            "y": 230
+          },
+          {
+            "id": "q1",
+            "label": "q1",
+            "x": 138,
+            "y": 230
+          },
+          {
+            "id": "q2",
+            "label": "q2",
+            "x": 218,
+            "y": 230
+          },
+          {
+            "id": "q3",
+            "label": "q3",
+            "x": 298,
+            "y": 230
+          }
+        ],
+        "transitions": [
+          {
+            "id": "solAB-t0",
+            "from": "q0",
+            "to": "q0",
+            "read": "a"
+          },
+          {
+            "id": "solAB-t1",
+            "from": "q0",
+            "to": "q0",
+            "read": "b"
+          },
+          {
+            "id": "solAB-t2",
+            "from": "q0",
+            "to": "q1",
+            "read": "a"
+          },
+          {
+            "id": "solAB-t3",
+            "from": "q1",
+            "to": "q2",
+            "read": "b"
+          },
+          {
+            "id": "solAB-t4",
+            "from": "q2",
+            "to": "q3",
+            "read": "b"
+          }
+        ],
+        "start": "q0",
+        "accepting": [
+          "q3"
+        ]
+      },
+      "grammar": {
+        "nonTerminals": [
+          "S",
+          "A",
+          "B"
+        ],
+        "terminals": [
+          "a",
+          "b"
+        ],
+        "start": "S",
+        "productions": [
+          {
+            "lhs": "S",
+            "rhs": "aS"
+          },
+          {
+            "lhs": "S",
+            "rhs": "bS"
+          },
+          {
+            "lhs": "S",
+            "rhs": "aA"
+          },
+          {
+            "lhs": "A",
+            "rhs": "bB"
+          },
+          {
+            "lhs": "B",
+            "rhs": "b"
+          }
+        ],
+        "slack": 6
+      },
+      "languageBits": "AAQEBAQEBAQEBAQEBAQEBA==",
+      "stringCount": 127
+    },
+    {
       "id": "nfa-ends-ab-or-ba",
-      "index": 10,
+      "index": 20,
       "type": "NFA",
       "title": "Either ending",
       "alphabet": [
@@ -1461,7 +3003,7 @@
     },
     {
       "id": "nfa-third-last-1",
-      "index": 11,
+      "index": 21,
       "type": "NFA",
       "title": "Guess the end",
       "alphabet": [
@@ -1621,8 +3163,387 @@
       "stringCount": 127
     },
     {
+      "id": "nfa-contains-aa-or-bb",
+      "index": 22,
+      "type": "NFA",
+      "title": "A pair, either way",
+      "alphabet": [
+        "a",
+        "b"
+      ],
+      "par": 4,
+      "maxLength": 6,
+      "tests": [
+        "aa",
+        "bb",
+        "aab",
+        "abb",
+        "abba",
+        "baab",
+        "",
+        "a",
+        "b",
+        "ab",
+        "ba",
+        "abab"
+      ],
+      "testVerdicts": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "solution": {
+        "states": [
+          {
+            "id": "q0",
+            "label": "q0",
+            "x": 74,
+            "y": 230
+          },
+          {
+            "id": "q1",
+            "label": "qa",
+            "x": 176,
+            "y": 122
+          },
+          {
+            "id": "q2",
+            "label": "qb",
+            "x": 176,
+            "y": 338
+          },
+          {
+            "id": "q3",
+            "label": "yes",
+            "x": 286,
+            "y": 230
+          }
+        ],
+        "transitions": [
+          {
+            "id": "solPP-t0",
+            "from": "q0",
+            "to": "q0",
+            "read": "a"
+          },
+          {
+            "id": "solPP-t1",
+            "from": "q0",
+            "to": "q0",
+            "read": "b"
+          },
+          {
+            "id": "solPP-t2",
+            "from": "q0",
+            "to": "q1",
+            "read": "a"
+          },
+          {
+            "id": "solPP-t3",
+            "from": "q0",
+            "to": "q2",
+            "read": "b"
+          },
+          {
+            "id": "solPP-t4",
+            "from": "q1",
+            "to": "q3",
+            "read": "a"
+          },
+          {
+            "id": "solPP-t5",
+            "from": "q2",
+            "to": "q3",
+            "read": "b"
+          },
+          {
+            "id": "solPP-t6",
+            "from": "q3",
+            "to": "q3",
+            "read": "a"
+          },
+          {
+            "id": "solPP-t7",
+            "from": "q3",
+            "to": "q3",
+            "read": "b"
+          }
+        ],
+        "start": "q0",
+        "accepting": [
+          "q3"
+        ]
+      },
+      "grammar": {
+        "nonTerminals": [
+          "S",
+          "A",
+          "B",
+          "C"
+        ],
+        "terminals": [
+          "a",
+          "b"
+        ],
+        "start": "S",
+        "productions": [
+          {
+            "lhs": "S",
+            "rhs": "aS"
+          },
+          {
+            "lhs": "S",
+            "rhs": "bS"
+          },
+          {
+            "lhs": "S",
+            "rhs": "aA"
+          },
+          {
+            "lhs": "S",
+            "rhs": "bB"
+          },
+          {
+            "lhs": "A",
+            "rhs": "aC"
+          },
+          {
+            "lhs": "B",
+            "rhs": "bC"
+          },
+          {
+            "lhs": "C",
+            "rhs": "aC"
+          },
+          {
+            "lhs": "C",
+            "rhs": "bC"
+          },
+          {
+            "lhs": "C",
+            "rhs": ""
+          }
+        ],
+        "slack": 6
+      },
+      "languageBits": "yO3v/f/97////+////3/fw==",
+      "stringCount": 127
+    },
+    {
+      "id": "nfa-even-a-or-even-b",
+      "index": 23,
+      "type": "NFA",
+      "title": "Either parity",
+      "alphabet": [
+        "a",
+        "b"
+      ],
+      "par": 5,
+      "maxLength": 6,
+      "tests": [
+        "",
+        "aa",
+        "bb",
+        "ab",
+        "ba",
+        "aabb",
+        "abab",
+        "aba",
+        "bab",
+        "aaabbb",
+        "abb",
+        "aabbb"
+      ],
+      "testVerdicts": [
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true
+      ],
+      "solution": {
+        "states": [
+          {
+            "id": "q0",
+            "label": "q0",
+            "x": 62,
+            "y": 230
+          },
+          {
+            "id": "q1",
+            "label": "a0",
+            "x": 176,
+            "y": 116
+          },
+          {
+            "id": "q2",
+            "label": "a1",
+            "x": 288,
+            "y": 116
+          },
+          {
+            "id": "q3",
+            "label": "b0",
+            "x": 176,
+            "y": 344
+          },
+          {
+            "id": "q4",
+            "label": "b1",
+            "x": 288,
+            "y": 344
+          }
+        ],
+        "transitions": [
+          {
+            "id": "solEP-t0",
+            "from": "q0",
+            "to": "q1",
+            "read": "ε"
+          },
+          {
+            "id": "solEP-t1",
+            "from": "q0",
+            "to": "q3",
+            "read": "ε"
+          },
+          {
+            "id": "solEP-t2",
+            "from": "q1",
+            "to": "q2",
+            "read": "a"
+          },
+          {
+            "id": "solEP-t3",
+            "from": "q2",
+            "to": "q1",
+            "read": "a"
+          },
+          {
+            "id": "solEP-t4",
+            "from": "q1",
+            "to": "q1",
+            "read": "b"
+          },
+          {
+            "id": "solEP-t5",
+            "from": "q2",
+            "to": "q2",
+            "read": "b"
+          },
+          {
+            "id": "solEP-t6",
+            "from": "q3",
+            "to": "q4",
+            "read": "b"
+          },
+          {
+            "id": "solEP-t7",
+            "from": "q4",
+            "to": "q3",
+            "read": "b"
+          },
+          {
+            "id": "solEP-t8",
+            "from": "q3",
+            "to": "q3",
+            "read": "a"
+          },
+          {
+            "id": "solEP-t9",
+            "from": "q4",
+            "to": "q4",
+            "read": "a"
+          }
+        ],
+        "start": "q0",
+        "accepting": [
+          "q1",
+          "q3"
+        ]
+      },
+      "grammar": {
+        "nonTerminals": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "terminals": [
+          "a",
+          "b"
+        ],
+        "start": "A",
+        "productions": [
+          {
+            "lhs": "A",
+            "rhs": "aB"
+          },
+          {
+            "lhs": "A",
+            "rhs": "bC"
+          },
+          {
+            "lhs": "A",
+            "rhs": ""
+          },
+          {
+            "lhs": "B",
+            "rhs": "aA"
+          },
+          {
+            "lhs": "B",
+            "rhs": "bD"
+          },
+          {
+            "lhs": "B",
+            "rhs": ""
+          },
+          {
+            "lhs": "C",
+            "rhs": "aD"
+          },
+          {
+            "lhs": "C",
+            "rhs": "bA"
+          },
+          {
+            "lhs": "C",
+            "rhs": ""
+          },
+          {
+            "lhs": "D",
+            "rhs": "aC"
+          },
+          {
+            "lhs": "D",
+            "rhs": "bB"
+          }
+        ],
+        "slack": 6
+      },
+      "languageBits": "z/80y/////80S8s0y7Q0Sw==",
+      "stringCount": 127
+    },
+    {
       "id": "nfa-two-or-three",
-      "index": 12,
+      "index": 24,
       "type": "NFA",
       "title": "Two or three",
       "alphabet": [
@@ -1805,7 +3726,7 @@
     },
     {
       "id": "pda-balanced",
-      "index": 13,
+      "index": 25,
       "type": "PDA",
       "title": "Brackets",
       "alphabet": [
@@ -1918,7 +3839,7 @@
     },
     {
       "id": "pda-an-bn",
-      "index": 14,
+      "index": 26,
       "type": "PDA",
       "title": "Matching counts",
       "alphabet": [
@@ -2044,8 +3965,318 @@
       "stringCount": 127
     },
     {
+      "id": "pda-an-le-bm",
+      "index": 27,
+      "type": "PDA",
+      "title": "At least as many",
+      "alphabet": [
+        "a",
+        "b"
+      ],
+      "stackAlphabet": [
+        "$",
+        "A"
+      ],
+      "par": 3,
+      "maxLength": 6,
+      "tests": [
+        "",
+        "ab",
+        "abb",
+        "aabb",
+        "aabbb",
+        "b",
+        "a",
+        "ba",
+        "aab",
+        "abab",
+        "aaab",
+        "aa"
+      ],
+      "testVerdicts": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "solution": {
+        "states": [
+          {
+            "id": "q0",
+            "label": "q0",
+            "x": 80,
+            "y": 230
+          },
+          {
+            "id": "q1",
+            "label": "q1",
+            "x": 180,
+            "y": 230
+          },
+          {
+            "id": "q2",
+            "label": "q2",
+            "x": 282,
+            "y": 230
+          }
+        ],
+        "transitions": [
+          {
+            "id": "solLE-t0",
+            "from": "q0",
+            "to": "q0",
+            "read": "a",
+            "pop": "ε",
+            "push": "A"
+          },
+          {
+            "id": "solLE-t1",
+            "from": "q0",
+            "to": "q1",
+            "read": "ε",
+            "pop": "ε",
+            "push": "ε"
+          },
+          {
+            "id": "solLE-t2",
+            "from": "q1",
+            "to": "q1",
+            "read": "b",
+            "pop": "A",
+            "push": "ε"
+          },
+          {
+            "id": "solLE-t3",
+            "from": "q1",
+            "to": "q2",
+            "read": "ε",
+            "pop": "$",
+            "push": "ε"
+          },
+          {
+            "id": "solLE-t4",
+            "from": "q2",
+            "to": "q2",
+            "read": "b",
+            "pop": "ε",
+            "push": "ε"
+          }
+        ],
+        "start": "q0",
+        "accepting": [
+          "q2"
+        ]
+      },
+      "grammar": {
+        "nonTerminals": [
+          "S",
+          "B"
+        ],
+        "terminals": [
+          "a",
+          "b"
+        ],
+        "start": "S",
+        "productions": [
+          {
+            "lhs": "S",
+            "rhs": "aSb"
+          },
+          {
+            "lhs": "S",
+            "rhs": "bB"
+          },
+          {
+            "lhs": "S",
+            "rhs": ""
+          },
+          {
+            "lhs": "B",
+            "rhs": "bB"
+          },
+          {
+            "lhs": "B",
+            "rhs": ""
+          }
+        ],
+        "slack": 6
+      },
+      "languageBits": "VUREQEBAAEBAQABAAAAAQA==",
+      "stringCount": 127
+    },
+    {
+      "id": "pda-an-ge-bm",
+      "index": 28,
+      "type": "PDA",
+      "title": "No more than",
+      "alphabet": [
+        "a",
+        "b"
+      ],
+      "stackAlphabet": [
+        "$",
+        "A"
+      ],
+      "par": 4,
+      "maxLength": 6,
+      "tests": [
+        "",
+        "a",
+        "aa",
+        "ab",
+        "aab",
+        "aabb",
+        "aaab",
+        "b",
+        "abb",
+        "ba",
+        "abab",
+        "aabbb"
+      ],
+      "testVerdicts": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "solution": {
+        "states": [
+          {
+            "id": "q0",
+            "label": "q0",
+            "x": 76,
+            "y": 148
+          },
+          {
+            "id": "q1",
+            "label": "q1",
+            "x": 254,
+            "y": 148
+          },
+          {
+            "id": "q2",
+            "label": "q2",
+            "x": 76,
+            "y": 316
+          },
+          {
+            "id": "q3",
+            "label": "q3",
+            "x": 254,
+            "y": 316
+          }
+        ],
+        "transitions": [
+          {
+            "id": "solGE-t0",
+            "from": "q0",
+            "to": "q0",
+            "read": "a",
+            "pop": "ε",
+            "push": "A"
+          },
+          {
+            "id": "solGE-t1",
+            "from": "q0",
+            "to": "q1",
+            "read": "ε",
+            "pop": "ε",
+            "push": "ε"
+          },
+          {
+            "id": "solGE-t2",
+            "from": "q1",
+            "to": "q1",
+            "read": "b",
+            "pop": "A",
+            "push": "ε"
+          },
+          {
+            "id": "solGE-t3",
+            "from": "q1",
+            "to": "q2",
+            "read": "ε",
+            "pop": "ε",
+            "push": "ε"
+          },
+          {
+            "id": "solGE-t4",
+            "from": "q2",
+            "to": "q2",
+            "read": "ε",
+            "pop": "A",
+            "push": "ε"
+          },
+          {
+            "id": "solGE-t5",
+            "from": "q2",
+            "to": "q3",
+            "read": "ε",
+            "pop": "$",
+            "push": "ε"
+          }
+        ],
+        "start": "q0",
+        "accepting": [
+          "q3"
+        ]
+      },
+      "grammar": {
+        "nonTerminals": [
+          "S",
+          "A"
+        ],
+        "terminals": [
+          "a",
+          "b"
+        ],
+        "start": "S",
+        "productions": [
+          {
+            "lhs": "S",
+            "rhs": "aSb"
+          },
+          {
+            "lhs": "S",
+            "rhs": "aA"
+          },
+          {
+            "lhs": "S",
+            "rhs": ""
+          },
+          {
+            "lhs": "A",
+            "rhs": "aA"
+          },
+          {
+            "lhs": "A",
+            "rhs": ""
+          }
+        ],
+        "slack": 6
+      },
+      "languageBits": "m4EFgAUAAIBFAAAAAAAAAA==",
+      "stringCount": 127
+    },
+    {
       "id": "pda-a-then-bb",
-      "index": 15,
+      "index": 29,
       "type": "PDA",
       "title": "Twice as many",
       "alphabet": [
@@ -2185,8 +4416,300 @@
       "stringCount": 127
     },
     {
+      "id": "pda-a2n-bn",
+      "index": 30,
+      "type": "PDA",
+      "title": "Half as many",
+      "alphabet": [
+        "a",
+        "b"
+      ],
+      "stackAlphabet": [
+        "$",
+        "A"
+      ],
+      "par": 4,
+      "maxLength": 6,
+      "tests": [
+        "",
+        "aab",
+        "aaaabb",
+        "a",
+        "ab",
+        "aaab",
+        "aabb",
+        "b",
+        "ba",
+        "abab",
+        "aa",
+        "aaaab"
+      ],
+      "testVerdicts": [
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "solution": {
+        "states": [
+          {
+            "id": "q0",
+            "label": "q0",
+            "x": 92,
+            "y": 148
+          },
+          {
+            "id": "q1",
+            "label": "qh",
+            "x": 254,
+            "y": 148
+          },
+          {
+            "id": "q2",
+            "label": "q1",
+            "x": 92,
+            "y": 316
+          },
+          {
+            "id": "q3",
+            "label": "q2",
+            "x": 254,
+            "y": 316
+          }
+        ],
+        "transitions": [
+          {
+            "id": "solHF-t0",
+            "from": "q0",
+            "to": "q1",
+            "read": "a",
+            "pop": "ε",
+            "push": "ε"
+          },
+          {
+            "id": "solHF-t1",
+            "from": "q1",
+            "to": "q0",
+            "read": "a",
+            "pop": "ε",
+            "push": "A"
+          },
+          {
+            "id": "solHF-t2",
+            "from": "q0",
+            "to": "q2",
+            "read": "ε",
+            "pop": "ε",
+            "push": "ε"
+          },
+          {
+            "id": "solHF-t3",
+            "from": "q2",
+            "to": "q2",
+            "read": "b",
+            "pop": "A",
+            "push": "ε"
+          },
+          {
+            "id": "solHF-t4",
+            "from": "q2",
+            "to": "q3",
+            "read": "ε",
+            "pop": "$",
+            "push": "ε"
+          }
+        ],
+        "start": "q0",
+        "accepting": [
+          "q3"
+        ]
+      },
+      "grammar": {
+        "nonTerminals": [
+          "S"
+        ],
+        "terminals": [
+          "a",
+          "b"
+        ],
+        "start": "S",
+        "productions": [
+          {
+            "lhs": "S",
+            "rhs": "aaSb"
+          },
+          {
+            "lhs": "S",
+            "rhs": ""
+          }
+        ],
+        "slack": 6
+      },
+      "languageBits": "AQEAAAAAAAAEAAAAAAAAAA==",
+      "stringCount": 127
+    },
+    {
+      "id": "pda-anbn-cm",
+      "index": 31,
+      "type": "PDA",
+      "title": "One pair, then anything",
+      "alphabet": [
+        "a",
+        "b",
+        "c"
+      ],
+      "stackAlphabet": [
+        "$",
+        "A"
+      ],
+      "par": 3,
+      "maxLength": 6,
+      "tests": [
+        "",
+        "ab",
+        "abc",
+        "aabbcc",
+        "abccc",
+        "c",
+        "a",
+        "b",
+        "abbc",
+        "aabc",
+        "ba",
+        "acb"
+      ],
+      "testVerdicts": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "solution": {
+        "states": [
+          {
+            "id": "q0",
+            "label": "q0",
+            "x": 80,
+            "y": 230
+          },
+          {
+            "id": "q1",
+            "label": "q1",
+            "x": 180,
+            "y": 230
+          },
+          {
+            "id": "q2",
+            "label": "q2",
+            "x": 282,
+            "y": 230
+          }
+        ],
+        "transitions": [
+          {
+            "id": "solNC-t0",
+            "from": "q0",
+            "to": "q0",
+            "read": "a",
+            "pop": "ε",
+            "push": "A"
+          },
+          {
+            "id": "solNC-t1",
+            "from": "q0",
+            "to": "q1",
+            "read": "ε",
+            "pop": "ε",
+            "push": "ε"
+          },
+          {
+            "id": "solNC-t2",
+            "from": "q1",
+            "to": "q1",
+            "read": "b",
+            "pop": "A",
+            "push": "ε"
+          },
+          {
+            "id": "solNC-t3",
+            "from": "q1",
+            "to": "q2",
+            "read": "ε",
+            "pop": "$",
+            "push": "ε"
+          },
+          {
+            "id": "solNC-t4",
+            "from": "q2",
+            "to": "q2",
+            "read": "c",
+            "pop": "ε",
+            "push": "ε"
+          }
+        ],
+        "start": "q0",
+        "accepting": [
+          "q2"
+        ]
+      },
+      "grammar": {
+        "nonTerminals": [
+          "S",
+          "A",
+          "B"
+        ],
+        "terminals": [
+          "a",
+          "b",
+          "c"
+        ],
+        "start": "S",
+        "productions": [
+          {
+            "lhs": "S",
+            "rhs": "AB"
+          },
+          {
+            "lhs": "A",
+            "rhs": "aAb"
+          },
+          {
+            "lhs": "A",
+            "rhs": ""
+          },
+          {
+            "lhs": "B",
+            "rhs": "cB"
+          },
+          {
+            "lhs": "B",
+            "rhs": ""
+          }
+        ],
+        "slack": 6
+      },
+      "languageBits": "KRAEAIAQAAIAAAAAAAAAAYAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAACAAAAAQAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABA=",
+      "stringCount": 1093
+    },
+    {
       "id": "pda-two-brackets",
-      "index": 16,
+      "index": 32,
       "type": "PDA",
       "title": "Two kinds of bracket",
       "alphabet": [
@@ -2324,7 +4847,7 @@
     },
     {
       "id": "pda-equal-ab",
-      "index": 17,
+      "index": 33,
       "type": "PDA",
       "title": "Equal counts, any order",
       "alphabet": [
@@ -2457,8 +4980,158 @@
       "stringCount": 127
     },
     {
+      "id": "pda-wcw",
+      "index": 34,
+      "type": "PDA",
+      "title": "Marked middle",
+      "alphabet": [
+        "a",
+        "b",
+        "c"
+      ],
+      "stackAlphabet": [
+        "$",
+        "A",
+        "B"
+      ],
+      "par": 3,
+      "maxLength": 6,
+      "tests": [
+        "c",
+        "aca",
+        "bcb",
+        "abcba",
+        "aabcbaa",
+        "bacab",
+        "",
+        "ac",
+        "abc",
+        "acb",
+        "abcab",
+        "cc"
+      ],
+      "testVerdicts": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "solution": {
+        "states": [
+          {
+            "id": "q0",
+            "label": "q0",
+            "x": 80,
+            "y": 230
+          },
+          {
+            "id": "q1",
+            "label": "q1",
+            "x": 180,
+            "y": 230
+          },
+          {
+            "id": "q2",
+            "label": "q2",
+            "x": 282,
+            "y": 230
+          }
+        ],
+        "transitions": [
+          {
+            "id": "solWC-t0",
+            "from": "q0",
+            "to": "q0",
+            "read": "a",
+            "pop": "ε",
+            "push": "A"
+          },
+          {
+            "id": "solWC-t1",
+            "from": "q0",
+            "to": "q0",
+            "read": "b",
+            "pop": "ε",
+            "push": "B"
+          },
+          {
+            "id": "solWC-t2",
+            "from": "q0",
+            "to": "q1",
+            "read": "c",
+            "pop": "ε",
+            "push": "ε"
+          },
+          {
+            "id": "solWC-t3",
+            "from": "q1",
+            "to": "q1",
+            "read": "a",
+            "pop": "A",
+            "push": "ε"
+          },
+          {
+            "id": "solWC-t4",
+            "from": "q1",
+            "to": "q1",
+            "read": "b",
+            "pop": "B",
+            "push": "ε"
+          },
+          {
+            "id": "solWC-t5",
+            "from": "q1",
+            "to": "q2",
+            "read": "ε",
+            "pop": "$",
+            "push": "ε"
+          }
+        ],
+        "start": "q0",
+        "accepting": [
+          "q2"
+        ]
+      },
+      "grammar": {
+        "nonTerminals": [
+          "S"
+        ],
+        "terminals": [
+          "a",
+          "b",
+          "c"
+        ],
+        "start": "S",
+        "productions": [
+          {
+            "lhs": "S",
+            "rhs": "aSa"
+          },
+          {
+            "lhs": "S",
+            "rhs": "bSb"
+          },
+          {
+            "lhs": "S",
+            "rhs": "c"
+          }
+        ],
+        "slack": 6
+      },
+      "languageBits": "CAAIIAAAAAAAAAAAAAAAAAAIAAAAAgAAAAAAIAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "stringCount": 1093
+    },
+    {
       "id": "pda-palindrome",
-      "index": 18,
+      "index": 35,
       "type": "PDA",
       "title": "Mirror",
       "alphabet": [
@@ -2605,8 +5278,168 @@
       "stringCount": 127
     },
     {
+      "id": "pda-odd-palindrome",
+      "index": 36,
+      "type": "PDA",
+      "title": "Odd mirror",
+      "alphabet": [
+        "a",
+        "b"
+      ],
+      "stackAlphabet": [
+        "$",
+        "A",
+        "B"
+      ],
+      "par": 3,
+      "maxLength": 6,
+      "tests": [
+        "a",
+        "b",
+        "aba",
+        "bab",
+        "aaa",
+        "ababa",
+        "",
+        "ab",
+        "aa",
+        "abba",
+        "abab",
+        "aab"
+      ],
+      "testVerdicts": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "solution": {
+        "states": [
+          {
+            "id": "q0",
+            "label": "q0",
+            "x": 80,
+            "y": 230
+          },
+          {
+            "id": "q1",
+            "label": "q1",
+            "x": 180,
+            "y": 230
+          },
+          {
+            "id": "q2",
+            "label": "q2",
+            "x": 282,
+            "y": 230
+          }
+        ],
+        "transitions": [
+          {
+            "id": "solOP-t0",
+            "from": "q0",
+            "to": "q0",
+            "read": "a",
+            "pop": "ε",
+            "push": "A"
+          },
+          {
+            "id": "solOP-t1",
+            "from": "q0",
+            "to": "q0",
+            "read": "b",
+            "pop": "ε",
+            "push": "B"
+          },
+          {
+            "id": "solOP-t2",
+            "from": "q0",
+            "to": "q1",
+            "read": "a",
+            "pop": "ε",
+            "push": "ε"
+          },
+          {
+            "id": "solOP-t3",
+            "from": "q0",
+            "to": "q1",
+            "read": "b",
+            "pop": "ε",
+            "push": "ε"
+          },
+          {
+            "id": "solOP-t4",
+            "from": "q1",
+            "to": "q1",
+            "read": "a",
+            "pop": "A",
+            "push": "ε"
+          },
+          {
+            "id": "solOP-t5",
+            "from": "q1",
+            "to": "q1",
+            "read": "b",
+            "pop": "B",
+            "push": "ε"
+          },
+          {
+            "id": "solOP-t6",
+            "from": "q1",
+            "to": "q2",
+            "read": "ε",
+            "pop": "$",
+            "push": "ε"
+          }
+        ],
+        "start": "q0",
+        "accepting": [
+          "q2"
+        ]
+      },
+      "grammar": {
+        "nonTerminals": [
+          "S"
+        ],
+        "terminals": [
+          "a",
+          "b"
+        ],
+        "start": "S",
+        "productions": [
+          {
+            "lhs": "S",
+            "rhs": "aSa"
+          },
+          {
+            "lhs": "S",
+            "rhs": "bSb"
+          },
+          {
+            "lhs": "S",
+            "rhs": "a"
+          },
+          {
+            "lhs": "S",
+            "rhs": "b"
+          }
+        ],
+        "slack": 6
+      },
+      "languageBits": "hlIAgAgiEUQAAAAAAAAAAA==",
+      "stringCount": 127
+    },
+    {
       "id": "tm-an-bn",
-      "index": 19,
+      "index": 37,
       "type": "TM",
       "title": "Cross off",
       "alphabet": [
@@ -2803,8 +5636,263 @@
       "stringCount": 127
     },
     {
+      "id": "tm-equal-ab",
+      "index": 38,
+      "type": "TM",
+      "title": "Cross off a pair",
+      "alphabet": [
+        "a",
+        "b"
+      ],
+      "tapeAlphabet": [
+        "a",
+        "b",
+        "X",
+        "⊔"
+      ],
+      "par": 6,
+      "maxLength": 6,
+      "tests": [
+        "",
+        "ab",
+        "ba",
+        "aabb",
+        "abab",
+        "abba",
+        "baab",
+        "a",
+        "b",
+        "aab",
+        "abb",
+        "aaab"
+      ],
+      "testVerdicts": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "solution": {
+        "states": [
+          {
+            "id": "q0",
+            "label": "q0",
+            "x": 80,
+            "y": 90
+          },
+          {
+            "id": "q1",
+            "label": "q1",
+            "x": 258,
+            "y": 90
+          },
+          {
+            "id": "q2",
+            "label": "q2",
+            "x": 258,
+            "y": 226
+          },
+          {
+            "id": "q3",
+            "label": "q3",
+            "x": 80,
+            "y": 226
+          },
+          {
+            "id": "q4",
+            "label": "q4",
+            "x": 80,
+            "y": 362
+          },
+          {
+            "id": "q5",
+            "label": "qacc",
+            "x": 258,
+            "y": 362
+          }
+        ],
+        "transitions": [
+          {
+            "id": "solEQ-t0",
+            "from": "q0",
+            "to": "q1",
+            "read": "a",
+            "write": "X",
+            "move": "L"
+          },
+          {
+            "id": "solEQ-t1",
+            "from": "q0",
+            "to": "q0",
+            "read": "b",
+            "write": "b",
+            "move": "R"
+          },
+          {
+            "id": "solEQ-t2",
+            "from": "q0",
+            "to": "q0",
+            "read": "X",
+            "write": "X",
+            "move": "R"
+          },
+          {
+            "id": "solEQ-t3",
+            "from": "q0",
+            "to": "q4",
+            "read": "⊔",
+            "write": "⊔",
+            "move": "L"
+          },
+          {
+            "id": "solEQ-t4",
+            "from": "q1",
+            "to": "q1",
+            "read": "a",
+            "write": "a",
+            "move": "L"
+          },
+          {
+            "id": "solEQ-t5",
+            "from": "q1",
+            "to": "q1",
+            "read": "b",
+            "write": "b",
+            "move": "L"
+          },
+          {
+            "id": "solEQ-t6",
+            "from": "q1",
+            "to": "q1",
+            "read": "X",
+            "write": "X",
+            "move": "L"
+          },
+          {
+            "id": "solEQ-t7",
+            "from": "q1",
+            "to": "q2",
+            "read": "⊔",
+            "write": "⊔",
+            "move": "R"
+          },
+          {
+            "id": "solEQ-t8",
+            "from": "q2",
+            "to": "q2",
+            "read": "a",
+            "write": "a",
+            "move": "R"
+          },
+          {
+            "id": "solEQ-t9",
+            "from": "q2",
+            "to": "q2",
+            "read": "X",
+            "write": "X",
+            "move": "R"
+          },
+          {
+            "id": "solEQ-t10",
+            "from": "q2",
+            "to": "q3",
+            "read": "b",
+            "write": "X",
+            "move": "L"
+          },
+          {
+            "id": "solEQ-t11",
+            "from": "q3",
+            "to": "q3",
+            "read": "a",
+            "write": "a",
+            "move": "L"
+          },
+          {
+            "id": "solEQ-t12",
+            "from": "q3",
+            "to": "q3",
+            "read": "b",
+            "write": "b",
+            "move": "L"
+          },
+          {
+            "id": "solEQ-t13",
+            "from": "q3",
+            "to": "q3",
+            "read": "X",
+            "write": "X",
+            "move": "L"
+          },
+          {
+            "id": "solEQ-t14",
+            "from": "q3",
+            "to": "q0",
+            "read": "⊔",
+            "write": "⊔",
+            "move": "R"
+          },
+          {
+            "id": "solEQ-t15",
+            "from": "q4",
+            "to": "q4",
+            "read": "X",
+            "write": "X",
+            "move": "L"
+          },
+          {
+            "id": "solEQ-t16",
+            "from": "q4",
+            "to": "q5",
+            "read": "⊔",
+            "write": "⊔",
+            "move": "R"
+          }
+        ],
+        "start": "q0",
+        "accepting": [
+          "q5"
+        ]
+      },
+      "grammar": {
+        "nonTerminals": [
+          "S"
+        ],
+        "terminals": [
+          "a",
+          "b"
+        ],
+        "start": "S",
+        "productions": [
+          {
+            "lhs": "S",
+            "rhs": "aSbS"
+          },
+          {
+            "lhs": "S",
+            "rhs": "bSaS"
+          },
+          {
+            "lhs": "S",
+            "rhs": ""
+          }
+        ],
+        "slack": 6
+      },
+      "languageBits": "MQA0CwAAAABANDQLNAuLAA==",
+      "stringCount": 127
+    },
+    {
       "id": "tm-palindrome",
-      "index": 20,
+      "index": 39,
       "type": "TM",
       "title": "Reads the same backwards",
       "alphabet": [
@@ -3088,8 +6176,294 @@
       "stringCount": 127
     },
     {
+      "id": "tm-not-palindrome",
+      "index": 40,
+      "type": "TM",
+      "title": "Everything but",
+      "alphabet": [
+        "a",
+        "b"
+      ],
+      "tapeAlphabet": [
+        "a",
+        "b",
+        "X",
+        "⊔"
+      ],
+      "par": 7,
+      "maxLength": 6,
+      "tests": [
+        "ab",
+        "ba",
+        "abb",
+        "baa",
+        "aab",
+        "abab",
+        "",
+        "a",
+        "b",
+        "aa",
+        "aba",
+        "abba"
+      ],
+      "testVerdicts": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "solution": {
+        "states": [
+          {
+            "id": "q0",
+            "label": "q0",
+            "x": 78,
+            "y": 84
+          },
+          {
+            "id": "q1",
+            "label": "qa1",
+            "x": 250,
+            "y": 84
+          },
+          {
+            "id": "q2",
+            "label": "qa2",
+            "x": 250,
+            "y": 200
+          },
+          {
+            "id": "q3",
+            "label": "qb1",
+            "x": 78,
+            "y": 316
+          },
+          {
+            "id": "q4",
+            "label": "qb2",
+            "x": 250,
+            "y": 316
+          },
+          {
+            "id": "q5",
+            "label": "qL",
+            "x": 78,
+            "y": 200
+          },
+          {
+            "id": "q6",
+            "label": "qacc",
+            "x": 166,
+            "y": 416
+          }
+        ],
+        "transitions": [
+          {
+            "id": "solNP-t0",
+            "from": "q0",
+            "to": "q1",
+            "read": "a",
+            "write": "X",
+            "move": "R"
+          },
+          {
+            "id": "solNP-t1",
+            "from": "q0",
+            "to": "q3",
+            "read": "b",
+            "write": "X",
+            "move": "R"
+          },
+          {
+            "id": "solNP-t2",
+            "from": "q0",
+            "to": "q0",
+            "read": "X",
+            "write": "X",
+            "move": "R"
+          },
+          {
+            "id": "solNP-t3",
+            "from": "q1",
+            "to": "q1",
+            "read": "a",
+            "write": "a",
+            "move": "R"
+          },
+          {
+            "id": "solNP-t4",
+            "from": "q1",
+            "to": "q1",
+            "read": "b",
+            "write": "b",
+            "move": "R"
+          },
+          {
+            "id": "solNP-t5",
+            "from": "q1",
+            "to": "q2",
+            "read": "X",
+            "write": "X",
+            "move": "L"
+          },
+          {
+            "id": "solNP-t6",
+            "from": "q1",
+            "to": "q2",
+            "read": "⊔",
+            "write": "⊔",
+            "move": "L"
+          },
+          {
+            "id": "solNP-t7",
+            "from": "q2",
+            "to": "q5",
+            "read": "a",
+            "write": "X",
+            "move": "L"
+          },
+          {
+            "id": "solNP-t8",
+            "from": "q2",
+            "to": "q6",
+            "read": "b",
+            "write": "b",
+            "move": "R"
+          },
+          {
+            "id": "solNP-t9",
+            "from": "q3",
+            "to": "q3",
+            "read": "a",
+            "write": "a",
+            "move": "R"
+          },
+          {
+            "id": "solNP-t10",
+            "from": "q3",
+            "to": "q3",
+            "read": "b",
+            "write": "b",
+            "move": "R"
+          },
+          {
+            "id": "solNP-t11",
+            "from": "q3",
+            "to": "q4",
+            "read": "X",
+            "write": "X",
+            "move": "L"
+          },
+          {
+            "id": "solNP-t12",
+            "from": "q3",
+            "to": "q4",
+            "read": "⊔",
+            "write": "⊔",
+            "move": "L"
+          },
+          {
+            "id": "solNP-t13",
+            "from": "q4",
+            "to": "q5",
+            "read": "b",
+            "write": "X",
+            "move": "L"
+          },
+          {
+            "id": "solNP-t14",
+            "from": "q4",
+            "to": "q6",
+            "read": "a",
+            "write": "a",
+            "move": "R"
+          },
+          {
+            "id": "solNP-t15",
+            "from": "q5",
+            "to": "q5",
+            "read": "a",
+            "write": "a",
+            "move": "L"
+          },
+          {
+            "id": "solNP-t16",
+            "from": "q5",
+            "to": "q5",
+            "read": "b",
+            "write": "b",
+            "move": "L"
+          },
+          {
+            "id": "solNP-t17",
+            "from": "q5",
+            "to": "q0",
+            "read": "X",
+            "write": "X",
+            "move": "R"
+          }
+        ],
+        "start": "q0",
+        "accepting": [
+          "q6"
+        ]
+      },
+      "grammar": {
+        "nonTerminals": [
+          "S",
+          "T"
+        ],
+        "terminals": [
+          "a",
+          "b"
+        ],
+        "start": "S",
+        "productions": [
+          {
+            "lhs": "S",
+            "rhs": "aSa"
+          },
+          {
+            "lhs": "S",
+            "rhs": "bSb"
+          },
+          {
+            "lhs": "S",
+            "rhs": "aTb"
+          },
+          {
+            "lhs": "S",
+            "rhs": "bTa"
+          },
+          {
+            "lhs": "T",
+            "rhs": "aT"
+          },
+          {
+            "lhs": "T",
+            "rhs": "bT"
+          },
+          {
+            "lhs": "T",
+            "rhs": ""
+          }
+        ],
+        "slack": 6
+      },
+      "languageBits": "MC3fPvfd7jv/9/3f/u/7Pw==",
+      "stringCount": 127
+    },
+    {
       "id": "tm-an-bn-cn",
-      "index": 21,
+      "index": 41,
       "type": "TM",
       "title": "Beyond context free",
       "alphabet": [
@@ -3368,6 +6742,363 @@
       },
       "languageBits": "AQAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
       "stringCount": 29524
+    },
+    {
+      "id": "tm-abcd",
+      "index": 42,
+      "type": "TM",
+      "title": "Four blocks",
+      "alphabet": [
+        "a",
+        "b",
+        "c",
+        "d"
+      ],
+      "tapeAlphabet": [
+        "a",
+        "b",
+        "c",
+        "d",
+        "X",
+        "Y",
+        "Z",
+        "W",
+        "⊔"
+      ],
+      "par": 7,
+      "maxLength": 8,
+      "tests": [
+        "",
+        "abcd",
+        "aabbccdd",
+        "a",
+        "ab",
+        "abc",
+        "abcdd",
+        "aabbccd",
+        "abdc",
+        "dcba",
+        "abbcd",
+        "aabbcd"
+      ],
+      "testVerdicts": [
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "solution": {
+        "states": [
+          {
+            "id": "q0",
+            "label": "q0",
+            "x": 78,
+            "y": 62
+          },
+          {
+            "id": "q1",
+            "label": "q1",
+            "x": 254,
+            "y": 62
+          },
+          {
+            "id": "q2",
+            "label": "q2",
+            "x": 254,
+            "y": 174
+          },
+          {
+            "id": "q3",
+            "label": "q3",
+            "x": 254,
+            "y": 288
+          },
+          {
+            "id": "q4",
+            "label": "qb",
+            "x": 78,
+            "y": 288
+          },
+          {
+            "id": "q5",
+            "label": "q4",
+            "x": 78,
+            "y": 404
+          },
+          {
+            "id": "q6",
+            "label": "qacc",
+            "x": 254,
+            "y": 404
+          }
+        ],
+        "transitions": [
+          {
+            "id": "solFB-t0",
+            "from": "q0",
+            "to": "q1",
+            "read": "a",
+            "write": "X",
+            "move": "R"
+          },
+          {
+            "id": "solFB-t1",
+            "from": "q0",
+            "to": "q5",
+            "read": "Y",
+            "write": "Y",
+            "move": "R"
+          },
+          {
+            "id": "solFB-t2",
+            "from": "q0",
+            "to": "q6",
+            "read": "⊔",
+            "write": "⊔",
+            "move": "R"
+          },
+          {
+            "id": "solFB-t3",
+            "from": "q1",
+            "to": "q1",
+            "read": "a",
+            "write": "a",
+            "move": "R"
+          },
+          {
+            "id": "solFB-t4",
+            "from": "q1",
+            "to": "q1",
+            "read": "Y",
+            "write": "Y",
+            "move": "R"
+          },
+          {
+            "id": "solFB-t5",
+            "from": "q1",
+            "to": "q2",
+            "read": "b",
+            "write": "Y",
+            "move": "R"
+          },
+          {
+            "id": "solFB-t6",
+            "from": "q2",
+            "to": "q2",
+            "read": "b",
+            "write": "b",
+            "move": "R"
+          },
+          {
+            "id": "solFB-t7",
+            "from": "q2",
+            "to": "q2",
+            "read": "Z",
+            "write": "Z",
+            "move": "R"
+          },
+          {
+            "id": "solFB-t8",
+            "from": "q2",
+            "to": "q3",
+            "read": "c",
+            "write": "Z",
+            "move": "R"
+          },
+          {
+            "id": "solFB-t9",
+            "from": "q3",
+            "to": "q3",
+            "read": "c",
+            "write": "c",
+            "move": "R"
+          },
+          {
+            "id": "solFB-t10",
+            "from": "q3",
+            "to": "q3",
+            "read": "W",
+            "write": "W",
+            "move": "R"
+          },
+          {
+            "id": "solFB-t11",
+            "from": "q3",
+            "to": "q4",
+            "read": "d",
+            "write": "W",
+            "move": "L"
+          },
+          {
+            "id": "solFB-t12",
+            "from": "q4",
+            "to": "q4",
+            "read": "a",
+            "write": "a",
+            "move": "L"
+          },
+          {
+            "id": "solFB-t13",
+            "from": "q4",
+            "to": "q4",
+            "read": "b",
+            "write": "b",
+            "move": "L"
+          },
+          {
+            "id": "solFB-t14",
+            "from": "q4",
+            "to": "q4",
+            "read": "c",
+            "write": "c",
+            "move": "L"
+          },
+          {
+            "id": "solFB-t15",
+            "from": "q4",
+            "to": "q4",
+            "read": "Y",
+            "write": "Y",
+            "move": "L"
+          },
+          {
+            "id": "solFB-t16",
+            "from": "q4",
+            "to": "q4",
+            "read": "Z",
+            "write": "Z",
+            "move": "L"
+          },
+          {
+            "id": "solFB-t17",
+            "from": "q4",
+            "to": "q4",
+            "read": "W",
+            "write": "W",
+            "move": "L"
+          },
+          {
+            "id": "solFB-t18",
+            "from": "q4",
+            "to": "q0",
+            "read": "X",
+            "write": "X",
+            "move": "R"
+          },
+          {
+            "id": "solFB-t19",
+            "from": "q5",
+            "to": "q5",
+            "read": "Y",
+            "write": "Y",
+            "move": "R"
+          },
+          {
+            "id": "solFB-t20",
+            "from": "q5",
+            "to": "q5",
+            "read": "Z",
+            "write": "Z",
+            "move": "R"
+          },
+          {
+            "id": "solFB-t21",
+            "from": "q5",
+            "to": "q5",
+            "read": "W",
+            "write": "W",
+            "move": "R"
+          },
+          {
+            "id": "solFB-t22",
+            "from": "q5",
+            "to": "q6",
+            "read": "⊔",
+            "write": "⊔",
+            "move": "R"
+          }
+        ],
+        "start": "q0",
+        "accepting": [
+          "q6"
+        ]
+      },
+      "grammar": {
+        "nonTerminals": [
+          "S",
+          "B",
+          "C",
+          "D"
+        ],
+        "terminals": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "start": "S",
+        "productions": [
+          {
+            "lhs": "S",
+            "rhs": ""
+          },
+          {
+            "lhs": "S",
+            "rhs": "aBCD"
+          },
+          {
+            "lhs": "S",
+            "rhs": "aSBCD"
+          },
+          {
+            "lhs": "CB",
+            "rhs": "BC"
+          },
+          {
+            "lhs": "DB",
+            "rhs": "BD"
+          },
+          {
+            "lhs": "DC",
+            "rhs": "CD"
+          },
+          {
+            "lhs": "aB",
+            "rhs": "ab"
+          },
+          {
+            "lhs": "bB",
+            "rhs": "bb"
+          },
+          {
+            "lhs": "bC",
+            "rhs": "bc"
+          },
+          {
+            "lhs": "cC",
+            "rhs": "cc"
+          },
+          {
+            "lhs": "cD",
+            "rhs": "cd"
+          },
+          {
+            "lhs": "dD",
+            "rhs": "dd"
+          }
+        ],
+        "slack": 2
+      },
+      "languageBits": "AQAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "stringCount": 87381
     }
   ]
 }
