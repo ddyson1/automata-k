@@ -52,9 +52,9 @@ const levelOf = (id: string): Level => LEVELS.find((l) => l.id === id) as Level;
 // ---------------------------------------------------------------------------
 
 describe('levels are well formed', () => {
-  it('there are twelve of them, indexed 1 to 12 in order', () => {
-    expect(LEVELS).toHaveLength(12);
-    expect(LEVELS.map((l) => l.index)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+  it('is indexed 1..n in order, with no gaps', () => {
+    expect(LEVELS.length).toBeGreaterThan(0);
+    expect(LEVELS.map((l) => l.index)).toEqual(LEVELS.map((_l, i) => i + 1));
   });
 
   it('ids are unique', () => {
@@ -62,20 +62,12 @@ describe('levels are well formed', () => {
   });
 
   it('climbs the hierarchy: DFA, then NFA, then PDA, then TM', () => {
-    expect(LEVELS.map((l) => l.type)).toEqual([
-      'DFA',
-      'DFA',
-      'DFA',
-      'DFA',
-      'NFA',
-      'NFA',
-      'NFA',
-      'PDA',
-      'PDA',
-      'PDA',
-      'TM',
-      'TM',
-    ]);
+    // Asserted as an ordering rather than as a list, so adding a level does
+    // not mean rewriting the assertion that the ordering is what matters.
+    const rank = { DFA: 0, NFA: 1, PDA: 2, TM: 3 } as const;
+    const ranks = LEVELS.map((l) => rank[l.type]);
+    expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
+    expect(new Set(ranks).size, 'every class is represented').toBe(4);
   });
 
   it('every level has a solution and a non empty test suite', () => {
@@ -93,6 +85,43 @@ describe('levels are well formed', () => {
         level.tests.length - accepted.length,
         `${level.id} rejects something`,
       ).toBeGreaterThan(0);
+    }
+  });
+
+  /**
+   * The checks below are what make a new level self authoring: get any of
+   * these wrong and the suite says which one, rather than the game shipping a
+   * level whose hint describes a machine nobody can build.
+   */
+  it('every level declares the alphabets its solution actually uses', () => {
+    for (const level of LEVELS) {
+      const solution = solutionFor(level.id) as Machine;
+      for (const t of solution.transitions) {
+        if (level.type === 'PDA') {
+          const stack = new Set([...(level.stackAlphabet ?? []), EPSILON]);
+          expect(stack.has(t.pop ?? EPSILON), `${level.id}: pop ${t.pop}`).toBe(true);
+          expect(stack.has(t.push ?? EPSILON), `${level.id}: push ${t.push}`).toBe(true);
+        }
+        if (level.type === 'TM') {
+          const tape = new Set(level.tapeAlphabet ?? []);
+          expect(tape.has(t.read), `${level.id}: reads ${t.read}`).toBe(true);
+          expect(tape.has(t.write ?? t.read), `${level.id}: writes ${t.write}`).toBe(true);
+        }
+      }
+    }
+  });
+
+  it('never asks a machine for a language its class cannot recognise', () => {
+    // Chomsky numbers run the other way to power: 3 is regular, 0 is every
+    // machine there is. So a level's type is a floor on the number, not a
+    // ceiling. A PDA level may hold a regular language, and level 20 holds a
+    // context free one on a tape; what none of them may do is claim a class
+    // their machine cannot recognise.
+    const weakest = { DFA: 3, NFA: 3, PDA: 2, TM: 0 } as const;
+    for (const level of LEVELS) {
+      expect(level.chomsky, `${level.id} is a ${level.type}`).toBeGreaterThanOrEqual(
+        weakest[level.type],
+      );
     }
   });
 

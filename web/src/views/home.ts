@@ -1,7 +1,7 @@
 /**
  * The level list.
  *
- * Twelve rows climbing the hierarchy, grouped by machine class, each showing
+ * One row per level, climbing the hierarchy, grouped by machine class, each showing
  * the language it asks for. Locked levels stay visible and stay readable: the
  * shape of the whole climb is the point, and hiding the top of it would make
  * the game smaller than the subject.

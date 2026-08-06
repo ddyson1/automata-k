@@ -1,7 +1,7 @@
 # automata-k
 
 **Draw a machine. It gets graded against the language, not against an answer key.**
-Twelve levels climb the Chomsky hierarchy, from finite automata to Turing machines.
+Twenty one levels climb the Chomsky hierarchy, from finite automata to Turing machines.
 
 [**Play it →**](https://devindyson.com/automata-k/)
 
@@ -24,22 +24,31 @@ Nothing anywhere stores an expected verdict. Every level carries an `accepts`
 predicate, and both the game and its test suite ask that predicate. A level
 whose solution stopped matching its own language would fail the build.
 
-## The twelve
+## The twenty one
 
 | # | Level | Language | Machine | Type | Par |
 |---|-------|----------|---------|------|-----|
 | 1 | Last symbol | <code>L = { w ∈ {0,1}* : w ends with 1 }</code> | DFA | 3 | 2 |
-| 2 | Parity | <code>L = { w ∈ {0,1}* : &#124;w&#124;<sub>0</sub> is even }</code> | DFA | 3 | 2 |
+| 2 | Parity | <code>L = { w ∈ {0,1}* : &#124;w&#124;₀ is even }</code> | DFA | 3 | 2 |
 | 3 | Substring | <code>L = { w ∈ {0,1}* : w = x01y for some x, y ∈ {0,1}* }</code> | DFA | 3 | 3 |
 | 4 | Forbidden pair | <code>L = { w ∈ {0,1}* : 11 is not a substring of w }</code> | DFA | 3 | 3 |
-| 5 | Empty move | <code>L = { a<sup>i</sup>b<sup>j</sup> : i ≥ 0, j ≥ 0 }</code> | NFA | 3 | 2 |
-| 6 | Three blocks | <code>L = { a<sup>i</sup>b<sup>j</sup>c<sup>k</sup> : i, j, k ≥ 0 }</code> | NFA | 3 | 3 |
-| 7 | Guess the end | <code>L = { w ∈ {0,1}* : &#124;w&#124; ≥ 3 and the 3rd symbol from the right is 1 }</code> | NFA | 3 | 4 |
-| 8 | Brackets | <code>L = { w ∈ {(,)}* : no prefix has more ) than (, and w has equally many of each }</code> | PDA | 2 | 2 |
-| 9 | Matching counts | <code>L = { a<sup>n</sup>b<sup>n</sup> : n ≥ 0 }</code> | PDA | 2 | 3 |
-| 10 | Mirror | <code>L = { w w<sup>R</sup> : w ∈ {a,b}* }</code> | PDA | 2 | 3 |
-| 11 | Cross off | <code>L = { a<sup>n</sup>b<sup>n</sup> : n ≥ 0 }</code> | TM | 2 | 5 |
-| 12 | Beyond context free | <code>L = { a<sup>n</sup>b<sup>n</sup>c<sup>n</sup> : n ≥ 0 }</code> | TM | 1 | 6 |
+| 5 | Divisible by three | <code>L = { w ∈ {0,1}* : the binary number w is divisible by 3 }</code> | DFA | 3 | 3 |
+| 6 | Both even | <code>L = { w ∈ {0,1}* : &#124;w&#124;₀ is even and &#124;w&#124;₁ is even }</code> | DFA | 3 | 4 |
+| 7 | Matching ends | <code>L = { w ∈ {0,1}⁺ : w₁ = w_&#124;w&#124; }</code> | DFA | 3 | 5 |
+| 8 | Empty move | <code>L = { a<sup>i</sup>b<sup>j</sup> : i ≥ 0, j ≥ 0 }</code> | NFA | 3 | 2 |
+| 9 | Three blocks | <code>L = { a<sup>i</sup>b<sup>j</sup>c<sup>k</sup> : i ≥ 0, j ≥ 0, k ≥ 0 }</code> | NFA | 3 | 3 |
+| 10 | Either ending | <code>L = { w ∈ {a,b}* : w ends with ab or ba }</code> | NFA | 3 | 4 |
+| 11 | Guess the end | <code>L = { w ∈ {0,1}* : &#124;w&#124; ≥ 3 and the 3rd symbol from the right is 1 }</code> | NFA | 3 | 4 |
+| 12 | Two or three | <code>L = { aⁿ : n ≡ 0 mod 2 or n ≡ 0 mod 3 }</code> | NFA | 3 | 6 |
+| 13 | Brackets | <code>L = { w ∈ {(,)}* : no prefix has more ) than (, and w has equally many of each }</code> | PDA | 2 | 2 |
+| 14 | Matching counts | <code>L = { a<sup>n</sup>b<sup>n</sup> : n ≥ 0 }</code> | PDA | 2 | 3 |
+| 15 | Twice as many | <code>L = { aⁿb²ⁿ : n ≥ 0 }</code> | PDA | 2 | 4 |
+| 16 | Two kinds of bracket | <code>L = the properly nested strings over { (, ), [, ] }</code> | PDA | 2 | 2 |
+| 17 | Equal counts, any order | <code>L = { w ∈ {a,b}* : &#124;w&#124;ₐ = &#124;w&#124;_b }</code> | PDA | 2 | 2 |
+| 18 | Mirror | <code>L = { w w<sup>R</sup> : w ∈ {a,b}* }</code> | PDA | 2 | 3 |
+| 19 | Cross off | <code>L = { a<sup>n</sup>b<sup>n</sup> : n ≥ 0 }</code> | TM | 2 | 5 |
+| 20 | Reads the same backwards | <code>L = { w ∈ {a,b}* : w = wᴿ }</code> | TM | 2 | 7 |
+| 21 | Beyond context free | <code>L = { a<sup>n</sup>b<sup>n</sup>c<sup>n</sup> : n ≥ 0 }</code> | TM | 1 | 6 |
 
 Par is the state count of a verified solution. Levels unlock in order.
 
@@ -151,7 +160,7 @@ Two checks are the definition of done, and both print their counts.
 
 **Engine and solutions.** Every level's verified solution is run against its own
 test suite and against every string over its alphabet up to length 6, length 9
-for <code>a<sup>n</sup>b<sup>n</sup>c<sup>n</sup></code>, and compared to the level's `accepts` predicate. 31887 strings,
+for <code>a<sup>n</sup>b<sup>n</sup>c<sup>n</sup></code>, and compared to the level's `accepts` predicate. 38247 strings,
 zero mismatches. The suite also asserts each solution's state count equals par.
 
 **Grammars.** Every grammar in the formal layer is derived by breadth-first
@@ -163,7 +172,7 @@ production shows up immediately, including in the context sensitive grammar for
 Alongside those: validation tests, simulation cap tests, a property test
 determinising random NFAs, Hopcroft minimisation against par, state elimination
 checked against every level language, arrow geometry pinned by tests rather than
-by eye, and 36 Playwright tests over two viewports.
+by eye, and 48 Playwright tests over two viewports.
 
 ## Layout
 
@@ -175,7 +184,7 @@ by eye, and 36 Playwright tests over two viewports.
     validate.ts  well-formedness per machine class
     minimize.ts  Hopcroft, reachability, completion, subset construction
     regex.ts     state elimination
-    levels.ts    the twelve levels, each with an accepts predicate
+    levels.ts    the levels, each with an accepts predicate
     solutions.ts one verified machine per level
     formal.ts    tuple rendering, delta notation, grammars, hierarchy copy
     layout.ts    arranging a machine so the diagram reads
@@ -290,7 +299,7 @@ The TypeScript engine is the proven one. Rather than describe it twice,
 `scripts/golden.ts` freezes the proof into `ios/Tests/.../golden.json`: every
 level's shape, verified solution and grammar, plus the language itself as a
 bitmap over the canonical enumeration of Σ* up to that level's depth, one bit
-per string. 31887 bits across 12 levels. `tests/golden.test.ts` regenerates the
+per string. 38247 bits across 21 levels. `tests/golden.test.ts` regenerates the
 fixture and checks it against the live predicate string for string, so a stale
 fixture cannot pass, and the Swift tests hold the port to the same bits.
 

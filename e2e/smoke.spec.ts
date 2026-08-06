@@ -54,7 +54,7 @@ test('progress survives a reload', async ({ page }) => {
   await expect(page.getByTestId('score')).toHaveText('All 12 agree');
 
   await page.getByTestId('back').click();
-  await expect(page.getByTestId('solved-count')).toHaveText('1/12');
+  await expect(page.getByTestId('solved-count')).toHaveText(/^1\/\d+$/);
   await expect(page.getByTestId('level-row').filter({ hasText: 'Parity' })).toBeEnabled();
 });
 

@@ -21,7 +21,7 @@ import { layoutMachine } from '../src/engine/layout';
 import { LEVELS } from '../src/engine/levels';
 import { solutionFor } from '../src/engine/solutions';
 import { minimise, subsetConstruction } from '../src/engine/minimize';
-import { LOOP_REACH } from '../src/ui/geometry';
+import { CHIP_CHAR_W, CHIP_ROW_HEIGHT, LOOP_REACH } from '../src/ui/geometry';
 import { CANVAS, type Machine } from '../src/engine/types';
 
 const R = CANVAS.stateRadius;
@@ -60,6 +60,25 @@ const chain = (n: number): Machine => ({
 });
 
 describe('tidy', () => {
+  it('spaces arrows by the same chip metrics the drawing uses', () => {
+    // layout.ts copies these rather than importing them, because the engine
+    // does not depend on the UI. This is the seam that keeps the copies equal.
+    expect(CHIP_CHAR_W).toBe(7.2);
+    expect(CHIP_ROW_HEIGHT).toBe(24);
+  });
+
+  it('gives a Turing machine more room between columns than a DFA', () => {
+    const dfa = laidOutMachine(solutionFor('dfa-contains-01') as Machine);
+    const tm = laidOutMachine(solutionFor('tm-palindrome') as Machine);
+    const spread = (m: Machine): number => {
+      const xs = [...new Set(m.states.map((s) => s.x))].sort((a, b) => a - b);
+      return (xs[1] as number) - (xs[0] as number);
+    };
+    expect(spread(tm), 'a "⊔ → ⊔, R" chip needs more room than a "0"').toBeGreaterThan(
+      spread(dfa),
+    );
+  });
+
   it('leaves room for a self loop between any two states, at any size', () => {
     for (let n = 2; n <= 12; n++) {
       const m = laidOutMachine(chain(n));

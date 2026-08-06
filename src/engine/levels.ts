@@ -1,5 +1,5 @@
 /**
- * The twelve levels, climbing the Chomsky hierarchy.
+ * The 21 levels, climbing the Chomsky hierarchy.
  *
  * `accepts` is the single source of truth for expected results. Nothing in the
  * app or the tests may hardcode a pass or fail for a particular string; the
@@ -143,12 +143,113 @@ export const LEVELS: Level[] = [
     exhaustiveMaxLength: 6,
   },
 
+  {
+    id: 'dfa-div-by-three',
+    index: 5,
+    type: 'DFA',
+    title: 'Divisible by three',
+    goal: 'Accept the strings that read, as a binary number, as a multiple of three.',
+    alphabet: ['0', '1'],
+    par: 3,
+    tests: ['', '0', '1', '11', '10', '00', '101', '110', '111', '1001', '1100', '1010'],
+    accepts: (w) => {
+      let r = 0;
+      for (const c of w) r = (2 * r + (c === '1' ? 1 : 0)) % 3;
+      return r === 0;
+    },
+    theory:
+      'One state per remainder. Reading a bit doubles the number so far and adds the bit, and the new remainder depends only on the old remainder and the bit, never on the number itself. Three facts are enough, so three states are enough, however long the string gets.',
+    hint: 'Three states, one for each remainder: 0, 1, 2. From remainder r, reading bit b lands on (2r + b) mod 3. Accept remainder 0, which is also where the empty string leaves you.',
+    setBuilder: 'L = { w ∈ {0,1}* : the binary number w is divisible by 3 }',
+    grammar: g(
+      ['A', 'B', 'C'],
+      ['0', '1'],
+      [
+        ['A', '0A'],
+        ['A', '1B'],
+        ['A', ''],
+        ['B', '0C'],
+        ['B', '1A'],
+        ['C', '0B'],
+        ['C', '1C'],
+      ],
+      'One non terminal per remainder, so the grammar is the machine written sideways.',
+    ),
+    chomsky: 3,
+    exhaustiveMaxLength: 6,
+  },
+  {
+    id: 'dfa-even-both',
+    index: 6,
+    type: 'DFA',
+    title: 'Both even',
+    goal: 'Accept the strings with an even number of 0s and an even number of 1s.',
+    alphabet: ['0', '1'],
+    par: 4,
+    tests: ['', '00', '11', '0011', '1100', '0101', '0', '1', '01', '10', '000', '0111'],
+    accepts: (w) => count(w, '0') % 2 === 0 && count(w, '1') % 2 === 0,
+    theory:
+      'Two independent facts, each with two possible values, so four states: the product of a two state machine with another two state machine. Every symbol flips exactly one of the two parities, which is why no state ever needs to be added.',
+    hint: 'Four states, one for each pair of parities. Reading 0 flips the first, reading 1 flips the second. Accept the one where both are even, which is where you start.',
+    setBuilder: 'L = { w ∈ {0,1}* : |w|₀ is even and |w|₁ is even }',
+    grammar: g(
+      ['A', 'B', 'C', 'D'],
+      ['0', '1'],
+      [
+        ['A', '0B'],
+        ['A', '1C'],
+        ['A', ''],
+        ['B', '0A'],
+        ['B', '1D'],
+        ['C', '0D'],
+        ['C', '1A'],
+        ['D', '0C'],
+        ['D', '1B'],
+      ],
+    ),
+    chomsky: 3,
+    exhaustiveMaxLength: 6,
+  },
+  {
+    id: 'dfa-same-ends',
+    index: 7,
+    type: 'DFA',
+    title: 'Matching ends',
+    goal: 'Accept the non empty strings that begin and end with the same symbol.',
+    alphabet: ['0', '1'],
+    par: 5,
+    tests: ['0', '1', '00', '11', '010', '101', '0110', '1001', '', '01', '10', '011', '100'],
+    accepts: (w) => w.length > 0 && w[0] === w[w.length - 1],
+    theory:
+      'The machine cannot look back at the first symbol, so it has to carry it: one branch for a string that began with 0 and one for a string that began with 1. Inside each branch it only needs to remember the symbol it just read, which is two more states, and the start state makes five.',
+    hint: 'Commit on the first symbol into one of two halves and never leave that half. Inside a half, track the last symbol read; accept when the last symbol matches the first.',
+    setBuilder: 'L = { w ∈ {0,1}⁺ : w₁ = w_|w| }',
+    grammar: g(
+      ['S', 'A', 'B'],
+      ['0', '1'],
+      [
+        ['S', '0A'],
+        ['S', '1B'],
+        ['S', '0'],
+        ['S', '1'],
+        ['A', '0A'],
+        ['A', '1A'],
+        ['A', '0'],
+        ['B', '0B'],
+        ['B', '1B'],
+        ['B', '1'],
+      ],
+      'S commits to the first symbol; A finishes on a 0 and B finishes on a 1.',
+    ),
+    chomsky: 3,
+    exhaustiveMaxLength: 6,
+  },
   // -------------------------------------------------------------------------
   // Regular languages, nondeterministic with empty moves
   // -------------------------------------------------------------------------
   {
     id: 'nfa-a-then-b',
-    index: 5,
+    index: 8,
     type: 'NFA',
     title: 'Empty move',
     goal: 'Accept the strings that are some a s followed by some b s, either part possibly empty.',
@@ -175,7 +276,7 @@ export const LEVELS: Level[] = [
   },
   {
     id: 'nfa-abc-blocks',
-    index: 6,
+    index: 9,
     type: 'NFA',
     title: 'Three blocks',
     goal: 'Accept some a s, then some b s, then some c s, any of the three possibly empty.',
@@ -203,8 +304,37 @@ export const LEVELS: Level[] = [
     exhaustiveMaxLength: 6,
   },
   {
+    id: 'nfa-ends-ab-or-ba',
+    index: 10,
+    type: 'NFA',
+    title: 'Either ending',
+    goal: 'Accept the strings that end with ab or with ba.',
+    alphabet: ['a', 'b'],
+    par: 4,
+    tests: ['ab', 'ba', 'aab', 'bba', 'abab', 'baba', '', 'a', 'b', 'aa', 'bb', 'aaa'],
+    accepts: (w) => w.endsWith('ab') || w.endsWith('ba'),
+    theory:
+      'A deterministic machine would have to know, at every symbol, which of the two endings it is in the middle of. A nondeterministic one guesses: it sits in a loop reading anything, and at some point simply decides that the last two symbols have started. Only a guess that turns out right survives.',
+    hint: 'One state loops on both symbols. From it, one arrow on a and one on b lead into two short tails, and both tails end at the same accepting state.',
+    setBuilder: 'L = { w ∈ {a,b}* : w ends with ab or ba }',
+    grammar: g(
+      ['S', 'A', 'B'],
+      ['a', 'b'],
+      [
+        ['S', 'aS'],
+        ['S', 'bS'],
+        ['S', 'aA'],
+        ['S', 'bB'],
+        ['A', 'b'],
+        ['B', 'a'],
+      ],
+    ),
+    chomsky: 3,
+    exhaustiveMaxLength: 6,
+  },
+  {
     id: 'nfa-third-last-1',
-    index: 7,
+    index: 11,
     type: 'NFA',
     title: 'Guess the end',
     goal: 'Accept the strings whose third symbol from the end is a 1.',
@@ -233,12 +363,46 @@ export const LEVELS: Level[] = [
     exhaustiveMaxLength: 6,
   },
 
+  {
+    id: 'nfa-two-or-three',
+    index: 12,
+    type: 'NFA',
+    title: 'Two or three',
+    goal: 'Accept the strings whose length is a multiple of two or a multiple of three.',
+    alphabet: ['a'],
+    par: 6,
+    tests: ['', 'a', 'aa', 'aaa', 'aaaa', 'aaaaa', 'aaaaaa', 'aaaaaaa', 'aaaaaaaa', 'aaaaaaaaa'],
+    accepts: (w) => w.length % 2 === 0 || w.length % 3 === 0,
+    theory:
+      'Or is where empty moves earn their keep. Build the two machines separately, a loop of two and a loop of three, and let the start state step into either one without reading anything. The guess is made before the first symbol and never revisited.',
+    hint: 'A start state with two empty arrows out of it, into a two cycle and into a three cycle. Both cycles have their entry state accepting, which is also what lets the empty string through.',
+    setBuilder: 'L = { aⁿ : n ≡ 0 mod 2 or n ≡ 0 mod 3 }',
+    grammar: g(
+      ['A', 'B', 'C', 'D', 'E', 'F'],
+      ['a'],
+      [
+        ['A', 'aB'],
+        ['A', ''],
+        ['B', 'aC'],
+        ['C', 'aD'],
+        ['C', ''],
+        ['D', 'aE'],
+        ['D', ''],
+        ['E', 'aF'],
+        ['E', ''],
+        ['F', 'aA'],
+      ],
+      'The two loops joined by empty moves are one loop of six in disguise: a length fails only when it is 1 or 5 more than a multiple of six.',
+    ),
+    chomsky: 3,
+    exhaustiveMaxLength: 9,
+  },
   // -------------------------------------------------------------------------
   // Context free languages, pushdown automata
   // -------------------------------------------------------------------------
   {
     id: 'pda-balanced',
-    index: 8,
+    index: 13,
     type: 'PDA',
     title: 'Brackets',
     goal: 'Accept the strings of brackets that are balanced.',
@@ -271,7 +435,7 @@ export const LEVELS: Level[] = [
   },
   {
     id: 'pda-an-bn',
-    index: 9,
+    index: 14,
     type: 'PDA',
     title: 'Matching counts',
     goal: 'Accept a^nb^n: some a s followed by exactly as many b s.',
@@ -296,8 +460,96 @@ export const LEVELS: Level[] = [
     exhaustiveMaxLength: 6,
   },
   {
+    id: 'pda-a-then-bb',
+    index: 15,
+    type: 'PDA',
+    title: 'Twice as many',
+    goal: 'Accept the strings of some a s followed by exactly twice as many b s.',
+    alphabet: ['a', 'b'],
+    stackAlphabet: [STACK_BOTTOM, 'A'],
+    par: 4,
+    tests: ['', 'abb', 'aabbbb', 'a', 'ab', 'abbb', 'aabb', 'b', 'ba', 'abab', 'aab', 'bb'],
+    accepts: (w) => /^a*b*$/.test(w) && count(w, 'b') === 2 * count(w, 'a'),
+    theory:
+      'The stack counts, and nothing says it has to count one for one. Push two marks for every a and the b s spend them one at a time, so the stack empties exactly when the second block is twice the first. A finite automaton cannot do this for the same reason it cannot do aⁿbⁿ.',
+    hint: 'Reading an a should leave two marks behind. One state cannot push twice at once, so send the machine through a second state that pushes the other mark on an empty move.',
+    setBuilder: 'L = { aⁿb²ⁿ : n ≥ 0 }',
+    grammar: g(
+      ['S'],
+      ['a', 'b'],
+      [
+        ['S', 'aSbb'],
+        ['S', ''],
+      ],
+    ),
+    chomsky: 2,
+    exhaustiveMaxLength: 6,
+  },
+  {
+    id: 'pda-two-brackets',
+    index: 16,
+    type: 'PDA',
+    title: 'Two kinds of bracket',
+    goal: 'Accept the strings where round and square brackets are both balanced and properly nested.',
+    alphabet: ['(', ')', '[', ']'],
+    stackAlphabet: [STACK_BOTTOM, 'P', 'Q'],
+    par: 2,
+    tests: ['', '()', '[]', '()[]', '([])', '[()]', '(())', '(]', '[)', '([)]', '(', ')]'],
+    accepts: (w) => {
+      const stack: string[] = [];
+      for (const c of w) {
+        if (c === '(' || c === '[') stack.push(c);
+        else if (stack.pop() !== (c === ')' ? '(' : '[')) return false;
+      }
+      return stack.length === 0;
+    },
+    theory:
+      'Counting is no longer enough: ( [ ) ] has the right number of each and is still wrong. What matters is the order things were opened in, and the stack keeps that order for free, because the only thing it will ever give back is the most recent one.',
+    hint: 'Two marks, one per kind of bracket. An opener pushes its own mark, a closer pops it, and a closer that meets the wrong mark has nowhere to go.',
+    setBuilder: 'L = the properly nested strings over { (, ), [, ] }',
+    grammar: g(
+      ['S'],
+      ['(', ')', '[', ']'],
+      [
+        ['S', '(S)S'],
+        ['S', '[S]S'],
+        ['S', ''],
+      ],
+    ),
+    chomsky: 2,
+    exhaustiveMaxLength: 6,
+  },
+  {
+    id: 'pda-equal-ab',
+    index: 17,
+    type: 'PDA',
+    title: 'Equal counts, any order',
+    goal: 'Accept the strings with equally many a s and b s, in any order.',
+    alphabet: ['a', 'b'],
+    stackAlphabet: [STACK_BOTTOM, 'A', 'B'],
+    par: 2,
+    tests: ['', 'ab', 'ba', 'aabb', 'abab', 'abba', 'baab', 'bbaa', 'a', 'b', 'aab', 'abb'],
+    accepts: (w) => count(w, 'a') === count(w, 'b'),
+    theory:
+      'Here the stack is a counter that has to run in both directions, because the string may go ahead on either letter. Keep marks for whichever letter is currently in surplus: an a either cancels a waiting b or leaves a mark of its own, and the surplus can only ever be of one kind at a time.',
+    hint: 'One state does all the reading. Four rules: a cancels a b mark or pushes an a mark, and b cancels an a mark or pushes a b mark. Leave for the accepting state only by popping the bottom of the stack, which is the same as saying nothing is outstanding.',
+    setBuilder: 'L = { w ∈ {a,b}* : |w|ₐ = |w|_b }',
+    grammar: g(
+      ['S'],
+      ['a', 'b'],
+      [
+        ['S', 'aSbS'],
+        ['S', 'bSaS'],
+        ['S', ''],
+      ],
+      'Every such string splits after its first matching partner, which is what the two symmetric rules say.',
+    ),
+    chomsky: 2,
+    exhaustiveMaxLength: 6,
+  },
+  {
     id: 'pda-palindrome',
-    index: 10,
+    index: 18,
     type: 'PDA',
     title: 'Mirror',
     goal: 'Accept the even-length palindromes over a and b.',
@@ -328,7 +580,7 @@ export const LEVELS: Level[] = [
   // -------------------------------------------------------------------------
   {
     id: 'tm-an-bn',
-    index: 11,
+    index: 19,
     type: 'TM',
     title: 'Cross off',
     goal: 'Accept a^nb^n again, this time on a tape you can rewrite.',
@@ -353,8 +605,38 @@ export const LEVELS: Level[] = [
     exhaustiveMaxLength: 6,
   },
   {
+    id: 'tm-palindrome',
+    index: 20,
+    type: 'TM',
+    title: 'Reads the same backwards',
+    goal: 'Accept the strings that read the same forwards and backwards.',
+    alphabet: ['a', 'b'],
+    tapeAlphabet: ['a', 'b', 'X', BLANK],
+    par: 7,
+    tests: ['', 'a', 'b', 'aa', 'aba', 'abba', 'baab', 'ab', 'ba', 'abb', 'baba', 'aab'],
+    accepts: (w) => w === [...w].reverse().join(''),
+    theory:
+      'A stack could only do the even length half of this by guessing where the middle was. A tape does not have to guess: it can walk to the far end, come back, and walk out again, which is exactly the movement a stack cannot make. The head crossing the string over and over is the whole difference.',
+    hint: 'Cross off the first symbol, remember which one it was in the state, run to the far end and check the last uncrossed symbol matches, cross that off too, then walk back. Finishing on your own crossing off is an odd length string, and it still counts.',
+    setBuilder: 'L = { w ∈ {a,b}* : w = wᴿ }',
+    grammar: g(
+      ['S'],
+      ['a', 'b'],
+      [
+        ['S', 'aSa'],
+        ['S', 'bSb'],
+        ['S', 'a'],
+        ['S', 'b'],
+        ['S', ''],
+      ],
+      'Context free, which is why level 18 could do the even length half of it with a stack.',
+    ),
+    chomsky: 2,
+    exhaustiveMaxLength: 6,
+  },
+  {
     id: 'tm-an-bn-cn',
-    index: 12,
+    index: 21,
     type: 'TM',
     title: 'Beyond context free',
     goal: 'Accept a^nb^nc^n: equal runs of a, b and c in that order.',

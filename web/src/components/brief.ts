@@ -21,6 +21,7 @@
  * the transition function, which is exactly when you wanted it.
  */
 
+import { LEVELS } from '../../../src/engine/levels';
 import { shortestCounterexample } from '../../../src/engine/simulate';
 import type { SuiteResult } from '../../../src/engine/simulate';
 import type { Level, Machine } from '../../../src/engine/types';
@@ -170,7 +171,7 @@ export function createBrief(callbacks: BriefCallbacks): Brief {
 
       setText(
         eyebrow,
-        `Level ${level.index} of 12 · ${CLASS_NAME[level.type] ?? level.type}`,
+        `Level ${level.index} of ${LEVELS.length} · ${CLASS_NAME[level.type] ?? level.type}`,
       );
       setNotation(question, level.goal);
       setNotation(language, level.setBuilder);
