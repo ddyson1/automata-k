@@ -312,32 +312,19 @@
 
 .brief-links {
   display: flex;
-  gap: 6px;
+  gap: 20px;
+  row-gap: 12px;
   flex-wrap: wrap;
-  margin-top: 12px;
+  margin-top: 14px;
 }
 
 .brief-link {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  min-height: 34px;
-  padding: 0 11px 0 10px;
-  font-size: 13px;
-  color: var(--muted);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-control);
-}
-
-.brief-link:hover {
-  color: var(--ink);
-  border-color: var(--rule);
-}
-
-.brief-link.is-next {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-ink);
+  gap: 4px;
+  min-height: 0;
+  padding: 0 0 3px;
+  font-size: 13.5px;
 }
 
 .brief-link[hidden] {
@@ -1048,37 +1035,95 @@
 
 .sheet-actions {
   display: flex;
-  gap: 8px;
+  gap: 22px;
+  row-gap: 14px;
   flex-wrap: wrap;
-  padding-top: 8px;
+  padding-top: 14px;
 }
 
 .action {
-  min-height: var(--tap);
-  padding: 0 16px;
-  border: 1px solid var(--rule);
-  border-radius: var(--r-control);
+  min-height: 0;
+  padding: 0 0 4px;
   font-size: 14px;
 }
 
+/* --------------------------------------------------------------------------
+   buttons
+
+   "Structure comes from rules and space, never from fills or shadows" is the
+   first thing theme.css says, and the buttons were the only part of the app
+   not doing it. A pill with a hairline border, and a black one beside it for
+   the primary, is what every framework ships out of the box — which is
+   precisely why it read as generic here rather than as part of this.
+
+   So in the document a button is its label and a rule beneath it. Grey while
+   it is merely available, ink under the pointer, and a heavier ink rule when
+   it is the thing to do next. The hit area is a transparent pseudo-element
+   rather than padding, so the target stays a full 44px while the mark on the
+   page is only as wide as the words.
+
+   Controls that float over the canvas keep their edges. The state bar and the
+   corner icons sit on a drawing rather than on a page, and there they have to
+   read as objects; type with a line under it would be lost among the arrows.
+   -------------------------------------------------------------------------- */
+
+.brief-link,
+.action {
+  position: relative;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  box-shadow: inset 0 -1px 0 var(--rule);
+  transition:
+    box-shadow 0.12s ease,
+    color 0.12s ease;
+}
+
+/* Gaps above are wide enough that these never overlap each other. */
+.brief-link::after,
+.action::after {
+  content: '';
+  position: absolute;
+  inset: -12px -6px;
+}
+
+.brief-link:hover,
 .action:hover {
-  background: var(--sunken);
+  color: var(--ink);
+  background: none;
+  box-shadow: inset 0 -1px 0 var(--ink);
 }
 
+.brief-link:focus-visible,
+.action:focus-visible {
+  outline: none;
+  color: var(--ink);
+  box-shadow:
+    inset 0 -1px 0 var(--ink),
+    0 0 0 2px var(--accent-tint);
+}
+
+.brief-link.is-next,
 .action.is-primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-ink);
+  color: var(--ink);
+  font-weight: 500;
+  box-shadow: inset 0 -2px 0 var(--ink);
 }
 
+.brief-link.is-next:hover,
 .action.is-primary:hover {
-  opacity: 0.88;
-  background: var(--accent);
+  box-shadow: inset 0 -3px 0 var(--ink);
 }
 
 .action.is-danger {
   color: var(--fail);
-  border-color: color-mix(in srgb, var(--fail) 40%, var(--hairline));
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--fail) 45%, var(--hairline));
+}
+
+.action.is-danger:hover {
+  color: var(--fail);
+  box-shadow: inset 0 -1px 0 var(--fail);
 }
 
 /* rule editor -------------------------------------------------------------- */
@@ -1103,18 +1148,28 @@
   flex-wrap: wrap;
 }
 
+/* The symbol picker is the one place a box is the right answer: these hold
+   notation, they are chosen from rather than pressed, and they are the same
+   object as the chip riding on the arrow. So they are drawn as that chip. */
 .choice {
   min-width: var(--tap);
   min-height: 38px;
   padding: 0 12px;
   border: 1px solid var(--hairline);
-  border-radius: var(--r-control);
+  border-radius: var(--r-chip);
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+.choice:hover {
+  border-color: var(--rule);
 }
 
 .choice.is-on {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-ink);
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+  color: var(--ink);
 }
 
 .rename-input {
