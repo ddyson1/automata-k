@@ -5,11 +5,14 @@
  * plain English and the two lists that define the level, plus four more tabs
  * holding the formal layer; those lists are also the grader, so there is no
  * results band anywhere. The canvas is everything else, with no dock: a state
- * is placed by double clicking, an arrow is drawn by dragging off a rim, and
- * the controls for a state appear attached to that state when it is selected.
+ * is placed by double clicking — tapping twice, where there is no mouse — an
+ * arrow is drawn by dragging off a rim, and the controls for a state appear
+ * attached to that state when it is selected.
  *
- * Four quiet icons in the corner do the things that have no object to attach
- * to: undo, redo, tidy, fit.
+ * Four quiet icons in one corner do the things that have no object to attach
+ * to: undo, redo, tidy, fit. On a phone that corner is the bottom left, in
+ * reach of a thumb, and the brief is a rail across the top rather than a sheet
+ * across the bottom. See the pane rail below, and the narrow block in app.css.
  *
  * The checks run when asked rather than on every keystroke. See runChecks.
  */
@@ -19,7 +22,7 @@ import type { SuiteResult } from '../../../src/engine/simulate';
 import { LEVEL_BY_ID } from '../../../src/engine/levels';
 import type { Level, Machine, StateId, TransitionId } from '../../../src/engine/types';
 import { CANVAS } from '../../../src/engine/types';
-import { h, on, setText } from '../dom';
+import { TOUCH, h, on, setText } from '../dom';
 import { fitIcon, redoIcon, tidyIcon, undoIcon } from '../icons';
 import { game } from '../store';
 import { success, warn } from '../haptics';
@@ -218,7 +221,13 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     'div',
     { class: 'empty-prompt', 'data-testid': 'empty-prompt', hidden: true },
     h('span', { class: 'empty-ring', 'aria-hidden': 'true' }),
-    h('p', { class: 't-body' }, 'Double click here to place your first state'),
+    h(
+      'p',
+      { class: 't-body' },
+      TOUCH
+        ? 'Tap twice here to place your first state'
+        : 'Double click here to place your first state',
+    ),
   );
 
   // -- trace ----------------------------------------------------------------
@@ -292,8 +301,8 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     onTrace: (input) => {
       trace.play(machine(), level, input);
       // You asked a question about the machine, so get out of the machine's
-      // way. On a phone that means the pane drops back to peeking.
-      pane.classList.remove('is-open');
+      // way. On a phone the pane closes back to its rail.
+      togglePane(false);
       render();
     },
     onRun: () => runChecks(),
@@ -332,24 +341,65 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
 
   const paneBody = h('div', { class: 'pane-body' }, brief.body, panels.el);
 
-  const paneGrab = h('button', {
-    class: 'pane-grab',
-    type: 'button',
-    'data-testid': 'pane-grab',
-    'aria-label': 'Show the brief',
-  });
+  const paneGrab = h(
+    'button',
+    {
+      class: 'pane-grab',
+      type: 'button',
+      'data-testid': 'pane-grab',
+      'aria-label': 'Show the brief',
+    },
+    h('span', { class: 'pane-grab-i', 'aria-hidden': 'true' }, '⌄'),
+  );
+
+  /**
+   * Which level this is, what it asks, and how the machine is doing.
+   *
+   * On a wide window this is simply the top of the pane. On a phone it is the
+   * whole of the pane until you open it: a rail across the top carrying the
+   * question, with the canvas taking everything below.
+   *
+   * The sheet it replaces spent 202px of a 664px screen on a verdict line and
+   * five tab labels, and never had room for the question at all. The rail is
+   * 150px and the question is the thing it is mostly made of. During a trace
+   * it collapses to its title line, so the transport is the only panel with
+   * any height to it — 33% of the screen covered where the sheet and the
+   * transport together took 57%.
+   */
+  const paneRail = h(
+    'div',
+    { class: 'pane-rail', 'data-testid': 'pane-rail' },
+    brief.head,
+    brief.statement,
+    brief.mark,
+    paneGrab,
+  );
+
   const pane = h(
     'div',
     { class: 'pane', 'data-testid': 'pane' },
-    paneGrab,
-    brief.head,
+    paneRail,
     tabStrip,
     paneBody,
-    brief.foot,
+    brief.actions,
   );
-  on(paneGrab, 'click', () => {
-    const open = pane.classList.toggle('is-open');
+
+  function togglePane(want?: boolean): void {
+    const open = pane.classList.toggle('is-open', want);
     paneGrab.setAttribute('aria-label', open ? 'Hide the brief' : 'Show the brief');
+    setText(paneGrab.firstElementChild as HTMLElement, open ? '⌃' : '⌄');
+  }
+
+  on(paneGrab, 'click', (event) => {
+    event.stopPropagation();
+    togglePane();
+  });
+
+  // The rail is the button. Anything with its own job inside it — Back, the
+  // chevron — keeps that job; the rest of the rail opens the level.
+  on(paneRail, 'click', (event) => {
+    if ((event.target as HTMLElement).closest('button') !== null) return;
+    togglePane(true);
   });
 
   function setTab(next: PaneTab): void {
@@ -374,7 +424,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
         shownSolution: game.wasShown(levelId),
       });
       panels.show(next);
-      pane.classList.add('is-open');
+      togglePane(true);
     }
     paneBody.scrollTop = 0;
   }
@@ -382,7 +432,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
   /** Something has just landed on the canvas. Go and look at it. */
   function showCanvas(): void {
     setTab('brief');
-    pane.classList.remove('is-open');
+    togglePane(false);
     requestAnimationFrame(() => diagram.fit());
   }
 
@@ -569,8 +619,13 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
         ? ''
         : selectedState !== null
           ? 'Drag the grip to draw an arrow · hold a state to rename it'
-          : 'Double click to place a state · drag from a rim to draw an arrow',
+          : TOUCH
+            ? 'Tap twice to place a state · drag from a rim to connect'
+            : 'Double click to place a state · drag from a rim to draw an arrow',
     );
+
+    // Nothing but the transport belongs over the canvas while a string plays.
+    el.classList.toggle('is-tracing', trace.input !== null);
 
     stale = gradedAs === null || signature(current) !== gradedAs;
 
@@ -620,6 +675,14 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
 
   const offResize = on(window as unknown as EventTarget, 'resize', () => placeStateBar());
 
+  // The stage sits under the rail, and the rail is as tall as the question
+  // makes it — one line on level 1, three on level 41 — so its height is
+  // measured rather than assumed. A constant here was wrong on most levels.
+  const railWatch = new ResizeObserver(() => {
+    el.style.setProperty('--rail', `${Math.round(paneRail.getBoundingClientRect().height)}px`);
+  });
+  railWatch.observe(paneRail);
+
   setTab('brief');
   render();
   // Restore the verdict for whatever was in storage, without the fanfare.
@@ -638,6 +701,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
       unsubscribe();
       offKeys();
       offResize();
+      railWatch.disconnect();
       trace.stop();
       diagram.destroy();
     },

@@ -14,11 +14,13 @@
  * Tapping a string runs it, so the thing you are reading is also the thing you
  * can step through.
  *
- * Three pieces rather than one block, because the pane arranges them around
- * its tabs. The head and the foot are permanent — which level this is, and how
- * the machine is currently doing — and only the middle is a tab. That is worth
- * the extra seam: the verdict used to disappear the moment you went to read
- * the transition function, which is exactly when you wanted it.
+ * Four pieces rather than one block, because the pane arranges them around its
+ * tabs. Which level this is, what it is asking, and how the machine is doing
+ * are permanent; only the two lists are a tab. That is worth the extra seams:
+ * the verdict used to disappear the moment you went to read the transition
+ * function, which is exactly when you wanted it, and on a phone those three
+ * permanent pieces are the whole top rail — the question stays on screen while
+ * you draw, which no amount of sheet ever managed.
  */
 
 import { LEVELS } from '../../../src/engine/levels';
@@ -26,7 +28,7 @@ import { shortestCounterexample } from '../../../src/engine/simulate';
 import type { SuiteResult } from '../../../src/engine/simulate';
 import type { Level, Machine } from '../../../src/engine/types';
 import { EPSILON } from '../../../src/engine/types';
-import { fill, h, on, setText } from '../dom';
+import { TOUCH, fill, h, on, setText } from '../dom';
 import { setNotation } from '../notation';
 
 export interface BriefCallbacks {
@@ -51,12 +53,16 @@ export interface BriefState {
 }
 
 export interface Brief {
-  /** Which level this is. Above the tabs, so it never moves. */
+  /** Which level this is. Above everything, so it never moves. */
   head: HTMLElement;
-  /** The question and the two lists. The first tab. */
+  /** What the level asks, in words and in set-builder. Permanent. */
+  statement: HTMLElement;
+  /** How the machine is doing. Permanent, and the rail's last line on a phone. */
+  mark: HTMLElement;
+  /** The two lists that define the level, and grade it. The first tab. */
   body: HTMLElement;
-  /** How the machine is doing, and what to do next. Below the tabs, always. */
-  foot: HTMLElement;
+  /** Run, and what comes next. Docked over the canvas on a phone. */
+  actions: HTMLElement;
   update(state: BriefState): void;
 }
 
@@ -105,11 +111,16 @@ export function createBrief(callbacks: BriefCallbacks): Brief {
 
   const head = h('div', { class: 'pane-head' }, back, eyebrow);
 
+  const statement = h(
+    'div',
+    { class: 'brief-statement', 'data-testid': 'statement' },
+    question,
+    language,
+  );
+
   const body = h(
     'section',
     { class: 'brief', 'data-testid': 'brief' },
-    question,
-    language,
     h(
       'div',
       { class: 'brief-split' },
@@ -118,12 +129,13 @@ export function createBrief(callbacks: BriefCallbacks): Brief {
     ),
   );
 
-  const foot = h(
-    'footer',
-    { class: 'pane-foot', 'data-testid': 'pane-foot' },
-    score,
-    why,
-    h('div', { class: 'brief-links' }, runLink, nextLink),
+  const mark = h('div', { class: 'pane-mark', 'data-testid': 'pane-foot' }, score, why);
+
+  const actions = h(
+    'div',
+    { class: 'pane-actions', 'data-testid': 'pane-actions' },
+    runLink,
+    nextLink,
   );
 
   /** Rows are rebuilt only when the level changes; the marks update in place. */
@@ -163,8 +175,10 @@ export function createBrief(callbacks: BriefCallbacks): Brief {
 
   return {
     head,
+    statement,
+    mark,
     body,
-    foot,
+    actions,
     update(state) {
       const { level, result } = state;
       buildRows(level);
@@ -191,13 +205,22 @@ export function createBrief(callbacks: BriefCallbacks): Brief {
         setText(entry.mark, !known ? '·' : ok ? '✓' : '✕');
       }
 
-      // The verdict now lives in the foot, so the foot carries the state.
-      foot.classList.toggle('is-solved', known && result.solved);
-      foot.classList.toggle('is-broken', known && Boolean(result.error));
+      // The verdict lives in the mark, so the mark carries the state. Idle
+      // means no run has happened that is still true of this machine — on a
+      // phone the rail drops the line entirely rather than reserve space for
+      // a verdict that does not exist yet.
+      mark.classList.toggle('is-solved', known && result.solved);
+      mark.classList.toggle('is-broken', known && Boolean(result.error));
+      mark.classList.toggle('is-idle', !known);
 
       if (!started) {
         setText(score, 'Nothing drawn yet');
-        setText(why, 'Double click the canvas to place a state.');
+        setText(
+          why,
+          TOUCH
+            ? 'Tap the canvas twice to place a state.'
+            : 'Double click the canvas to place a state.',
+        );
       } else if (state.stale) {
         setText(score, 'Not checked yet');
         setText(

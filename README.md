@@ -282,10 +282,18 @@ Progress is a separate thing and does persist: which levels are solved, the
 smallest state count each was solved with, whether the answer was revealed, the
 theme and the sound.
 
-On a phone the canvas is the screen and the brief is a sheet that peeks, showing
-the verdict, and pulls up for the lists. Anything that turns attention to the
-machine, taking the worked solution or starting a trace, drops it back to
-peeking.
+On a phone the brief is a rail across the top rather than a sheet across the
+bottom. It carries which level this is, what the level asks in words and in
+set-builder, and the verdict once a run has happened — the question stays on
+screen while you draw, which the sheet never had room for. Tapping the rail
+anywhere opens the same five tabs full screen. Run docks bottom right and the
+four tools bottom left, in reach of a thumb, and a trace collapses the rail to
+its title line and takes the bottom outright rather than stacking a second
+panel over the canvas.
+
+Measured on a 390 × 664 viewport, that is 23% of the screen spent on furniture
+while drawing against 30% before, 33% during a trace against 57%, and the
+question visible throughout rather than never.
 
 ## Design
 

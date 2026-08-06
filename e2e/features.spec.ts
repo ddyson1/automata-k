@@ -8,7 +8,7 @@ async function open(page: Page, levelId: string): Promise<void> {
 /** Open a level, put its verified solution on the canvas, and run the checks. */
 async function reveal(page: Page, levelId: string): Promise<void> {
   await open(page, levelId);
-  await page.getByTestId('tab-hint').click();
+  await tab(page, 'hint');
   await page.getByTestId('reveal').click();
   await run(page);
   await expect(page.getByTestId('score')).toContainText('All ');
@@ -20,15 +20,20 @@ async function run(page: Page): Promise<void> {
 }
 
 /**
- * On a phone the brief is a sheet that peeks; the lists are below the fold
- * until it is pulled up. On a wide window it is a column and there is nothing
- * to pull.
+ * Open the pane, if it is not already. On a wide window it is a column and is
+ * always open; on a phone it is a rail across the top that opens full screen.
  */
-async function openBrief(page: Page): Promise<void> {
+async function openPane(page: Page): Promise<void> {
   const grab = page.getByTestId('pane-grab');
   if (!(await grab.isVisible())) return;
   if (await page.getByTestId('pane').evaluate((el) => el.classList.contains('is-open'))) return;
   await grab.click();
+}
+
+/** Show a tab of the pane, opening the pane first where it is a rail. */
+async function tab(page: Page, key: string): Promise<void> {
+  await openPane(page);
+  await page.getByTestId(`tab-${key}`).click();
 }
 
 /** Place a state at a fraction of the canvas, so it lands on any viewport. */
@@ -85,13 +90,13 @@ test('the grip on a selected state draws an arrow, and opens its rule', async ({
   await expect(page.getByTestId('rule-head')).toHaveText('q0 → q1');
   await page.getByTestId('rule-commit').click();
 
-  await page.getByTestId('tab-machine').click();
+  await tab(page, 'machine');
   await expect(page.getByRole('button', { name: /δ\(q0, 0\) = q1/ })).toBeVisible();
 });
 
 test('a rule opens from the ledger, and deleting it is felt immediately', async ({ page }) => {
   await reveal(page, 'dfa-ends-in-1');
-  await page.getByTestId('tab-machine').click();
+  await tab(page, 'machine');
 
   await page.getByRole('button', { name: /δ\(q0, 1\) = q1/ }).click();
   await expect(page.getByTestId('rule-head')).toHaveText('q0 → q1');
@@ -110,7 +115,7 @@ test('a rule opens from the ledger, and deleting it is felt immediately', async 
 test('an unwired pair is red in the ledger and activating it writes the rule', async ({ page }) => {
   await open(page, 'dfa-ends-in-1');
   await place(page, 0.5, 0.4);
-  await page.getByTestId('tab-machine').click();
+  await tab(page, 'machine');
 
   await expect(page.getByRole('button', { name: /δ\(q0, 0\) = undefined/ })).toBeVisible();
   await expect(page.getByTestId('delta-note')).toHaveText(
@@ -157,7 +162,7 @@ test('a machine that is not a DFA is reported rather than simulated', async ({ p
 
 test('a string in the brief plays its own trace, with the stack', async ({ page }) => {
   await reveal(page, 'pda-an-bn');
-  await openBrief(page);
+  await openPane(page);
   await page.locator('[data-input="aabb"]').click();
 
   await expect(page.getByTestId('trace')).toBeVisible();
@@ -165,7 +170,7 @@ test('a string in the brief plays its own trace, with the stack', async ({ page 
   await expect(page.getByTestId('trace-verdict')).toHaveText('accepted');
   await expect(page.locator('.verdict.is-playing')).toHaveCount(1);
 
-  // Starting a trace drops the brief back to peeking, so the transport is free.
+  // Starting a trace closes the pane, so the transport has the screen to itself.
   await expect(page.getByTestId('pane')).not.toHaveClass(/is-open/);
   await expect(page.getByTestId('trace-counter')).toHaveText(/^1\/\d+$/);
   await page.getByTestId('trace-forward').click();
@@ -177,7 +182,7 @@ test('a string in the brief plays its own trace, with the stack', async ({ page 
 
 test('a Turing machine trace shows the tape and the head', async ({ page }) => {
   await reveal(page, 'tm-an-bn');
-  await openBrief(page);
+  await openPane(page);
   await page.locator('[data-input="ab"]').click();
   await expect(page.getByTestId('trace-memory')).toContainText('Tape');
   await expect(page.getByTestId('trace-verdict')).toHaveText('accepted');
@@ -202,19 +207,19 @@ test('the pane carries the theory and the analyses', async ({ page }) => {
   await reveal(page, 'tm-an-bn-cn');
   const overlay = page.getByTestId('panel');
 
-  await page.getByTestId('tab-theory').click();
+  await tab(page, 'theory');
   await expect(overlay.getByText('S → ε | aBC | aSBC')).toBeVisible();
   await expect(overlay.getByText('CB → BC', { exact: true })).toBeVisible();
   await expect(overlay.getByText('Chomsky type 1')).toBeVisible();
   await expect(overlay.getByText(/6 states: q0, q1, q2, q3, q4, qa/)).toBeVisible();
 
-  await page.getByTestId('tab-analysis').click();
+  await tab(page, 'analysis');
   await expect(page.getByTestId('analysis-declined')).toBeVisible();
 });
 
 test('analysis reports minimality, determinisation and a regex', async ({ page }) => {
   await reveal(page, 'dfa-ends-in-1');
-  await page.getByTestId('tab-analysis').click();
+  await tab(page, 'analysis');
 
   const overlay = page.getByTestId('panel');
   await expect(overlay.getByTestId('minimal-verdict')).toContainText('Minimal.');
@@ -285,8 +290,8 @@ test('locked levels stay locked until the one before them is solved', async ({ p
 test('nothing in the formal layer needs a sideways scroll', async ({ page }) => {
   await reveal(page, 'tm-an-bn-cn');
 
-  for (const tab of ['brief', 'machine', 'theory', 'analysis', 'hint']) {
-    await page.getByTestId(`tab-${tab}`).click();
+  for (const key of ['brief', 'machine', 'theory', 'analysis', 'hint']) {
+    await tab(page, key);
     // The pane's scroll box, which is the container in every tab including
     // the brief; the panel itself is hidden while the brief is showing.
     const over = await page.locator('.pane-body').evaluate((body) => {
@@ -297,7 +302,7 @@ test('nothing in the formal layer needs a sideways scroll', async ({ page }) => 
         .filter((n) => Math.round(n.getBoundingClientRect().width) > limit + 1)
         .map((n) => `${n.tagName.toLowerCase()}.${n.className}`);
     });
-    expect(over, `${tab} tab`).toEqual([]);
+    expect(over, `${key} tab`).toEqual([]);
   }
 });
 
@@ -308,7 +313,7 @@ test('nothing in the formal layer needs a sideways scroll', async ({ page }) => 
  */
 test('the analysis sub tabs say which of them apply to this machine', async ({ page }) => {
   await reveal(page, 'pda-an-bn');
-  await page.getByTestId('tab-analysis').click();
+  await tab(page, 'analysis');
 
   const tabs = page.getByTestId('panel').locator('.tabs .tab');
   await expect(tabs).toHaveCount(3);
@@ -317,7 +322,7 @@ test('the analysis sub tabs say which of them apply to this machine', async ({ p
 
   // On an NFA, minimisation is the only one that does not apply.
   await reveal(page, 'nfa-third-last-1');
-  await page.getByTestId('tab-analysis').click();
+  await tab(page, 'analysis');
   await expect(page.getByTestId('analysis-none')).toBeHidden();
   await expect(page.getByTestId('tab-minimal')).toHaveClass(/is-off/);
   await expect(page.getByTestId('tab-subset')).not.toHaveClass(/is-off/);
@@ -334,21 +339,22 @@ test('the analysis sub tabs say which of them apply to this machine', async ({ p
 /**
  * The formal layer used to be a sheet over the brief, so going to read the
  * transition function took the verdict off screen — exactly when you wanted
- * it. As tabs of the pane it cannot: the level line is above them and the
- * verdict is below them, on every tab.
+ * it. As tabs of the pane it cannot: the whole rail — which level, what it
+ * asks, and how it is going — sits above them on every tab.
  */
 test('the level line and the verdict survive every tab', async ({ page }) => {
   await reveal(page, 'dfa-ends-in-1');
 
-  for (const tab of ['brief', 'machine', 'theory', 'analysis', 'hint']) {
-    await page.getByTestId(`tab-${tab}`).click();
-    await expect(page.getByTestId('back'), tab).toBeVisible();
-    await expect(page.getByTestId('score'), tab).toHaveText('All 12 agree');
-    await expect(page.getByTestId(`tab-${tab}`), tab).toHaveClass(/is-on/);
+  for (const key of ['brief', 'machine', 'theory', 'analysis', 'hint']) {
+    await tab(page, key);
+    await expect(page.getByTestId('back'), key).toBeVisible();
+    await expect(page.getByTestId('goal'), key).toBeVisible();
+    await expect(page.getByTestId('score'), key).toHaveText('All 12 agree');
+    await expect(page.getByTestId(`tab-${key}`), key).toHaveClass(/is-on/);
   }
 
   // Only one thing is showing at a time.
-  await page.getByTestId('tab-brief').click();
+  await tab(page, 'brief');
   await expect(page.getByTestId('brief')).toBeVisible();
   await expect(page.getByTestId('panel')).toBeHidden();
 
@@ -471,7 +477,7 @@ test('a level can be emptied without touching the other levels', async ({ page }
   await expect(row('dfa-even-zeros')).toContainText('1 state drawn');
 
   await open(page, 'dfa-ends-in-1');
-  await page.getByTestId('tab-hint').click();
+  await tab(page, 'hint');
   await page.getByTestId('clear').click();
   await expect(page.locator('.state')).toHaveCount(0);
   await expect(page.getByTestId('empty-prompt')).toBeVisible();
@@ -481,7 +487,7 @@ test('a level can be emptied without touching the other levels', async ({ page }
   await expect(page.locator('.state')).toHaveCount(before);
 
   // Clear it again, and the level next door still has its state.
-  await page.getByTestId('tab-hint').click();
+  await tab(page, 'hint');
   await page.getByTestId('clear').click();
   await open(page, 'dfa-even-zeros');
   await expect(page.locator('.state')).toHaveCount(1);
@@ -530,7 +536,7 @@ test('every level opens on a blank canvas, however much was drawn before', async
 /** Nothing drawn, nothing to take off: the offer only exists when it applies. */
 test('the clear action is absent on an untouched canvas', async ({ page }) => {
   await open(page, 'dfa-ends-in-1');
-  await page.getByTestId('tab-hint').click();
+  await tab(page, 'hint');
   await expect(page.getByTestId('reveal')).toBeVisible();
   await expect(page.getByTestId('clear')).toHaveCount(0);
 
@@ -538,6 +544,6 @@ test('the clear action is absent on an untouched canvas', async ({ page }) => {
   // a phone — where the pane is a sheet over it — as well as on a desktop.
   await page.reload();
   await place(page, 0.35, 0.32);
-  await page.getByTestId('tab-hint').click();
+  await tab(page, 'hint');
   await expect(page.getByTestId('clear')).toBeVisible();
 });

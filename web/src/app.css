@@ -158,10 +158,6 @@
   border-right: 1px solid var(--hairline);
 }
 
-.pane-grab {
-  display: none;
-}
-
 .pane-head {
   display: flex;
   align-items: center;
@@ -275,7 +271,6 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
-  padding-top: 18px;
 }
 
 .brief-split .t-label {
@@ -331,10 +326,32 @@
   box-shadow: inset 0 0 0 1px var(--rule);
 }
 
-/* the foot, which belongs to the pane rather than to the brief ------------ */
+/* the rail: which level, what it asks, how it is going -------------------- */
 
-.pane-foot {
+.pane-rail {
   flex: none;
+  position: relative;
+}
+
+.pane-grab {
+  display: none;
+}
+
+.brief-statement {
+  padding: 0 var(--pane-x) 0 calc(var(--pane-x) + var(--safe-left));
+}
+
+.pane-mark {
+  flex: none;
+  padding: 10px var(--pane-x) 14px calc(var(--pane-x) + var(--safe-left));
+}
+
+.pane-actions {
+  flex: none;
+  display: flex;
+  gap: 20px;
+  row-gap: 12px;
+  flex-wrap: wrap;
   padding: 14px var(--pane-x) calc(16px + var(--safe-bottom))
     calc(var(--pane-x) + var(--safe-left));
   border-top: 1px solid var(--hairline);
@@ -347,11 +364,11 @@
   color: var(--muted);
 }
 
-.pane-foot.is-solved .brief-score {
+.pane-mark.is-solved .brief-score {
   color: var(--pass);
 }
 
-.pane-foot.is-broken .brief-score {
+.pane-mark.is-broken .brief-score {
   color: var(--fail);
 }
 
@@ -361,16 +378,8 @@
   min-height: 1.4em;
 }
 
-.pane-foot.is-broken .brief-why {
+.pane-mark.is-broken .brief-why {
   color: var(--fail);
-}
-
-.brief-links {
-  display: flex;
-  gap: 20px;
-  row-gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 14px;
 }
 
 .brief-link {
@@ -1416,7 +1425,23 @@ table.subset-table tr.is-start td:first-child::after {
 }
 
 /* --------------------------------------------------------------------------
-   narrow: the canvas is the screen, the brief is a sheet
+   narrow: the canvas is the screen, and the brief is a rail across the top
+
+   This used to be a sheet at the bottom that peeked. The peek was asked to be
+   three things at once — a verdict, a way into five tabs, and not in the way —
+   and it half-did each: 202px of a 664px screen while you were only drawing,
+   212px of machine left when you opened it, and 57% of the screen covered
+   during a trace, because the transport docked on top of it.
+
+   The rail is the top of the pane, so there is no second component and nothing
+   to keep in sync. Closed it carries which level this is, what the level asks
+   in words and in set-builder, and the verdict once there is one. Open, the
+   same rail stays put and the tabs come down under it.
+
+   Everything that acts on the machine moves into the thumb's arc at the bottom
+   of the screen, where the reading material used to be: the four tools bottom
+   left, Run bottom right. Both are fixed to the viewport rather than parented
+   to the canvas, so opening the pane does not disturb them.
    -------------------------------------------------------------------------- */
 
 @media (max-width: 899px) {
@@ -1427,90 +1452,209 @@ table.subset-table tr.is-start td:first-child::after {
 
   .stage {
     grid-area: 1 / 1;
+    /* Under the rail. Set from the rail's real height at runtime, because the
+       question is one line on some levels and three on others. */
+    padding-top: var(--rail, 112px);
   }
 
   .pane {
     position: fixed;
+    top: 0;
     left: 0;
     right: 0;
-    bottom: 0;
+    bottom: auto;
     z-index: 8;
-    height: 68dvh;
+    max-height: 100dvh;
     border-right: 0;
-    border-top: 1px solid var(--rule);
-    border-radius: var(--r-sheet) var(--r-sheet) 0 0;
-    box-shadow: 0 -8px 30px -14px rgb(0 0 0 / 28%);
-    /* Peeking: which level, how it is going, and the tabs. */
-    transform: translateY(calc(100% - 202px));
-    transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .pane-rail {
+    cursor: pointer;
+    padding-bottom: 2px;
+  }
+
+  .pane-rail:hover {
+    background: var(--sunken);
+  }
+
+  .pane-head {
+    padding-top: calc(10px + var(--safe-top));
+    padding-bottom: 6px;
+  }
+
+  .brief-q {
+    font-size: 19px;
+  }
+
+  /* The verdict is a tinted line at the foot of the rail, and only once a run
+     has happened: grading is on a press, so before the press there is nothing
+     true to say. */
+  /* One line, not two: the count and the shortest disagreement are read
+     together, and stacking them cost the machine 30px of screen. */
+  .pane-mark {
+    display: flex;
+    align-items: baseline;
+    gap: 4px 9px;
+    flex-wrap: wrap;
+    margin-top: 9px;
+    padding: 7px var(--pane-x) 8px calc(var(--pane-x) + var(--safe-left));
+    border-top: 1px solid var(--hairline);
+    background: var(--sunken);
+  }
+
+  .pane-mark .brief-score {
+    font-size: 13.5px;
+  }
+
+  .pane-mark .brief-why {
+    margin: 0;
+    min-height: 0;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+
+  /* No run has happened that is still true of this machine, so there is no
+     verdict — and a rail that reserves room for one is a rail that lies. */
+  .pane-mark.is-idle {
+    display: none;
+  }
+
+  .pane.is-open .pane-mark.is-idle {
+    display: block;
+  }
+
+  .brief-statement {
+    padding-bottom: 11px;
+  }
+
+  .pane-grab {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    top: calc(8px + var(--safe-top));
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1;
+  }
+
+  .pane-grab:hover {
+    background: var(--accent-tint);
+    color: var(--ink);
+  }
+
+  /* Closed, the pane is only its rail. */
+  .pane-tabs,
+  .pane-body {
+    display: none;
   }
 
   .pane.is-open {
-    transform: none;
+    bottom: 0;
+    max-height: none;
   }
 
-  .pane-grab {
+  .pane.is-open .pane-tabs {
+    display: flex;
+  }
+
+  .pane.is-open .pane-body {
     display: block;
-    width: 100%;
-    padding: 9px 0 3px;
-    flex: none;
   }
 
-  .pane-grab::before {
-    content: '';
-    display: block;
-    width: 36px;
-    height: 4px;
-    margin: 0 auto;
-    border-radius: 999px;
-    background: var(--rule);
+  .pane.is-open .pane-rail {
+    cursor: default;
   }
 
-  .pane-head {
-    padding-top: 2px;
-    padding-bottom: 8px;
+  .pane.is-open .pane-rail:hover {
+    background: none;
   }
 
-  /* The verdict moves above the tabs, so the peek is worth having: which
-     level, how the machine is doing, and a way into all five tabs, without
-     opening anything. */
-  .pane-grab {
-    order: 0;
-  }
-  .pane-head {
-    order: 1;
-  }
-  .pane-foot {
-    order: 2;
+  /* Run is the one docked action, in reach of the thumb. It stays over the
+     canvas while the pane is closed and sits at the foot of it when open. */
+  .pane-actions {
+    position: fixed;
+    right: calc(14px + var(--safe-right));
+    bottom: calc(14px + var(--safe-bottom));
+    z-index: 9;
+    padding: 0;
     border-top: 0;
-    border-bottom: 1px solid var(--hairline);
-    padding-top: 0;
-    padding-bottom: 12px;
-  }
-  .pane-tabs {
-    order: 3;
-  }
-  .pane-body {
-    order: 4;
-    padding-top: 14px;
+    gap: 8px;
+    justify-content: flex-end;
+    /* Never wide enough to reach the tools. On the one screen with two actions
+       — solved, with a next level — the pair stacks upward instead. */
+    max-width: calc(100vw - 200px);
   }
 
-  .brief-split {
-    padding-top: 12px;
+  /* Open, they stop floating and become the foot of the pane, where they are
+     not sitting on top of the list you came in to read. */
+  .pane.is-open .pane-actions {
+    position: static;
+    max-width: none;
+    padding: 12px var(--pane-x) calc(14px + var(--safe-bottom))
+      calc(var(--pane-x) + var(--safe-left));
+    border-top: 1px solid var(--hairline);
+    background: var(--surface);
   }
 
-  .stage {
-    padding-bottom: 202px;
+  .pane-actions .brief-link {
+    min-height: var(--tap);
+    padding: 0 18px;
+    border-radius: 999px;
+    border: 1px solid var(--hairline);
+    background: var(--surface);
+    box-shadow: none;
+    font-size: 14px;
+  }
+
+  .pane-actions .brief-link.is-next {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--accent-ink);
+    box-shadow: none;
+  }
+
+  /* Out of the far top corner, into the other thumb. */
+  .corner {
+    top: auto;
+    right: auto;
+    bottom: calc(14px + var(--safe-bottom));
+    left: calc(12px + var(--safe-left));
+    z-index: 6;
+    border-radius: 999px;
+    border: 1px solid var(--hairline);
+    background: var(--surface);
+    padding: 2px 4px;
   }
 
   .canvas-hint {
-    bottom: calc(212px + var(--safe-bottom));
+    bottom: calc(72px + var(--safe-bottom));
   }
 
   .empty-prompt {
-    bottom: 202px;
+    bottom: 64px;
   }
 
+  /* A trace takes the bottom outright: you are stepping, not editing, so the
+     tools and Run stand down rather than stack over it the way they would
+     have on the old sheet. */
+  .level.is-tracing .corner,
+  .level.is-tracing .canvas-hint,
+  .level.is-tracing .pane-actions {
+    display: none;
+  }
+
+  /* And the rail collapses to its title line. While a string is playing, the
+     thing being read is the tape and the state, not the question — leaving the
+     question up costs 148px that the trace itself has better uses for. */
+  .level.is-tracing .pane:not(.is-open) .brief-statement,
+  .level.is-tracing .pane:not(.is-open) .pane-mark {
+    display: none;
+  }
 }
 
 @media (max-width: 460px) {

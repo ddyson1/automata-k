@@ -97,3 +97,13 @@ export function on(
   node.addEventListener(type, handler, options);
   return () => node.removeEventListener(type, handler, options);
 }
+
+/**
+ * A device with no hover and no mouse.
+ *
+ * It changes what the canvas is allowed to tell you to do: "double click"
+ * names a mouse, and the drag grips it points at are revealed on hover, which
+ * a touch screen does not have.
+ */
+export const TOUCH =
+  typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
