@@ -45,13 +45,19 @@ test('open level 1, take the solution, the marks in the brief turn', async ({ pa
   await expect(page.getByTestId('why')).toHaveText('2 states, par 2.');
 });
 
-test('progress survives a reload', async ({ page }) => {
+/**
+ * Progress persists; the canvas does not. Solving a level is a fact about the
+ * player and is kept. The machine that got them there is working memory, and
+ * finding it waiting on a fresh visit reads as a puzzle that came half solved.
+ */
+test('progress survives a reload and the canvas does not', async ({ page }) => {
   await openLevelOne(page);
   await reveal(page);
 
   await page.reload();
-  await expect(page.getByRole('button', { name: /^State q1/ })).toBeVisible();
-  await expect(page.getByTestId('score')).toHaveText('All 12 agree');
+  await expect(page.locator('.state')).toHaveCount(0);
+  await expect(page.getByTestId('empty-prompt')).toBeVisible();
+  await expect(page.getByTestId('score')).toHaveText('Nothing drawn yet');
 
   await page.getByTestId('back').click();
   await expect(page.getByTestId('solved-count')).toHaveText(/^1\/\d+$/);

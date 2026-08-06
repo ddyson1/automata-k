@@ -270,10 +270,17 @@ empty canvas says what to do in the middle of itself.
 Four quiet icons in one corner do the things with nothing to attach to: undo,
 redo, tidy, fit.
 
-A level keeps whatever you drew on it, per level, for as long as the browser
-keeps anything, so the level list says which unsolved levels have work saved on
-them and Stuck offers to take it all off again. Clearing is an edit like any
+Every level opens on a blank canvas. What you draw lives for the session, so
+moving between levels keeps it and a reload does not: arriving at a level and
+finding a machine from a sitting you no longer remember is indistinguishable
+from one the game put there, and a puzzle that appears half solved by nobody is
+worse than one you have to start. Within a session the level list says which
+levels have work on them, and Stuck takes it all off again — an edit like any
 other, so undo puts the machine back.
+
+Progress is a separate thing and does persist: which levels are solved, the
+smallest state count each was solved with, whether the answer was revealed, the
+theme and the sound.
 
 On a phone the canvas is the screen and the brief is a sheet that peeks, showing
 the verdict, and pulls up for the lists. Anything that turns attention to the

@@ -224,18 +224,15 @@ export function buildHint(into: HTMLElement, options: HintOptions): void {
       ),
       h('div', { class: 'sheet-actions' }, reveal),
     ),
-    // A level keeps whatever you drew on it for as long as the browser keeps
-    // anything, which is right until you want it gone. Without this the only
-    // way back to a blank canvas was Reset progress, which empties all of them
-    // to escape one.
+    // Every level opens blank, so this is for getting back to blank without
+    // reloading and losing the other levels you have open work on.
     drawn
       ? block(
           'Start again',
           h(
             'p',
             { class: 't-small muted' },
-            'This level remembers what you drew on it. Clearing empties this one and leaves ' +
-              'every other level alone. Undo puts it back, until you reload.',
+            'Empties this level and leaves every other one alone. Undo puts it back.',
           ),
           h('div', { class: 'sheet-actions' }, clear),
         )

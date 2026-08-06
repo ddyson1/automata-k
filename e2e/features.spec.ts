@@ -448,10 +448,10 @@ test('tidy spreads the states out instead of piling them up', async ({ page }) =
 });
 
 /**
- * A level keeps what you drew on it, so coming back to one you abandoned means
- * meeting your own half finished machine. That is the point — but until now the
- * only way back to a blank canvas was Reset progress, which empties all forty
- * two levels to escape one.
+ * Within a session a level holds what you drew on it while you go and look at
+ * another, which is one train of thought. Clearing takes one level off without
+ * touching the rest, so getting back to blank costs neither a reload nor the
+ * work in progress next door.
  */
 test('a level can be emptied without touching the other levels', async ({ page }) => {
   await reveal(page, 'dfa-ends-in-1');
@@ -465,8 +465,7 @@ test('a level can be emptied without touching the other levels', async ({ page }
   await place(page, 0.35, 0.32);
   await expect(page.locator('.state')).toHaveCount(1);
 
-  // And the home screen says which levels have work saved on them, so meeting
-  // your own half finished machine is not a surprise.
+  // Within the session the list says which levels have work on them.
   const row = (id: string) => page.locator(`[data-testid="level-row"][data-level="${id}"]`);
   await page.getByTestId('back').click();
   await expect(row('dfa-even-zeros')).toContainText('1 state drawn');
@@ -481,22 +480,51 @@ test('a level can be emptied without touching the other levels', async ({ page }
   await page.getByTestId('undo').click();
   await expect(page.locator('.state')).toHaveCount(before);
 
-  // Clear it for good and reload. The empty canvas is what got saved, not a
-  // repaint — and the undo stack does not survive a reload, which is exactly
-  // the limit the copy on the button states.
+  // Clear it again, and the level next door still has its state.
   await page.getByTestId('tab-hint').click();
   await page.getByTestId('clear').click();
-  await page.reload();
-  await expect(page.locator('.state')).toHaveCount(0);
-  await expect(page.getByTestId('undo')).toBeDisabled();
-
-  // The other level is untouched.
   await open(page, 'dfa-even-zeros');
   await expect(page.locator('.state')).toHaveCount(1);
 
   // And the cleared one reads like a level nobody has drawn on again.
   await page.getByTestId('back').click();
   await expect(row('dfa-ends-in-1')).not.toContainText('drawn');
+});
+
+/**
+ * The complaint this comes from: opening level one and finding states on it.
+ * They were the player's own, from a sitting they no longer remembered, which
+ * on arrival is indistinguishable from a starting position the game put there.
+ * Nothing is carried across a load now — not the machine, not the undo stack,
+ * and not on any level.
+ */
+test('every level opens on a blank canvas, however much was drawn before', async ({ page }) => {
+  await reveal(page, 'dfa-ends-in-1');
+  expect(await page.locator('.state').count()).toBeGreaterThan(0);
+
+  await open(page, 'dfa-even-zeros');
+  await place(page, 0.35, 0.32);
+  await place(page, 0.65, 0.32);
+  await expect(page.locator('.state')).toHaveCount(2);
+
+  await page.reload();
+  await expect(page.locator('.state')).toHaveCount(0);
+  await expect(page.getByTestId('empty-prompt')).toBeVisible();
+  await expect(page.getByTestId('undo')).toBeDisabled();
+
+  await open(page, 'dfa-ends-in-1');
+  await expect(page.locator('.state')).toHaveCount(0);
+  await expect(page.getByTestId('score')).toHaveText('Nothing drawn yet');
+
+  // Solving level one is a fact about the player and is kept; the machine that
+  // got them there is not. Nothing on the list claims drawn work either.
+  await page.getByTestId('back').click();
+  await expect(page.getByTestId('solved-count')).toHaveText(/^1\/\d+$/);
+  await expect(page.getByTestId('level-row').filter({ hasText: 'drawn' })).toHaveCount(0);
+
+  // And no draft is left behind in storage for a later build to find.
+  const keys = await page.evaluate(() => Object.keys(localStorage).sort());
+  expect(keys).not.toContain('automata-k.drafts.v1');
 });
 
 /** Nothing drawn, nothing to take off: the offer only exists when it applies. */
