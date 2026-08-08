@@ -13,7 +13,7 @@ swift test
 The TypeScript engine is the proven one. Sections 9.1 and 9.2 check every
 level's verified solution against its `accepts` predicate over every string up
 to the level's depth, and derive every grammar by breadth-first search over
-sentential forms. That is 31,887 strings and 12 grammars, with zero mismatches.
+sentential forms. That is 130,100 strings and 42 grammars, with zero mismatches.
 
 Rather than port the predicate, which would be a second thing that can drift,
 `scripts/golden.ts` freezes the result into `Tests/AutomataEngineTests/Fixtures/golden.json`:
@@ -24,7 +24,7 @@ Rather than port the predicate, which would be a second thing that can drift,
 
 `GoldenTests` then runs the Swift simulators over the same enumeration and
 compares to the same bits. A green `swift test` means the Swift port agrees
-with the proven TypeScript engine on all 31,887 strings, not that it agrees
+with the proven TypeScript engine on all 130,100 strings, not that it agrees
 with a second hand-written description of the same thing.
 
 `GrammarTests` does the same for section 9.2, deriving each grammar in Swift
@@ -74,8 +74,27 @@ Identical to the TypeScript engine, because the fixture would catch it if not.
 
 ## Status
 
-Written but not yet executed. The environment this was authored in has no
-Swift toolchain and no network route to one, so nothing here has been compiled.
-The fixture and the shape check are the mitigation: `node scripts/check-swift-shape.mjs`
-confirms the JSON matches the `Codable` declarations, and `swift test` on a Mac
-is the real proof. Expect to fix compile errors on the first run.
+Written but not yet executed. The environment this was authored in has no Swift
+toolchain and no network route to one, so nothing here has been compiled.
+`swift test` on a Mac is the only real proof, and the first run should be
+expected to turn up compile errors.
+
+What has been checked without a compiler, and holds as of 42 levels:
+
+- `node scripts/check-swift-shape.mjs` — the fixture's keys match the `Codable`
+  declarations. 42 levels, 130,100 strings, 503 tests.
+- Every constant matches `src/engine/types.ts` exactly: epsilon, blank, the
+  stack bottom, the canvas, and all four caps.
+- The bitmap packs and unpacks the same way at both ends — `1 << (i & 7)`,
+  little end first, in `scripts/golden.ts` and in `Golden.swift`.
+- Nothing references a symbol that is not declared: `LevelShape` is in
+  Validate.swift and `Simulator.enumerateStrings` is in Simulate.swift.
+
+## What is not here
+
+This is the engine and nothing else. There is no Xcode project, no app target
+and no SwiftUI: `Package.swift` builds a library. Of the TypeScript engine,
+`levels` and `solutions` arrive as fixture data rather than code, but `formal`,
+`minimize`, `regex` and `layout` are not ported, and those are what Theory,
+Analysis and Tidy are made of. The interface itself — canvas, diagram, rail,
+panels, trace — is about 6,400 lines of TypeScript and CSS, none of it here.
