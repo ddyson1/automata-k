@@ -27,6 +27,16 @@ public struct GoldenLevel: Codable, Sendable, LevelShape {
     public var index: Int
     public var type: String
     public var title: String
+    /// The question, in the words the rail and the brief show.
+    public var goal: String
+    /// The same language, in set-builder notation.
+    public var setBuilder: String
+    /// A nudge, shown under Stuck.
+    public var hint: String
+    /// Why this language needs this class of machine.
+    public var theory: String
+    /// Where the language sits in the hierarchy: 3 regular down to 0.
+    public var chomsky: Int
     public var alphabet: [String]
     public var stackAlphabet: [String]?
     public var tapeAlphabet: [String]?

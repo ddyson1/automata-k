@@ -12,6 +12,11 @@
       "index": 1,
       "type": "DFA",
       "title": "Last symbol",
+      "goal": "Accept exactly the strings that end with 1.",
+      "setBuilder": "L = { w ∈ {0,1}* : w ends with 1 }",
+      "hint": "Two states. One means the last symbol was 1, the other means it was not. Every symbol read moves you to the state that describes it.",
+      "theory": "A finite automaton has no memory beyond the state it is in. Here one bit is enough: was the symbol I just read a 1.",
+      "chomsky": 3,
       "alphabet": [
         "0",
         "1"
@@ -125,6 +130,11 @@
       "index": 2,
       "type": "DFA",
       "title": "Parity",
+      "goal": "Accept the strings containing an even number of 0s.",
+      "setBuilder": "L = { w ∈ {0,1}* : |w|₀ is even }",
+      "hint": "The empty string has zero 0s, and zero is even, so the start state accepts. Reading 0 flips you between the two states, reading 1 leaves you where you are.",
+      "theory": "A state can stand for a fact about everything read so far. Two states track a parity bit, and the machine never needs to know the actual count.",
+      "chomsky": 3,
       "alphabet": [
         "0",
         "1"
@@ -247,6 +257,11 @@
       "index": 3,
       "type": "DFA",
       "title": "Counting in threes",
+      "goal": "Accept the strings whose length is a multiple of three.",
+      "setBuilder": "L = { w ∈ {a,b}* : |w| ≡ 0 mod 3 }",
+      "hint": "Three states in a ring. Every symbol steps one place round it, whichever symbol it is. Accept where you started.",
+      "theory": "Nothing about the symbols matters, only how many there have been, and only that count modulo three. A machine that counted properly would need a state per length and there is no end to those, so it counts the remainder instead and goes round.",
+      "chomsky": 3,
       "alphabet": [
         "a",
         "b"
@@ -396,6 +411,11 @@
       "index": 4,
       "type": "DFA",
       "title": "Substring",
+      "goal": "Accept the strings that contain 01 somewhere inside them.",
+      "setBuilder": "L = { w ∈ {0,1}* : w = x01y for some x, y ∈ {0,1}* }",
+      "hint": "Three states: nothing useful seen, a 0 seen and waiting for a 1, and found. The found state loops back to itself on both symbols.",
+      "theory": "Searching for a fixed pattern needs one state per amount of the pattern matched so far. Once the pattern is found the machine can never unfind it, so that state absorbs everything.",
+      "chomsky": 3,
       "alphabet": [
         "0",
         "1"
@@ -540,6 +560,11 @@
       "index": 5,
       "type": "DFA",
       "title": "Two zeros to finish",
+      "goal": "Accept the strings that end with 00.",
+      "setBuilder": "L = { w ∈ {0,1}* : w ends with 00 }",
+      "hint": "Three states: no run of zeros, one zero, two or more. A 1 sends every one of them back to the first.",
+      "theory": "A machine cannot look back at what it has read, so it carries the answer forward: how much of the ending it is currently sitting on. Reading a 1 throws that progress away, and reading a 0 adds to it, up to the two that are needed.",
+      "chomsky": 3,
       "alphabet": [
         "0",
         "1"
@@ -689,6 +714,11 @@
       "index": 6,
       "type": "DFA",
       "title": "Forbidden pair",
+      "goal": "Accept the strings with no two 1s next to each other.",
+      "setBuilder": "L = { w ∈ {0,1}* : 11 is not a substring of w }",
+      "hint": "Three states. Two of them accept, one for \"the last symbol was 0 or there was none\" and one for \"the last symbol was 1\". A 1 read in the second one sends you to a dead state that never lets go.",
+      "theory": "Forbidding a pattern needs a state that cannot be escaped: the dead state. Wiring it explicitly is what makes δ total.",
+      "chomsky": 3,
       "alphabet": [
         "0",
         "1"
@@ -830,6 +860,11 @@
       "index": 7,
       "type": "DFA",
       "title": "At least two",
+      "goal": "Accept the strings containing at least two 1s.",
+      "setBuilder": "L = { w ∈ {0,1}* : |w|₁ ≥ 2 }",
+      "hint": "Three states: none seen, one seen, two or more. The last one loops on both symbols and never lets go.",
+      "theory": "Counting to a threshold needs one state per amount counted so far and one more for \"enough\", and no more than that: past two, the machine stops caring how many there are. That last state absorbs everything, which is what makes the language regular however large the threshold.",
+      "chomsky": 3,
       "alphabet": [
         "0",
         "1"
@@ -979,6 +1014,11 @@
       "index": 8,
       "type": "DFA",
       "title": "Divisible by three",
+      "goal": "Accept the strings that read, as a binary number, as a multiple of three.",
+      "setBuilder": "L = { w ∈ {0,1}* : the binary number w is divisible by 3 }",
+      "hint": "Three states, one for each remainder: 0, 1, 2. From remainder r, reading bit b lands on (2r + b) mod 3. Accept remainder 0, which is also where the empty string leaves you.",
+      "theory": "One state per remainder. Reading a bit doubles the number so far and adds the bit, and the new remainder depends only on the old remainder and the bit, never on the number itself. Three facts are enough, so three states are enough, however long the string gets.",
+      "chomsky": 3,
       "alphabet": [
         "0",
         "1"
@@ -1128,6 +1168,11 @@
       "index": 9,
       "type": "DFA",
       "title": "Never twice in a row",
+      "goal": "Accept the strings that never repeat a symbol twice in a row.",
+      "setBuilder": "L = { w ∈ {a,b}* : no two adjacent symbols of w are equal }",
+      "hint": "One state for \"last was a\" and one for \"last was b\", both accepting. A repeat leads to a state with no way out, which is what a rejection looks like in a machine that must always have somewhere to go.",
+      "theory": "The only thing worth remembering is the symbol just read, so there is one state per symbol, plus the state before anything has been read. A repeat has nowhere to go, and the fourth state is where nowhere is.",
+      "chomsky": 3,
       "alphabet": [
         "a",
         "b"
@@ -1297,6 +1342,11 @@
       "index": 10,
       "type": "DFA",
       "title": "Exactly two",
+      "goal": "Accept the strings containing exactly two 0s.",
+      "setBuilder": "L = { w ∈ {0,1}* : |w|₀ = 2 }",
+      "hint": "Four states: none, one, two, and too many. Only the third accepts, and the fourth never lets go.",
+      "theory": "Exactly is at least and at most at once, and at most is the part that costs a state: the machine has to be able to notice a third 0 and refuse. Compare the level before, where past two nothing could go wrong and three states were enough.",
+      "chomsky": 3,
       "alphabet": [
         "0",
         "1"
@@ -1460,6 +1510,11 @@
       "index": 11,
       "type": "DFA",
       "title": "How it begins",
+      "goal": "Accept the strings that begin with ab.",
+      "setBuilder": "L = { w ∈ {a,b}* : w begins with ab }",
+      "hint": "Two states to read the ab, one accepting state that loops on everything, and one dead state for every other opening.",
+      "theory": "The mirror of the ending levels, and much easier: a beginning is decided before the machine has read anything else, so the answer is settled after two symbols and the rest of the string cannot change it. Both accepting and rejecting become absorbing.",
+      "chomsky": 3,
       "alphabet": [
         "a",
         "b"
@@ -1619,6 +1674,11 @@
       "index": 12,
       "type": "DFA",
       "title": "Both even",
+      "goal": "Accept the strings with an even number of 0s and an even number of 1s.",
+      "setBuilder": "L = { w ∈ {0,1}* : |w|₀ is even and |w|₁ is even }",
+      "hint": "Four states, one for each pair of parities. Reading 0 flips the first, reading 1 flips the second. Accept the one where both are even, which is where you start.",
+      "theory": "Two independent facts, each with two possible values, so four states: the product of a two state machine with another two state machine. Every symbol flips exactly one of the two parities, which is why no state ever needs to be added.",
+      "chomsky": 3,
       "alphabet": [
         "0",
         "1"
@@ -1795,6 +1855,11 @@
       "index": 13,
       "type": "DFA",
       "title": "Third from the left",
+      "goal": "Accept the strings at least three long whose third symbol is 1.",
+      "setBuilder": "L = { w ∈ {0,1}* : |w| ≥ 3 and w₃ = 1 }",
+      "hint": "Walk two states along on either symbol, then branch on the third: a 1 into an accepting state that loops, a 0 into one that does not.",
+      "theory": "Counting from the left is free: the machine steps to the third position and looks. Counting from the right is not, and the level in the next group asks for exactly that, which is where nondeterminism starts to pay.",
+      "chomsky": 3,
       "alphabet": [
         "0",
         "1"
@@ -1985,6 +2050,11 @@
       "index": 14,
       "type": "DFA",
       "title": "Matching ends",
+      "goal": "Accept the non empty strings that begin and end with the same symbol.",
+      "setBuilder": "L = { w ∈ {0,1}⁺ : w₁ = w_|w| }",
+      "hint": "Commit on the first symbol into one of two halves and never leave that half. Inside a half, track the last symbol read; accept when the last symbol matches the first.",
+      "theory": "The machine cannot look back at the first symbol, so it has to carry it: one branch for a string that began with 0 and one for a string that began with 1. Inside each branch it only needs to remember the symbol it just read, which is two more states, and the start state makes five.",
+      "chomsky": 3,
       "alphabet": [
         "0",
         "1"
@@ -2185,6 +2255,11 @@
       "index": 15,
       "type": "NFA",
       "title": "Empty move",
+      "goal": "Accept the strings that are some a s followed by some b s, either part possibly empty.",
+      "setBuilder": "L = { a^ib^j : i ≥ 0, j ≥ 0 }",
+      "hint": "Two states, both accepting. The first loops on a, the second loops on b, and an ε arrow joins them. There is no way back.",
+      "theory": "An ε arrow changes state without reading anything. It lets one phase of a machine hand over to the next without spending a symbol.",
+      "chomsky": 3,
       "alphabet": [
         "a",
         "b"
@@ -2298,6 +2373,11 @@
       "index": 16,
       "type": "NFA",
       "title": "One or the other",
+      "goal": "Accept the strings that are all a s or all b s.",
+      "setBuilder": "L = { aⁿ : n ≥ 0 } ∪ { bⁿ : n ≥ 0 }",
+      "hint": "One start state, accepting, with an a arrow into a loop of a s and a b arrow into a loop of b s. Neither loop has a way back.",
+      "theory": "A union of two languages is two machines side by side, and the start state simply belongs to both of them. Nothing here needs an empty move yet, because the first symbol already decides which half the string is in.",
+      "chomsky": 3,
       "alphabet": [
         "a",
         "b"
@@ -2437,6 +2517,11 @@
       "index": 17,
       "type": "NFA",
       "title": "Three blocks",
+      "goal": "Accept some a s, then some b s, then some c s, any of the three possibly empty.",
+      "setBuilder": "L = { a^ib^jc^k : i ≥ 0, j ≥ 0, k ≥ 0 }",
+      "hint": "A chain of three self-looping states joined by ε arrows. Every state accepts, because every block is allowed to be empty.",
+      "theory": "Concatenating languages is an ε arrow between their machines. The same construction chains any number of phases together.",
+      "chomsky": 3,
       "alphabet": [
         "a",
         "b",
@@ -2580,6 +2665,11 @@
       "index": 18,
       "type": "NFA",
       "title": "Second from the right",
+      "goal": "Accept the strings whose second symbol from the right is a.",
+      "setBuilder": "L = { w ∈ {a,b}* : |w| ≥ 2 and w_{|w|-1} = a }",
+      "hint": "A loop on both symbols, one a arrow out of it, and then one arrow on either symbol into the accepting state.",
+      "theory": "Reading left to right, nothing tells the machine that the end is coming. So it guesses: at some a it decides that this is the one, and if exactly one symbol follows, the guess was right. A deterministic machine would have to remember the last two symbols instead, which costs four states rather than three.",
+      "chomsky": 3,
       "alphabet": [
         "a",
         "b"
@@ -2714,6 +2804,11 @@
       "index": 19,
       "type": "NFA",
       "title": "Three to finish",
+      "goal": "Accept the strings that end with abb.",
+      "setBuilder": "L = { w ∈ {a,b}* : w ends with abb }",
+      "hint": "A loop on both symbols, then a, then b, then b. Four states in a line and no cleverness anywhere.",
+      "theory": "The textbook example of nondeterminism costing nothing to write. The machine loops on everything and then simply spells out the ending it wants; the deterministic version has to track how much of abb it has half seen, and put every wrong turn back in the right place.",
+      "chomsky": 3,
       "alphabet": [
         "a",
         "b"
@@ -2855,6 +2950,11 @@
       "index": 20,
       "type": "NFA",
       "title": "Either ending",
+      "goal": "Accept the strings that end with ab or with ba.",
+      "setBuilder": "L = { w ∈ {a,b}* : w ends with ab or ba }",
+      "hint": "One state loops on both symbols. From it, one arrow on a and one on b lead into two short tails, and both tails end at the same accepting state.",
+      "theory": "A deterministic machine would have to know, at every symbol, which of the two endings it is in the middle of. A nondeterministic one guesses: it sits in a loop reading anything, and at some point simply decides that the last two symbols have started. Only a guess that turns out right survives.",
+      "chomsky": 3,
       "alphabet": [
         "a",
         "b"
@@ -3006,6 +3106,11 @@
       "index": 21,
       "type": "NFA",
       "title": "Guess the end",
+      "goal": "Accept the strings whose third symbol from the end is a 1.",
+      "setBuilder": "L = { w ∈ {0,1}* : |w| ≥ 3 and the 3rd symbol from the right is 1 }",
+      "hint": "A start state that loops on both symbols, then a 1 arrow into a tail of three states that accept anything. Only the branch that guessed correctly reaches the end.",
+      "theory": "Nondeterminism guesses. The machine bets that the 1 it is reading is the third from the end and counts two more symbols; if the bet was wrong that branch simply dies. A deterministic machine for this language needs eight states.",
+      "chomsky": 3,
       "alphabet": [
         "0",
         "1"
@@ -3167,6 +3272,11 @@
       "index": 22,
       "type": "NFA",
       "title": "A pair, either way",
+      "goal": "Accept the strings that contain aa or bb somewhere.",
+      "setBuilder": "L = { w ∈ {a,b}* : aa or bb is a substring of w }",
+      "hint": "A loop that reads anything, two short tails for the two pairs, and one accepting state at the end of both that loops on everything.",
+      "theory": "Two patterns, either of which will do, and the machine does not have to decide which it is looking for. It guesses at the start of a candidate pair and the guesses that fail simply die; only a branch that survives to the end counts.",
+      "chomsky": 3,
       "alphabet": [
         "a",
         "b"
@@ -3343,6 +3453,11 @@
       "index": 23,
       "type": "NFA",
       "title": "Either parity",
+      "goal": "Accept the strings with an even number of a s or an even number of b s.",
+      "setBuilder": "L = { w ∈ {a,b}* : |w|ₐ is even or |w|_b is even }",
+      "hint": "A start state with two empty arrows, into a two state parity machine for a and a two state parity machine for b. Each machine ignores the letter it is not watching.",
+      "theory": "Two machines that each watch one letter, joined by an empty move that picks one before anything is read. Determinising this is the product construction from the sixth level, and it comes out at four states rather than five, which is the usual way round: nondeterminism is easier to write and not always smaller.",
+      "chomsky": 3,
       "alphabet": [
         "a",
         "b"
@@ -3546,6 +3661,11 @@
       "index": 24,
       "type": "NFA",
       "title": "Two or three",
+      "goal": "Accept the strings whose length is a multiple of two or a multiple of three.",
+      "setBuilder": "L = { aⁿ : n ≡ 0 mod 2 or n ≡ 0 mod 3 }",
+      "hint": "A start state with two empty arrows out of it, into a two cycle and into a three cycle. Both cycles have their entry state accepting, which is also what lets the empty string through.",
+      "theory": "Or is where empty moves earn their keep. Build the two machines separately, a loop of two and a loop of three, and let the start state step into either one without reading anything. The guess is made before the first symbol and never revisited.",
+      "chomsky": 3,
       "alphabet": [
         "a"
       ],
@@ -3729,6 +3849,11 @@
       "index": 25,
       "type": "PDA",
       "title": "Brackets",
+      "goal": "Accept the strings of brackets that are balanced.",
+      "setBuilder": "L = { w ∈ {(,)}* : no prefix has more ) than (, and w has equally many of each }",
+      "hint": "One state does the work: push X on (, pop X on ). Then an ε arrow that pops the bottom marker $ into an accepting state, which is what forces the stack to be empty at the end.",
+      "theory": "A stack is unbounded memory with one rule: last in, first out. That is exactly enough to remember how deep you are without knowing how deep you will go.",
+      "chomsky": 2,
       "alphabet": [
         "(",
         ")"
@@ -3842,6 +3967,11 @@
       "index": 26,
       "type": "PDA",
       "title": "Matching counts",
+      "goal": "Accept a^nb^n: some a s followed by exactly as many b s.",
+      "setBuilder": "L = { a^nb^n : n ≥ 0 }",
+      "hint": "Push one A per a in the first state, take an ε arrow to a second state, pop one A per b there, then an ε arrow popping $ into the accepting state.",
+      "theory": "This is the standard example of a language no finite automaton can recognise. The pumping lemma kills every finite-state attempt, because no fixed number of states can count without bound.",
+      "chomsky": 2,
       "alphabet": [
         "a",
         "b"
@@ -3969,6 +4099,11 @@
       "index": 27,
       "type": "PDA",
       "title": "At least as many",
+      "goal": "Accept some a s followed by at least as many b s.",
+      "setBuilder": "L = { aⁿbᵐ : 0 ≤ n ≤ m }",
+      "hint": "Push on every a. Pop on every b until the bottom of the stack shows, then move on and let any remaining b s go past unchallenged.",
+      "theory": "An inequality rather than an equality, and the stack takes it in its stride: push a mark per a, spend one per b, and when the marks run out keep reading b s. What the stack cannot do is notice that it has run out too early, which is exactly what makes the other direction a different machine.",
+      "chomsky": 2,
       "alphabet": [
         "a",
         "b"
@@ -4117,6 +4252,11 @@
       "index": 28,
       "type": "PDA",
       "title": "No more than",
+      "goal": "Accept some a s followed by no more b s than there were a s.",
+      "setBuilder": "L = { aⁿbᵐ : m ≤ n }",
+      "hint": "Push on every a, pop on every b, and then a state that keeps popping on empty moves until the bottom of the stack is showing.",
+      "theory": "The other inequality, and it costs a state. The b s stop before the marks do, so the machine is left holding a stack it has to empty before it can see the bottom, and emptying it takes moves that read nothing at all.",
+      "chomsky": 2,
       "alphabet": [
         "a",
         "b"
@@ -4279,6 +4419,11 @@
       "index": 29,
       "type": "PDA",
       "title": "Twice as many",
+      "goal": "Accept the strings of some a s followed by exactly twice as many b s.",
+      "setBuilder": "L = { aⁿb²ⁿ : n ≥ 0 }",
+      "hint": "Reading an a should leave two marks behind. One state cannot push twice at once, so send the machine through a second state that pushes the other mark on an empty move.",
+      "theory": "The stack counts, and nothing says it has to count one for one. Push two marks for every a and the b s spend them one at a time, so the stack empties exactly when the second block is twice the first. A finite automaton cannot do this for the same reason it cannot do aⁿbⁿ.",
+      "chomsky": 2,
       "alphabet": [
         "a",
         "b"
@@ -4420,6 +4565,11 @@
       "index": 30,
       "type": "PDA",
       "title": "Half as many",
+      "goal": "Accept the strings of some a s followed by exactly half as many b s.",
+      "setBuilder": "L = { a²ⁿbⁿ : n ≥ 0 }",
+      "hint": "Read two a s to push one mark, which means passing through a second state and back. Then spend a mark per b.",
+      "theory": "The mirror of the level before last: there the machine pushed two marks per symbol, here it pushes one mark per two. Either way the stack is a counter with a scale factor, and the scale is set by how many states the machine walks through per symbol read.",
+      "chomsky": 2,
       "alphabet": [
         "a",
         "b"
@@ -4561,6 +4711,11 @@
       "index": 31,
       "type": "PDA",
       "title": "One pair, then anything",
+      "goal": "Accept equal numbers of a s and b s, followed by any number of c s.",
+      "setBuilder": "L = { aⁿbⁿcᵐ : n ≥ 0, m ≥ 0 }",
+      "hint": "Push on a, pop on b, and once the bottom of the stack is showing, move to an accepting state that reads c s for as long as they keep coming.",
+      "theory": "One stack matches one pair, and once it has been spent it is spent. The c s are free because nothing has to be counted against them; ask for aⁿbⁿcⁿ instead and the same machine has nothing left to count with, which is the wall the last group of levels is built on.",
+      "chomsky": 2,
       "alphabet": [
         "a",
         "b",
@@ -4712,6 +4867,11 @@
       "index": 32,
       "type": "PDA",
       "title": "Two kinds of bracket",
+      "goal": "Accept the strings where round and square brackets are both balanced and properly nested.",
+      "setBuilder": "L = the properly nested strings over { (, ), [, ] }",
+      "hint": "Two marks, one per kind of bracket. An opener pushes its own mark, a closer pops it, and a closer that meets the wrong mark has nowhere to go.",
+      "theory": "Counting is no longer enough: ( [ ) ] has the right number of each and is still wrong. What matters is the order things were opened in, and the stack keeps that order for free, because the only thing it will ever give back is the most recent one.",
+      "chomsky": 2,
       "alphabet": [
         "(",
         ")",
@@ -4850,6 +5010,11 @@
       "index": 33,
       "type": "PDA",
       "title": "Equal counts, any order",
+      "goal": "Accept the strings with equally many a s and b s, in any order.",
+      "setBuilder": "L = { w ∈ {a,b}* : |w|ₐ = |w|_b }",
+      "hint": "One state does all the reading. Four rules: a cancels a b mark or pushes an a mark, and b cancels an a mark or pushes a b mark. Leave for the accepting state only by popping the bottom of the stack, which is the same as saying nothing is outstanding.",
+      "theory": "Here the stack is a counter that has to run in both directions, because the string may go ahead on either letter. Keep marks for whichever letter is currently in surplus: an a either cancels a waiting b or leaves a mark of its own, and the surplus can only ever be of one kind at a time.",
+      "chomsky": 2,
       "alphabet": [
         "a",
         "b"
@@ -4984,6 +5149,11 @@
       "index": 34,
       "type": "PDA",
       "title": "Marked middle",
+      "goal": "Accept a string, then c, then the same string backwards.",
+      "setBuilder": "L = { w c wᴿ : w ∈ {a,b}* }",
+      "hint": "Push every symbol until the c, then pop one per symbol, checking each pop matches what was read. Leave for the accepting state by popping the bottom of the stack.",
+      "theory": "The same shape as the mirror level, with one difference that changes everything: the c says where the middle is, so the machine never has to guess. This one is deterministic, and the mirror level is provably not, which is the first place the two kinds of pushdown automaton come apart.",
+      "chomsky": 2,
       "alphabet": [
         "a",
         "b",
@@ -5134,6 +5304,11 @@
       "index": 35,
       "type": "PDA",
       "title": "Mirror",
+      "goal": "Accept the even-length palindromes over a and b.",
+      "setBuilder": "L = { w w^R : w ∈ {a,b}* }",
+      "hint": "First state pushes a marker for each symbol read. An ε arrow to the second state is the guess that the middle is here. The second state pops the marker that matches the symbol it reads.",
+      "theory": "Here the stack is not counting, it is recording. The machine must also guess where the middle is, which is why this language needs a nondeterministic pushdown automaton and not a deterministic one.",
+      "chomsky": 2,
       "alphabet": [
         "a",
         "b"
@@ -5282,6 +5457,11 @@
       "index": 36,
       "type": "PDA",
       "title": "Odd mirror",
+      "goal": "Accept the odd length strings that read the same backwards.",
+      "setBuilder": "L = { w ∈ {a,b}* : w = wᴿ and |w| is odd }",
+      "hint": "Push everything, then on some symbol move across to the popping half without pushing or popping anything, then pop one per symbol matching what is read.",
+      "theory": "The mirror level guessed where the middle was and jumped across it. Here the middle is a symbol rather than a gap, so the machine guesses the same way but eats one symbol on the way through and never checks what it was. That single unchecked symbol is the whole difference between the two languages.",
+      "chomsky": 2,
       "alphabet": [
         "a",
         "b"
@@ -5442,6 +5622,11 @@
       "index": 37,
       "type": "TM",
       "title": "Cross off",
+      "goal": "Accept a^nb^n again, this time on a tape you can rewrite.",
+      "setBuilder": "L = { a^nb^n : n ≥ 0 }",
+      "hint": "Cross the leftmost a as X, walk right past a s and Y s to the first b, cross it as Y, walk back left to the X, and repeat. When no a s remain, check that only Y s stand between you and the blank.",
+      "theory": "A tape can be read and written in any order, so a Turing machine can mark cells and come back. Marking one a and one b at a time and sweeping back is the basic idiom of every tape algorithm.",
+      "chomsky": 2,
       "alphabet": [
         "a",
         "b"
@@ -5640,6 +5825,11 @@
       "index": 38,
       "type": "TM",
       "title": "Cross off a pair",
+      "goal": "Accept the strings with equally many a s and b s, in any order.",
+      "setBuilder": "L = { w ∈ {a,b}* : |w|ₐ = |w|_b }",
+      "hint": "Five states and a loop between them: find an a and cross it, return to the left end, find a b and cross it, return to the left end. When there is no a to find, walk once more and accept only if nothing but crossings remains.",
+      "theory": "A stack did this by holding whichever letter was in surplus. A tape does it by pairing them off: find an a, cross it out, find a b, cross that out, and start again. When no a is left the tape must be nothing but crossings, and the walk back that checks it is the part a stack could never do.",
+      "chomsky": 2,
       "alphabet": [
         "a",
         "b"
@@ -5895,6 +6085,11 @@
       "index": 39,
       "type": "TM",
       "title": "Reads the same backwards",
+      "goal": "Accept the strings that read the same forwards and backwards.",
+      "setBuilder": "L = { w ∈ {a,b}* : w = wᴿ }",
+      "hint": "Cross off the first symbol, remember which one it was in the state, run to the far end and check the last uncrossed symbol matches, cross that off too, then walk back. Finishing on your own crossing off is an odd length string, and it still counts.",
+      "theory": "A stack could only do the even length half of this by guessing where the middle was. A tape does not have to guess: it can walk to the far end, come back, and walk out again, which is exactly the movement a stack cannot make. The head crossing the string over and over is the whole difference.",
+      "chomsky": 2,
       "alphabet": [
         "a",
         "b"
@@ -6180,6 +6375,11 @@
       "index": 40,
       "type": "TM",
       "title": "Everything but",
+      "goal": "Accept the strings that do not read the same backwards.",
+      "setBuilder": "L = { w ∈ {a,b}* : w ≠ wᴿ }",
+      "hint": "Take the previous machine and move the accepting state. A mismatch between the two ends is now the good news, and running out of symbols with everything matched is the bad news.",
+      "theory": "The same machine as the level before, with accept and reject swapped: it accepts on the first mismatch and rejects when the ends run out having matched. Swapping the two is only sound because this machine always halts. A machine that could run forever has no complement to swap into, and that is the difference between deciding a language and merely recognising it.",
+      "chomsky": 2,
       "alphabet": [
         "a",
         "b"
@@ -6466,6 +6666,11 @@
       "index": 41,
       "type": "TM",
       "title": "Beyond context free",
+      "goal": "Accept a^nb^nc^n: equal runs of a, b and c in that order.",
+      "setBuilder": "L = { a^nb^nc^n : n ≥ 0 }",
+      "hint": "The same cross-off loop as before, one pass per triple. Mark an a as X, the next b as Y, the next c as Z, sweep back to the X and go again. At the end only Y s and Z s may remain.",
+      "theory": "No pushdown automaton recognises this language: one stack can match a against b or b against c, never both. It is context sensitive, one full step up the hierarchy, and a tape handles it without effort.",
+      "chomsky": 1,
       "alphabet": [
         "a",
         "b",
@@ -6748,6 +6953,11 @@
       "index": 42,
       "type": "TM",
       "title": "Four blocks",
+      "goal": "Accept some a s, then as many b s, then as many c s, then as many d s.",
+      "setBuilder": "L = { aⁿbⁿcⁿdⁿ : n ≥ 0 }",
+      "hint": "One marker per letter. Cross the leftmost a, run right crossing the leftmost b, then c, then d, walk all the way back, and start again. When the a s are gone, everything to the right must already be crossed.",
+      "theory": "One more block than the level that was already beyond context free, and the machine barely changes: another marker, another sweep. That is the point of the last group. Where the earlier classes needed a new machine for every new kind of counting, the tape needs only another lap.",
+      "chomsky": 1,
       "alphabet": [
         "a",
         "b",

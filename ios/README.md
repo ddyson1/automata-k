@@ -1,12 +1,41 @@
-# AutomataEngine
+# automata-k for iOS
 
-The engine, in Swift. A plain library target with no UI dependency, so
-`swift test` runs it with no simulator.
+A SwiftUI app, and the engine it runs on.
 
 ```
 cd ios
-swift test
+open App/AutomataK.xcodeproj     # the app
+swift test                       # the engine, no simulator needed
+python3 check-app.py             # the checks that do not need a compiler
 ```
+
+The engine is a plain library with no UI dependency, so `swift test` runs it
+against the golden fixture without a simulator. The app target compiles those
+same sources directly rather than linking the package: no resolution step, no
+`import AutomataEngine`, and one place where a symbol can be wrong.
+
+`make-xcodeproj.py` generates the project from the file list. Hand-written
+pbxproj rots the moment a file is added, so adding a source means adding a line
+there and re-running it; the object ids are derived from the paths, so the diff
+shows only what changed.
+
+## The app
+
+Direction A of the four drawn in `docs/design-brief.md`: the shipped web layout
+worn as an app. A rail across the top carries which level this is, what it asks
+in words and in set-builder, and the verdict once a run has happened; tapping it
+opens the five panes full screen. Run docks bottom right, the four tools bottom
+left, both in the thumb's arc.
+
+One thing is native rather than ported. On the web a state reveals its drag
+grips on hover, and a touch screen has no hover — that gesture was the single
+part of the interface with no touch answer. Here **selection** reveals them: tap
+a state and four grips appear on its rim and stay, so drawing an arrow is
+drag-a-grip-to-a-state with nothing behind a pointer the device does not have.
+
+Progress is `UserDefaults` and nothing else. What you draw lives for the session
+and no longer, exactly as on the web. No account, no analytics, no network call
+anywhere in the app.
 
 ## How this is kept honest
 
@@ -47,7 +76,19 @@ Sources/AutomataEngine/
   Validate.swift   well-formedness per machine class
   Simulate.swift   simulateDFA / simulateNFA / simulatePDA / simulateTM / run
   Grammar.swift    derivation by breadth-first search over sentential forms
+  Layout.swift     Tidy: rank by breadth first search, one column per rank
   Golden.swift     the fixture, and the level data the app reads from it
+App/AutomataK/
+  AutomataKApp.swift   the entry point, and loading the fixture
+  Theme.swift          the palette and the three type roles, from theme.css
+  Store.swift          the canvas per level, undo and redo, and progress
+  Views/Geometry.swift where the arrows go
+  Views/DiagramView.swift   the canvas, and the grips that replace hover
+  Views/LevelListView.swift the climb, grouped by machine class
+  Views/LevelView.swift     the rail, the tools, Run, and grading on a press
+  Views/PaneView.swift      brief, machine, theory, grammar, stuck
+  Views/RuleEditorView.swift  one rule, with the fields that class has
+  Views/TraceView.swift     stepping a string, with the stack or the tape
 Tests/AutomataEngineTests/
   GoldenTests.swift    section 9.1 in Swift
   GrammarTests.swift   section 9.2 in Swift
@@ -74,12 +115,20 @@ Identical to the TypeScript engine, because the fixture would catch it if not.
 
 ## Status
 
-Written but not yet executed. The environment this was authored in has no Swift
-toolchain and no network route to one, so nothing here has been compiled.
-`swift test` on a Mac is the only real proof, and the first run should be
-expected to turn up compile errors.
+**Written but not yet executed.** The environment this was authored in has no
+Swift toolchain and no network route to one — `download.swift.org` is refused by
+the proxy, and Ubuntu's `swift` package is OpenStack's object store — so not one
+line here has been through a compiler. Opening the project on a Mac is the first
+real build, and it should be expected to turn up errors.
 
-What has been checked without a compiler, and holds as of 42 levels:
+`check-app.py` exists to make that list short. It does the checks that do not
+need a compiler: every engine symbol the app names is declared, every
+`Type.member` the app writes exists on that type, braces balance in every file,
+every source is actually in the Xcode target, every path the project references
+is on disk, and the fixture carries the fields the views read. It has already
+caught one real ambiguity and one symbol that was not where the app thought.
+
+What else has been checked without a compiler, and holds as of 42 levels:
 
 - `node scripts/check-swift-shape.mjs` — the fixture's keys match the `Codable`
   declarations. 42 levels, 130,100 strings, 503 tests.
@@ -92,9 +141,12 @@ What has been checked without a compiler, and holds as of 42 levels:
 
 ## What is not here
 
-This is the engine and nothing else. There is no Xcode project, no app target
-and no SwiftUI: `Package.swift` builds a library. Of the TypeScript engine,
-`levels` and `solutions` arrive as fixture data rather than code, but `formal`,
-`minimize`, `regex` and `layout` are not ported, and those are what Theory,
-Analysis and Tidy are made of. The interface itself — canvas, diagram, rail,
-panels, trace — is about 6,400 lines of TypeScript and CSS, none of it here.
+`minimize` and `regex` are not ported, so the Analysis pane — minimality, the
+subset construction, a regular expression for what you drew — has no iOS
+counterpart yet. Its tab is absent rather than empty.
+
+`formal` is ported only as far as the app needs it: the tuple and δ are written
+out in `PaneView`, the tutor cards that explain each letter in plain words are
+not. `layout` is ported in full, so Tidy behaves identically on both.
+
+There is no app icon, no launch screen art and no test target for the views.

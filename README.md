@@ -102,6 +102,19 @@ a pushdown automaton, a tape for a Turing machine.
 
 ![A pushdown automaton mid-run, with its stack](docs/trace.png)
 
+## On iOS
+
+`ios/App/AutomataK.xcodeproj` is a SwiftUI app running the same engine, with the
+same forty two levels read from the same golden fixture. It is direction A of
+`docs/design-brief.md`: the rail across the top, the tools and Run in the
+thumb's arc. The one thing that is native rather than ported is drawing an
+arrow — the web reveals a state's grips on hover, and a touch screen has none,
+so selecting a state reveals them instead.
+
+Nothing in `ios/` has been compiled: it was written where there is no Swift
+toolchain. `python3 ios/check-app.py` does what it can without one, and
+`ios/README.md` says exactly what that covers and what it does not.
+
 ## Playing it locally
 
 ```

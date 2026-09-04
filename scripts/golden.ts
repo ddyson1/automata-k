@@ -21,6 +21,16 @@ export interface GoldenLevel {
   index: number;
   type: string;
   title: string;
+  /** The question, in the words the rail and the brief show. */
+  goal: string;
+  /** The same language, in set-builder notation. */
+  setBuilder: string;
+  /** A nudge, shown under Stuck. */
+  hint: string;
+  /** Why this language needs this class of machine. */
+  theory: string;
+  /** Where the language sits in the hierarchy: 3 regular down to 0. */
+  chomsky: number;
   alphabet: string[];
   stackAlphabet?: string[];
   tapeAlphabet?: string[];
@@ -106,6 +116,11 @@ export function buildGolden(): GoldenFile {
       index: level.index,
       type: level.type,
       title: level.title,
+      goal: level.goal,
+      setBuilder: level.setBuilder,
+      hint: level.hint,
+      theory: level.theory,
+      chomsky: level.chomsky,
       alphabet: [...level.alphabet],
       ...(level.stackAlphabet ? { stackAlphabet: [...level.stackAlphabet] } : {}),
       ...(level.tapeAlphabet ? { tapeAlphabet: [...level.tapeAlphabet] } : {}),
