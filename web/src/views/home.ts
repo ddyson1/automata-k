@@ -13,7 +13,7 @@ import { h, on, setText } from '../dom';
 import { notation } from '../notation';
 import { setSound, soundOn } from '../sound';
 import { game } from '../store';
-import type { ThemeChoice } from '../store';
+import { createSettings } from '../components/settings';
 import type { View } from './level';
 
 const GROUPS: { kind: MachineKind; label: string; blurb: string }[] = [
@@ -42,16 +42,15 @@ const GROUPS: { kind: MachineKind; label: string; blurb: string }[] = [
 export function createHomeView(navigate: (hash: string) => void): View {
   const solvedCount = h('span', { class: 't-mono-sm', 'data-testid': 'solved-count' });
 
-  const themeButton = h(
+  // Theme and motion, in a sheet: two three-way choices are more than a
+  // button that cycles can say.
+  const settings = createSettings();
+  const settingsButton = h(
     'button',
-    { class: 'ghost', type: 'button', 'data-testid': 'theme' },
-    'Theme',
+    { class: 'ghost', type: 'button', 'data-testid': 'settings-open', 'aria-haspopup': 'dialog' },
+    'Settings',
   );
-  on(themeButton, 'click', () => {
-    const order: ThemeChoice[] = ['system', 'light', 'dark'];
-    const next = order[(order.indexOf(game.theme) + 1) % order.length] as ThemeChoice;
-    game.setTheme(next);
-  });
+  on(settingsButton, 'click', () => settings.open());
 
   // The one sound the app makes, and a way to stop it making it.
   const soundButton = h(
@@ -110,7 +109,7 @@ export function createHomeView(navigate: (hash: string) => void): View {
         { class: 'home-meta' },
         h('span', { class: 't-label' }, 'Solved'),
         solvedCount,
-        themeButton,
+        settingsButton,
         soundButton,
         resetButton,
       ),
@@ -127,6 +126,8 @@ export function createHomeView(navigate: (hash: string) => void): View {
       ),
     ),
   );
+
+  el.append(settings.sheet.el);
 
   function row(level: Level, unlocked: boolean): HTMLElement {
     const solved = game.isSolved(level.id);
@@ -175,10 +176,6 @@ export function createHomeView(navigate: (hash: string) => void): View {
 
   function render(): void {
     setText(solvedCount, `${game.progress.solved.length}/${LEVELS.length}`);
-    setText(
-      themeButton,
-      game.theme === 'system' ? 'Theme: system' : game.theme === 'light' ? 'Theme: light' : 'Theme: dark',
-    );
 
     list.textContent = '';
     for (const group of GROUPS) {
@@ -204,6 +201,7 @@ export function createHomeView(navigate: (hash: string) => void): View {
     el,
     destroy() {
       unsubscribe();
+      settings.sheet.destroy();
     },
   };
 }

@@ -1,0 +1,386 @@
+/* --------------------------------------------------------------------------
+   the pane
+
+   Four zones. Which level this is, the tabs, the tab's own content, and how
+   the machine is doing. Only the third changes.
+
+   The formal layer used to be a sheet that slid over all of this, reached by
+   a "The machine ›" link in the footer, with its own tabs and its own close
+   button. Making the brief the first tab instead of the backdrop costs one
+   seam in brief.ts and removes the link, the close button, the slide, the
+   escape handler, the drag-to-dismiss, and the bookkeeping that put the
+   phone's sheet back afterwards. It also fixes something the overlay could
+   not: the verdict no longer disappears the moment you go to read the
+   transition function, which is exactly when you want it.
+   -------------------------------------------------------------------------- */
+
+.pane {
+  --pane-x: 22px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--hairline);
+}
+
+.pane-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  padding: calc(18px + var(--safe-top)) var(--pane-x) 11px
+    calc(var(--pane-x) + var(--safe-left));
+}
+
+.pane-tabs {
+  display: flex;
+  gap: 2px;
+  flex: none;
+  padding: 0 var(--pane-x) 0 calc(var(--pane-x) + var(--safe-left));
+  border-bottom: 1px solid var(--hairline);
+  /* Five labels fit a 320px pane, but only just; a narrower one may scroll. */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.pane-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.pane-tab {
+  min-height: var(--tap);
+  min-width: var(--tap);
+  padding: 0 7px 9px;
+  margin-bottom: -1px;
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+}
+
+.pane-tab:first-child {
+  padding-left: 0;
+}
+
+.pane-tab:hover,
+.pane-tab:focus-visible {
+  color: var(--ink);
+}
+
+/* The strip scrolls sideways, which clips anything drawn outside it, so the
+   ring goes inside the tab rather than around it. */
+.pane-tab:focus-visible {
+  outline-offset: -2px;
+}
+
+.pane-tab.is-on {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+
+.pane-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px var(--pane-x) 20px calc(var(--pane-x) + var(--safe-left));
+}
+
+/* --------------------------------------------------------------------------
+   the brief, which is the first tab
+   -------------------------------------------------------------------------- */
+
+.back {
+  width: 26px;
+  height: 26px;
+  margin-left: -6px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1;
+}
+
+.back:hover {
+  background: var(--sunken);
+  color: var(--ink);
+}
+
+.brief-eyebrow {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.brief-q {
+  font-family: var(--sans);
+  font-size: 22px;
+  line-height: 1.26;
+  font-weight: 450;
+  letter-spacing: -0.014em;
+  margin: 0 0 10px;
+  text-wrap: balance;
+  flex: none;
+}
+
+.brief-set {
+  display: block;
+  color: var(--muted);
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--hairline);
+  overflow-wrap: anywhere;
+  flex: none;
+}
+
+.brief-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.brief-split .t-label {
+  display: block;
+  margin-bottom: 9px;
+}
+
+/* the marks -------------------------------------------------------------- */
+
+.verdicts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.verdict-hit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 3px 6px 3px 2px;
+  border-radius: 5px;
+  min-height: 26px;
+}
+
+.verdict-hit:hover {
+  background: var(--sunken);
+}
+
+.mark {
+  width: 13px;
+  flex: none;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--pass);
+}
+
+.verdict.is-off .mark,
+.verdict.is-off code {
+  color: var(--fail);
+}
+
+.verdict.is-blank .mark {
+  color: var(--faint);
+}
+
+.verdict.is-playing .verdict-hit {
+  background: var(--accent-tint);
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
+
+/* the rail: which level, what it asks, how it is going -------------------- */
+
+.pane-rail {
+  flex: none;
+  position: relative;
+}
+
+.pane-grab {
+  display: none;
+}
+
+.brief-statement {
+  padding: 0 var(--pane-x) 0 calc(var(--pane-x) + var(--safe-left));
+}
+
+.pane-mark {
+  flex: none;
+  padding: 10px var(--pane-x) 14px calc(var(--pane-x) + var(--safe-left));
+}
+
+.pane-actions {
+  flex: none;
+  display: flex;
+  gap: 20px;
+  row-gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px var(--pane-x) calc(16px + var(--safe-bottom))
+    calc(var(--pane-x) + var(--safe-left));
+  border-top: 1px solid var(--hairline);
+}
+
+.brief-score {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 550;
+  color: var(--muted);
+}
+
+.pane-mark.is-solved .brief-score {
+  color: var(--pass);
+}
+
+.pane-mark.is-broken .brief-score {
+  color: var(--fail);
+}
+
+.brief-why {
+  margin: 2px 0 0;
+  color: var(--muted);
+  min-height: 1.4em;
+}
+
+.pane-mark.is-broken .brief-why {
+  color: var(--fail);
+}
+
+.brief-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 0;
+  padding: 0 0 3px;
+  font-size: 13.5px;
+}
+
+.brief-link[hidden] {
+  display: none;
+}
+
+/* --------------------------------------------------------------------------
+   the pane's edge: resize and fold, on a wide window only
+
+   The column used to be fixed at 380px. Now its right edge drags, and a
+   button at its top folds it away entirely; both are remembered between
+   visits. Neither can take the canvas below STAGE_MIN in paneSize.ts — the
+   canvas is the level, and the pane is there to explain it.
+
+   Folded, the pane keeps one thing: its actions, which float bottom right in
+   the same pills a phone uses. Run has to stay in reach, and there is still
+   no results band to fold it into.
+   -------------------------------------------------------------------------- */
+
+.pane-resize,
+.pane-fold,
+.pane-unfold {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .pane-resize {
+    display: block;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: -6px;
+    width: 12px;
+    z-index: 4;
+    cursor: col-resize;
+    touch-action: none;
+  }
+
+  /* The handle is wider than what it draws: a 2px line on the border. */
+  .pane-resize::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 5px;
+    width: 2px;
+    background: transparent;
+    transition: background 0.12s ease;
+  }
+
+  .pane-resize:hover::after,
+  .level.is-resizing .pane-resize::after {
+    background: var(--rule);
+  }
+
+  .pane-resize:focus-visible {
+    outline: none;
+  }
+
+  .pane-resize:focus-visible::after {
+    left: 4px;
+    width: 4px;
+    background: var(--accent);
+  }
+
+  .level.is-resizing {
+    cursor: col-resize;
+    user-select: none;
+  }
+
+  /* Two classes, to outrank .tip's position: relative in canvas.css. */
+  .pane-rail .pane-fold {
+    display: grid;
+    position: absolute;
+    top: calc(6px + var(--safe-top));
+    right: 8px;
+  }
+
+  .level.is-collapsed {
+    grid-template-columns: 0 minmax(0, 1fr);
+  }
+
+  .level.is-collapsed .pane {
+    border-right: 0;
+  }
+
+  .level.is-collapsed .pane > :not(.pane-actions) {
+    display: none;
+  }
+
+  .level.is-collapsed .pane-actions {
+    position: fixed;
+    right: calc(14px + var(--safe-right));
+    bottom: calc(14px + var(--safe-bottom));
+    z-index: 9;
+    padding: 0;
+    border-top: 0;
+    gap: 8px;
+  }
+
+  .level.is-collapsed .pane-actions .brief-link {
+    min-height: var(--tap);
+    padding: 0 18px;
+    border-radius: 999px;
+    border: 1px solid var(--hairline);
+    background: var(--surface);
+    box-shadow: none;
+    font-size: 14px;
+  }
+
+  .level.is-collapsed .pane-actions .brief-link.is-next {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  .level.is-collapsed .pane-unfold {
+    display: grid;
+  }
+
+  /* As on a phone, a trace takes the stage foot and the actions stand down. */
+  .level.is-collapsed.is-tracing .pane-actions {
+    display: none;
+  }
+}

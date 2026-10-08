@@ -15,7 +15,7 @@
  *
  * Progress is a different thing and still persists: which levels are solved,
  * the smallest state count each was solved with, whether the answer was
- * revealed, the theme and the sound.
+ * revealed, the theme, the motion preference and the sound.
  */
 
 import { layoutMachine } from '../../src/engine/layout';
@@ -32,6 +32,7 @@ import { storage } from './storage';
 
 const PROGRESS_KEY = 'automata-k.progress.v1';
 const THEME_KEY = 'automata-k.theme.v1';
+const MOTION_KEY = 'automata-k.motion.v1';
 /** Drafts are no longer saved. Anyone who has some from an older build gets them cleared. */
 const STALE_DRAFTS_KEY = 'automata-k.drafts.v1';
 const HISTORY_LIMIT = 60;
@@ -52,6 +53,9 @@ interface Draft {
 }
 
 export type ThemeChoice = 'system' | 'light' | 'dark';
+
+/** `system` follows prefers-reduced-motion; the other two overrule it. */
+export type MotionChoice = 'system' | 'reduce' | 'full';
 
 const emptyMachine = (): Machine => ({
   states: [],
@@ -81,6 +85,7 @@ type Listener = () => void;
 class Game {
   progress: Progress;
   theme: ThemeChoice;
+  motion: MotionChoice;
 
   private drafts = new Map<string, Draft>();
   private listeners = new Set<Listener>();
@@ -96,6 +101,7 @@ class Game {
     this.progress.shownSolution ??= [];
     this.progress.bestStates ??= {};
     this.theme = storage.read<ThemeChoice>(THEME_KEY, 'system');
+    this.motion = storage.read<MotionChoice>(MOTION_KEY, 'system');
 
     // Nothing is restored onto a canvas. Sweeping the old key means a player
     // carrying drafts from an earlier build is not left holding bytes that
@@ -132,6 +138,7 @@ class Game {
     }
     storage.write(PROGRESS_KEY, this.progress);
     storage.write(THEME_KEY, this.theme);
+    storage.write(MOTION_KEY, this.motion);
   }
 
   // -- reads ----------------------------------------------------------------
@@ -331,6 +338,12 @@ class Game {
 
   setTheme(choice: ThemeChoice): void {
     this.theme = choice;
+    this.schedulePersist();
+    this.emit();
+  }
+
+  setMotion(choice: MotionChoice): void {
+    this.motion = choice;
     this.schedulePersist();
     this.emit();
   }
