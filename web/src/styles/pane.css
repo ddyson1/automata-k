@@ -378,4 +378,9 @@
   .level.is-collapsed .pane-unfold {
     display: grid;
   }
+
+  /* As on a phone, a trace takes the stage foot and the actions stand down. */
+  .level.is-collapsed.is-tracing .pane-actions {
+    display: none;
+  }
 }

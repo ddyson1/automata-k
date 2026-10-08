@@ -201,6 +201,7 @@ export function createHomeView(navigate: (hash: string) => void): View {
     el,
     destroy() {
       unsubscribe();
+      settings.sheet.destroy();
     },
   };
 }

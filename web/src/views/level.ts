@@ -638,8 +638,10 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     paneResize.setAttribute('aria-valuenow', String(width));
   }
 
+  // Stores the request, bounded only by PANE_MIN/PANE_MAX; the window's own
+  // ceiling is applied in applyPaneWidth, so widening the window restores it.
   function setPaneWidth(width: number, persist = true): void {
-    panePrefs.width = clampPaneWidth(width, window.innerWidth);
+    panePrefs.width = clampPaneWidth(width, Number.POSITIVE_INFINITY);
     applyPaneWidth();
     if (persist) writePane(storage, panePrefs);
     placeStateBar();
@@ -875,6 +877,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
       offKeys();
       offResize();
       railWatch.disconnect();
+      ruleSheet.destroy();
       trace.stop();
       diagram.destroy();
     },

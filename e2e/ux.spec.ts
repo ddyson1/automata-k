@@ -67,6 +67,15 @@ test.describe('on a wide window', () => {
     // Asked-for width comes back when the window does.
     await page.setViewportSize({ width: 1280, height: 800 });
     await expect.poll(() => paneWidth(page)).toBeCloseTo(560, 0);
+
+    // A request made while the window caps it is kept, not the capped value.
+    await page.getByTestId('pane-resize').dblclick();
+    await page.setViewportSize({ width: 920, height: 800 });
+    await page.getByTestId('pane-resize').focus();
+    await page.keyboard.press('End');
+    await expect.poll(() => paneWidth(page)).toBeCloseTo(500, 0);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await expect.poll(() => paneWidth(page)).toBeCloseTo(560, 0);
   });
 
   test('the pane folds away and comes back, and stays folded', async ({ page }) => {
