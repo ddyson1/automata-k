@@ -1,5 +1,5 @@
 /**
- * The four corner icons.
+ * The corner icons, and the two that fold the pane.
  *
  * They were text glyphs, and two of them said the wrong thing. ⊞ is a grid,
  * and Tidy does not draw a grid or snap anything to one; it rearranges the
@@ -82,3 +82,13 @@ export const tidyIcon = (): SVGSVGElement =>
  */
 export const fitIcon = (): SVGSVGElement =>
   icon(path('M4 9V4h5'), path('M20 9V4h-5'), path('M4 15v5h5'), path('M20 15v5h-5'));
+
+/**
+ * The pane, folding. A window with its left column marked, and a chevron
+ * pointing the way the column will go: in to fold it, out to bring it back.
+ */
+export const foldIcon = (): SVGSVGElement =>
+  icon(svg('rect', { x: 3.5, y: 4.5, width: 17, height: 15, rx: 2 }), path('M9 4.5v15'), path('m15.5 10-2 2 2 2'));
+
+export const unfoldIcon = (): SVGSVGElement =>
+  icon(svg('rect', { x: 3.5, y: 4.5, width: 17, height: 15, rx: 2 }), path('M9 4.5v15'), path('m13.5 10 2 2-2 2'));

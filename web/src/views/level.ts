@@ -12,7 +12,10 @@
  * Four quiet icons in one corner do the things that have no object to attach
  * to: undo, redo, tidy, fit. On a phone that corner is the bottom left, in
  * reach of a thumb, and the brief is a rail across the top rather than a sheet
- * across the bottom. See the pane rail below, and the narrow block in app.css.
+ * across the bottom. See the pane rail below, and styles/narrow.css.
+ *
+ * On a wide window the pane's right edge drags to resize it, and a button at
+ * its top folds it away; both are remembered (see paneSize.ts).
  *
  * The checks run when asked rather than on every keystroke. See runChecks.
  */
@@ -23,8 +26,10 @@ import { LEVEL_BY_ID } from '../../../src/engine/levels';
 import type { Level, Machine, StateId, TransitionId } from '../../../src/engine/types';
 import { CANVAS } from '../../../src/engine/types';
 import { TOUCH, h, on, setText } from '../dom';
-import { fitIcon, redoIcon, tidyIcon, undoIcon } from '../icons';
+import { fitIcon, foldIcon, redoIcon, tidyIcon, undoIcon, unfoldIcon } from '../icons';
+import { PANE_DEFAULT, PANE_MAX, PANE_MIN, clampPaneWidth, readPane, writePane } from '../paneSize';
 import { game } from '../store';
+import { storage } from '../storage';
 import { success, warn } from '../haptics';
 import { chime } from '../sound';
 import { createDiagram } from '../components/diagram';
@@ -250,6 +255,21 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
   const corner = h('div', { class: 'corner' }, undoButton, redoButton, tidyButton, fitButton);
   const canvasHint = h('p', { class: 'canvas-hint', 'data-testid': 'canvas-hint' });
 
+  // With the pane folded away on a wide window, this is the way back. It sits
+  // where the pane's own fold button was, so the two read as one control.
+  const paneUnfold = h(
+    'button',
+    {
+      class: 'pane-unfold tip',
+      type: 'button',
+      'data-testid': 'pane-unfold',
+      'aria-label': 'Show the brief',
+      'data-tip': 'Show the brief',
+      'aria-expanded': 'false',
+    },
+    unfoldIcon(),
+  );
+
   // The one cost of a canvas with no toolbar is that nothing says you can draw
   // on it. An empty sheet says it, in the middle, where the eye already is.
   const emptyPrompt = h(
@@ -283,6 +303,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     { class: 'stage', 'data-testid': 'stage' },
     diagram.el,
     emptyPrompt,
+    paneUnfold,
     corner,
     stateBar,
     canvasHint,
@@ -388,6 +409,33 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     h('span', { class: 'pane-grab-i', 'aria-hidden': 'true' }, '⌄'),
   );
 
+  // A wide window only: fold the pane away and give the canvas everything.
+  const paneFold = h(
+    'button',
+    {
+      class: 'pane-fold tip',
+      type: 'button',
+      'data-testid': 'pane-fold',
+      'aria-label': 'Fold the brief away',
+      'data-tip': 'Fold the brief away',
+      'aria-expanded': 'true',
+    },
+    foldIcon(),
+  );
+
+  // The pane's right edge, which can be dragged. A separator in ARIA terms,
+  // so it also answers to the arrow keys, Home and End.
+  const paneResize = h('div', {
+    class: 'pane-resize',
+    role: 'separator',
+    tabindex: 0,
+    'aria-orientation': 'vertical',
+    'aria-label': 'Resize the brief',
+    'aria-valuemin': PANE_MIN,
+    'aria-valuemax': PANE_MAX,
+    'data-testid': 'pane-resize',
+  });
+
   /**
    * Which level this is, what it asks, and how the machine is doing.
    *
@@ -409,6 +457,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     brief.statement,
     brief.mark,
     paneGrab,
+    paneFold,
   );
 
   const pane = h(
@@ -418,6 +467,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     tabStrip,
     paneBody,
     brief.actions,
+    paneResize,
   );
 
   function togglePane(want?: boolean): void {
@@ -574,6 +624,88 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     ruleSheet.el,
   );
 
+  // -- pane size ------------------------------------------------------------
+  //
+  // The stored width is what was asked for; what is applied is that, clamped
+  // to this window, so a narrow window never squeezes the canvas and widening
+  // it again gives the asked-for width back.
+
+  const panePrefs = readPane(storage);
+
+  function applyPaneWidth(): void {
+    const width = clampPaneWidth(panePrefs.width, window.innerWidth);
+    el.style.setProperty('--pane-w', `${width}px`);
+    paneResize.setAttribute('aria-valuenow', String(width));
+  }
+
+  function setPaneWidth(width: number, persist = true): void {
+    panePrefs.width = clampPaneWidth(width, window.innerWidth);
+    applyPaneWidth();
+    if (persist) writePane(storage, panePrefs);
+    placeStateBar();
+  }
+
+  function foldPane(collapsed: boolean, moveFocus = false): void {
+    panePrefs.collapsed = collapsed;
+    el.classList.toggle('is-collapsed', collapsed);
+    paneFold.setAttribute('aria-expanded', String(!collapsed));
+    paneUnfold.setAttribute('aria-expanded', String(!collapsed));
+    writePane(storage, panePrefs);
+    if (moveFocus) (collapsed ? paneUnfold : paneFold).focus();
+    requestAnimationFrame(() => placeStateBar());
+  }
+
+  on(paneFold, 'click', (event) => {
+    event.stopPropagation();
+    foldPane(true, true);
+  });
+  on(paneUnfold, 'click', () => foldPane(false, true));
+
+  let drag: { x: number; width: number } | null = null;
+  on(paneResize, 'pointerdown', (event) => {
+    const e = event as PointerEvent;
+    if (e.button !== 0) return;
+    e.preventDefault();
+    drag = { x: e.clientX, width: pane.getBoundingClientRect().width };
+    paneResize.setPointerCapture(e.pointerId);
+    el.classList.add('is-resizing');
+  });
+  on(paneResize, 'pointermove', (event) => {
+    if (drag === null) return;
+    setPaneWidth(drag.width + (event as PointerEvent).clientX - drag.x, false);
+  });
+  const endDrag = (): void => {
+    if (drag === null) return;
+    drag = null;
+    el.classList.remove('is-resizing');
+    writePane(storage, panePrefs);
+  };
+  on(paneResize, 'pointerup', endDrag);
+  on(paneResize, 'pointercancel', endDrag);
+  on(paneResize, 'dblclick', () => setPaneWidth(PANE_DEFAULT));
+  on(paneResize, 'keydown', (event) => {
+    const e = event as KeyboardEvent;
+    const step = e.shiftKey ? 64 : 16;
+    const now = clampPaneWidth(panePrefs.width, window.innerWidth);
+    const next =
+      e.key === 'ArrowLeft'
+        ? now - step
+        : e.key === 'ArrowRight'
+          ? now + step
+          : e.key === 'Home'
+            ? PANE_MIN
+            : e.key === 'End'
+              ? PANE_MAX
+              : null;
+    if (next === null) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setPaneWidth(next);
+  });
+
+  applyPaneWidth();
+  foldPane(panePrefs.collapsed);
+
   // -- rendering ------------------------------------------------------------
 
   function paintDiagram(): void {
@@ -711,7 +843,10 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     if (event.key.toLowerCase() === 'f') diagram.fit();
   }) as EventListener);
 
-  const offResize = on(window as unknown as EventTarget, 'resize', () => placeStateBar());
+  const offResize = on(window as unknown as EventTarget, 'resize', () => {
+    applyPaneWidth();
+    placeStateBar();
+  });
 
   // The stage sits under the rail, and the rail is as tall as the question
   // makes it — one line on level 1, three on level 41 — so its height is
