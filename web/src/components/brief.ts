@@ -26,7 +26,7 @@
 import { LEVELS } from '../../../src/engine/levels';
 import { shortestCounterexample } from '../../../src/engine/simulate';
 import type { SuiteResult } from '../../../src/engine/simulate';
-import type { Level, Machine } from '../../../src/engine/types';
+import type { Level, Machine, MachineKind } from '../../../src/engine/types';
 import { EPSILON } from '../../../src/engine/types';
 import { TOUCH, fill, h, on, setText } from '../dom';
 import { setNotation } from '../notation';
@@ -75,6 +75,12 @@ const CLASS_NAME: Record<string, string> = {
   TM: 'Turing machine',
 };
 
+/** How to read a rule, for the classes whose rules have more than one part. */
+const NOTATION_KEY: Partial<Record<MachineKind, string>> = {
+  PDA: 'A rule a, X → Y reads a, takes X off the top of the stack and puts Y on. ε means nothing; $ is the bottom.',
+  TM: 'A rule a → X, R reads a, writes X in its place and moves right. ⊔ is a blank cell.',
+};
+
 export function createBrief(callbacks: BriefCallbacks): Brief {
   const back = h(
     'button',
@@ -111,11 +117,15 @@ export function createBrief(callbacks: BriefCallbacks): Brief {
 
   const head = h('div', { class: 'pane-head' }, back, eyebrow);
 
+  // Where a rule has more than one part, say once how to read it.
+  const key = h('p', { class: 't-small brief-key', 'data-testid': 'notation-key', hidden: true });
+
   const statement = h(
     'div',
     { class: 'brief-statement', 'data-testid': 'statement' },
     question,
     language,
+    key,
   );
 
   const body = h(
@@ -189,6 +199,9 @@ export function createBrief(callbacks: BriefCallbacks): Brief {
       );
       setNotation(question, level.goal);
       setNotation(language, level.setBuilder);
+      const reading = NOTATION_KEY[level.type];
+      key.hidden = !reading;
+      if (reading) setText(key, reading);
 
       // A mark is only shown for a result that is still true of what is on
       // the canvas. After an edit every one goes back to the dot: not "wrong",

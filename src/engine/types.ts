@@ -76,6 +76,12 @@ export interface Frame {
   tapeOffset?: number;
   /** Optional human note for this step, shown in the trace player. */
   label?: string;
+  /**
+   * The rule, or rules, that produced this step: one for a DFA, a PDA path or
+   * a TM, every rule that fired on the symbol for an NFA. Absent on the first
+   * frame, and on a step where nothing could fire.
+   */
+  via?: TransitionId[];
 }
 
 export type RunOutcome = 'accept' | 'reject' | 'error' | 'nonhalting';

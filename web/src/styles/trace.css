@@ -60,9 +60,9 @@
 }
 
 .cellx.is-head {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-ink);
+  border-color: var(--energy);
+  background: var(--energy);
+  color: var(--energy-ink);
 }
 
 .cellx.is-empty {
@@ -95,7 +95,7 @@
 }
 
 .transport:focus-visible {
-  border-color: var(--accent);
+  border-color: var(--energy);
   color: var(--ink);
 }
 

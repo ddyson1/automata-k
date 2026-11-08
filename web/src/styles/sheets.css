@@ -212,11 +212,17 @@
 }
 
 .seg-opt:has(input:focus-visible) {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--energy);
   outline-offset: -2px;
   border-radius: 3px;
 }
 
 .setting-hint {
   margin: 8px 0 0;
+}
+
+/* The rule being written, in words, under the arrow it belongs to. */
+.rule-plain {
+  margin: -4px 0 4px;
+  color: var(--muted);
 }

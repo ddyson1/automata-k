@@ -8,6 +8,7 @@
  * a Turing machine.
  */
 
+import { transitionPlain } from '../../../src/engine/formal';
 import { defaultStackAlphabet, defaultTapeAlphabet } from '../../../src/engine/validate';
 import { EPSILON } from '../../../src/engine/types';
 import type { Level, Machine, Move, Transition } from '../../../src/engine/types';
@@ -94,6 +95,12 @@ export function buildRuleEditor(into: HTMLElement, options: RuleEditorOptions): 
     move: existing?.move,
   };
 
+  // The rule as it stands, in words, rewritten with every pick.
+  const plain = h('p', { class: 't-small rule-plain', 'data-testid': 'rule-plain', 'aria-live': 'polite' });
+  const say = (): void => {
+    plain.textContent = transitionPlain({ id: 'draft', from, to, ...draft }, level.type, machine);
+  };
+
   const fields: HTMLElement[] = [];
   const readable =
     level.type === 'TM'
@@ -104,24 +111,24 @@ export function buildRuleEditor(into: HTMLElement, options: RuleEditorOptions): 
 
   if (draft.read === '') draft.read = readable[0] ?? '';
 
-  const read = choices('Read', readable, draft.read, (v) => (draft.read = v), 'field-read');
+  const read = choices('Read', readable, draft.read, (v) => { draft.read = v; say(); }, 'field-read');
   fields.push(read.el);
 
   if (level.type === 'PDA') {
     const stack = [...defaultStackAlphabet(level), EPSILON];
     if (draft.pop === undefined) draft.pop = stack[0] ?? EPSILON;
     if (draft.push === undefined) draft.push = EPSILON;
-    fields.push(choices('Pop', stack, draft.pop, (v) => (draft.pop = v), 'field-pop').el);
-    fields.push(choices('Push', stack, draft.push, (v) => (draft.push = v), 'field-push').el);
+    fields.push(choices('Pop', stack, draft.pop, (v) => { draft.pop = v; say(); }, 'field-pop').el);
+    fields.push(choices('Push', stack, draft.push, (v) => { draft.push = v; say(); }, 'field-push').el);
   }
 
   if (level.type === 'TM') {
     const tape = defaultTapeAlphabet(level);
     if (draft.write === undefined) draft.write = draft.read;
     if (draft.move === undefined) draft.move = 'R';
-    fields.push(choices('Write', tape, draft.write, (v) => (draft.write = v), 'field-write').el);
+    fields.push(choices('Write', tape, draft.write, (v) => { draft.write = v; say(); }, 'field-write').el);
     fields.push(
-      choices('Move', ['L', 'R'], draft.move, (v) => (draft.move = v as Move), 'field-move').el,
+      choices('Move', ['L', 'R'], draft.move, (v) => { draft.move = v as Move; say(); }, 'field-move').el,
     );
   }
 
@@ -143,6 +150,7 @@ export function buildRuleEditor(into: HTMLElement, options: RuleEditorOptions): 
     row.appendChild(remove);
   }
 
+  say();
   fill(
     into,
     h(
@@ -150,6 +158,7 @@ export function buildRuleEditor(into: HTMLElement, options: RuleEditorOptions): 
       { class: 't-mono rule-head', 'data-testid': 'rule-head' },
       `${labelOf(machine, from)} → ${labelOf(machine, to)}`,
     ),
+    plain,
     ...fields,
     row,
   );

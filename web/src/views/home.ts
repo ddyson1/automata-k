@@ -122,7 +122,7 @@ export function createHomeView(navigate: (hash: string) => void): View {
         'p',
         {},
         'Progress is kept on this device only. No accounts, no analytics, no network calls. ' +
-          'Typefaces are JetBrains Mono, Inter and Literata, all under the SIL Open Font License.',
+          'Set in Martian Mono, with JetBrains Mono for Greek and symbols, both under the SIL Open Font License.',
       ),
     ),
   );

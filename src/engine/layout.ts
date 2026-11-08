@@ -50,7 +50,7 @@ const ROW_PITCH = 2 * R + 48;
  * imported, because the engine does not depend on the UI; the geometry tests
  * hold the two to the same numbers.
  */
-const CHIP_CHAR_W = 7.2;
+const CHIP_CHAR_W = 8.4;
 const CHIP_ROW_H = 24;
 
 /** The class a machine's rules imply. A layout is never told the level. */

@@ -58,7 +58,7 @@
   color: var(--ink);
   box-shadow:
     inset 0 -1px 0 var(--ink),
-    0 0 0 2px var(--accent-tint);
+    0 0 0 2px var(--energy-tint);
 }
 
 .brief-link.is-next,

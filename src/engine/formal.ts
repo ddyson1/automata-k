@@ -253,6 +253,44 @@ export function transitionSpeech(t: Transition, kind: MachineKind, m: Machine): 
   }
 }
 
+/**
+ * The same rule in plain words, for the player: what it reads, what it does to
+ * the machine's memory, and where it goes. Shown on a chip when it is hovered
+ * or focused, and in the trace as each rule fires. The speech above keeps the
+ * technical verbs; this one is for someone meeting a stack for the first time.
+ *
+ *   DFA, NFA  read 1 · go to q1
+ *   PDA       read ( · put X on top · stay in q0
+ *   TM        read a · write X · move right · go to q1
+ */
+export function transitionPlain(t: Transition, kind: MachineKind, m: Machine): string {
+  const where = t.from === t.to ? `stay in ${labelOf(m, t.from)}` : `go to ${labelOf(m, t.to)}`;
+  const read =
+    t.read === EPSILON ? 'read nothing' : t.read === BLANK ? 'read a blank' : `read ${t.read}`;
+  switch (kind) {
+    case 'DFA':
+    case 'NFA':
+      return `${read} · ${where}`;
+    case 'PDA': {
+      const pop = t.pop ?? EPSILON;
+      const push = t.push ?? EPSILON;
+      const parts = [read];
+      if (pop === STACK_BOTTOM) parts.push(`take the bottom marker ${STACK_BOTTOM} off`);
+      else if (pop !== EPSILON) parts.push(`take ${pop} off the top`);
+      if (push !== EPSILON) parts.push(`put ${push} on top`);
+      if (pop === EPSILON && push === EPSILON) parts.push('leave the stack alone');
+      parts.push(where);
+      return parts.join(' · ');
+    }
+    case 'TM': {
+      const write = t.write ?? t.read;
+      const writing =
+        write === t.read ? 'leave the cell as it is' : write === BLANK ? 'write a blank' : `write ${write}`;
+      return [read, writing, t.move === 'L' ? 'move left' : 'move right', where].join(' · ');
+    }
+  }
+}
+
 /** A text alternative to the whole diagram, driven by the δ list. Section 10.8. */
 export function machineSpeech(m: Machine, level: Level): string {
   if (m.states.length === 0) return 'The canvas is empty.';

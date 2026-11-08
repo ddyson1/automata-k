@@ -63,7 +63,7 @@ describe('tidy', () => {
   it('spaces arrows by the same chip metrics the drawing uses', () => {
     // layout.ts copies these rather than importing them, because the engine
     // does not depend on the UI. This is the seam that keeps the copies equal.
-    expect(CHIP_CHAR_W).toBe(7.2);
+    expect(CHIP_CHAR_W).toBe(8.4);
     expect(CHIP_ROW_HEIGHT).toBe(24);
   });
 

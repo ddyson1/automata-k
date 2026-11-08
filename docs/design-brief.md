@@ -14,8 +14,8 @@ When the app changes, change this too, or it will start lying.
 ## The work
 
 You are designing the interface for **automata-k**, a puzzle game for formal
-language theory. It ships as a web app and is being considered for a native iOS
-port. Forty two levels climb the Chomsky hierarchy.
+language theory. It ships as a web app at automata-k.org, and a native iOS port
+exists in `ios/`. Forty two levels climb the Chomsky hierarchy.
 
 **The core loop.** A level states a language in plain English — *"Accept exactly
 the strings that end with 1"* — and lists strings that must be accepted and
@@ -60,41 +60,56 @@ the subset construction, a regular expression), and a hint.
 
 This is not a blank page. Match it. Deviate only where you can say why.
 
-**Palette** — achromatic by decision, not by default. Colour appears only to
-carry a verdict.
+**Palette** — Mist and Dusk, one world in two lights. Mist is the light theme,
+a cool pale ground with a little haze in it. Dusk is the dark one, slate rather
+than black, so the machine has something to glow against. Colour has exactly two
+jobs: energy marks the machine doing something, and pass and fail carry the
+verdict. Nothing else is coloured.
 
 ```
-                 light      dark
-ground          #f7f7f5   #141518    the canvas, the page
-surface         #ffffff   #1a1c1f    panels, chips, states
-sunken          #f1f1ee   #17181b    the pressed and the tinted
-ink             #14161a   #eceae5    text, strokes, the accent
-ink-soft        #34383e   #c9c7c2
-muted           #6b6f76   #92959b
-faint           #9a9ea4   #6a6d73
-hairline        #e4e4e0   #2b2d31    the everyday rule
-rule            #c8c8c2   #43464b    the emphatic one
-pass            #1f6f43   #7fb595    a string your machine agrees with
-fail            #a32d18   #dd9276    one it does not
+                 Mist       Dusk
+ground          #eef1f5   #3f4859    the page
+ground-top      #f4f6f9   #525d71    the canvas fades from this...
+ground-bottom   #e3e8ef   #313848    ...to this, top to bottom
+surface         #fbfcfe   #394253    panels, chips, states
+sunken          #e7ebf1   #333b4b    the pressed and the tinted
+ink             #17202b   #eef2f8    text, strokes, selection
+ink-soft        #364152   #d2d8e1
+muted           #5a6577   #a8b1c0
+faint           #8a94a3   #8892a3
+hairline        #d9dee6   #535c6c    the everyday rule
+rule            #b7bfcb   #6a7384    the emphatic one
+energy          #2a54f5   #a8d6ff    the machine running: live state, read head, lit rule
+pass            #13824b   #95e4b0    a string your machine agrees with
+fail            #b83a20   #ffa48e    one it does not
 ```
 
 Radii: 5px on a chip, 8px on a control, 16px on a sheet. Tap target 44px.
 
-**Type** — three faces, three jobs, and the split is semantic rather than
-decorative.
+**Type** — one face. Everything is Martian Mono, a terminal typeface, pinned at
+width 100: the question, the prose, the notation, the labels. It has no Greek
+and no mathematical operators, so JetBrains Mono supplies exactly those glyphs
+under the same family name, scaled to Martian Mono's x-height so that δ(q0, a)
+reads as one line of type.
 
-- **Literata** (serif) — what the level asks. The question, and page headings.
-- **Inter** (sans) — everything you read as prose.
-- **JetBrains Mono** — everything that is notation: set-builder, δ, state
-  labels, test strings, tape cells, stack symbols, small uppercase labels.
+The old rule was that anything formal is monospaced, to signal "this is
+mathematics" without saying so. Now everything is, and the signal is the whole
+voice: this is a machine, and you are programming it.
 
-If a thing is formal, it is monospaced. That rule is load-bearing: it is how the
-app signals "this is mathematics" without saying so.
+Sizes are set by x-height rather than by number. Martian Mono's x-height is
+0.6em, so every role sits a little smaller in pixels than a proportional face
+would.
 
-**Marks** — no fills, no shadows, no gradients. Structure comes from hairlines
-and from space. A state is a circle with a hairline rim, not a filled disc; an
-accepting state is a double rim; the active state during a trace is the one
-place ink gets filled in.
+**Marks** — no shadows. Structure comes from hairlines and from space; the
+canvas carries a faint vertical gradient and nothing else does. A state is a
+circle with a hairline rim, not a filled disc; an accepting state is a double
+rim; the state a trace is in fills with energy, and that is the one filled
+state you will ever see.
+
+**Rules read out** — every rule can be said in plain words: *read ( · put X
+on top · stay in q0*. Hovering or focusing a rule's chip says it, the trace says
+it as each rule fires, and the rule editor says it as the player picks. Pushdown
+and Turing levels carry a one-line key to their notation in the brief.
 
 ## Constraints that are not negotiable
 

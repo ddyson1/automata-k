@@ -119,10 +119,9 @@
 
 .brief-q {
   font-family: var(--sans);
-  font-size: 22px;
-  line-height: 1.26;
+  font-size: 19px;
+  line-height: 1.3;
   font-weight: 450;
-  letter-spacing: -0.014em;
   margin: 0 0 10px;
   text-wrap: balance;
   flex: none;
@@ -383,4 +382,11 @@
   .level.is-collapsed.is-tracing .pane-actions {
     display: none;
   }
+}
+
+/* How to read a rule with more than one part. Pushdown and Turing levels only. */
+.brief-key {
+  margin: 8px 0 0;
+  color: var(--muted);
+  max-width: 46ch;
 }

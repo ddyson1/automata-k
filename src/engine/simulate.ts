@@ -18,6 +18,7 @@ import {
   type RunResult,
   type StateId,
   type Transition,
+  type TransitionId,
 } from './types';
 
 // ---------------------------------------------------------------------------
@@ -95,7 +96,7 @@ export function simulateDFA(m: Machine, level: Level, input: string): RunResult 
       };
     }
     current = next.to;
-    log.push({ active: [current], pos: i + 1 });
+    log.push({ active: [current], pos: i + 1, via: [next.id] });
   }
 
   return {
@@ -143,13 +144,17 @@ export function simulateNFA(m: Machine, level: Level, input: string): RunResult 
   for (let i = 0; i < input.length; i++) {
     const symbol = input[i] as string;
     const moved = new Set<StateId>();
+    const fired: TransitionId[] = [];
     for (const q of active) {
       for (const t of m.transitions) {
-        if (t.from === q && t.read === symbol) moved.add(t.to);
+        if (t.from === q && t.read === symbol) {
+          moved.add(t.to);
+          fired.push(t.id);
+        }
       }
     }
     active = epsilonClosure(m, moved);
-    log.push({ active: sorted(active), pos: i + 1 });
+    log.push({ active: sorted(active), pos: i + 1, via: fired });
     if (active.size === 0) {
       return {
         accepted: false,
@@ -199,6 +204,7 @@ export function simulatePDA(m: Machine, level: Level, input: string): RunResult 
 
   const configs = new Map<string, PdaConfig>();
   const parent = new Map<string, string>();
+  const firedBy = new Map<string, TransitionId>();
   const queue: string[] = [];
 
   const startKey = pdaKey(start);
@@ -259,20 +265,23 @@ export function simulatePDA(m: Machine, level: Level, input: string): RunResult 
       if (configs.has(nextKey)) continue;
       configs.set(nextKey, next);
       parent.set(nextKey, key);
+      firedBy.set(nextKey, t.id);
       queue.push(nextKey);
     }
   }
 
-  const path: PdaConfig[] = [];
+  const path: string[] = [];
   let cursor: string | null = acceptKey ?? best;
   while (cursor) {
-    path.unshift(configs.get(cursor) as PdaConfig);
+    path.unshift(cursor);
     cursor = parent.get(cursor) ?? null;
   }
 
   const log = new FrameLog();
-  for (const c of path) {
-    log.push({ active: [c.state], pos: c.pos, stack: c.stack.slice() });
+  for (const key of path) {
+    const c = configs.get(key) as PdaConfig;
+    const via = firedBy.get(key);
+    log.push({ active: [c.state], pos: c.pos, stack: c.stack.slice(), ...(via ? { via: [via] } : {}) });
   }
 
   if (acceptKey !== null) {
@@ -373,7 +382,7 @@ export function simulateTM(m: Machine, level: Level, input: string): RunResult {
     tape.set(head, rule.write ?? read);
     head += rule.move === 'L' ? -1 : 1;
     state = rule.to;
-    log.push(frame());
+    log.push({ ...frame(), via: [rule.id] });
 
     if (m.accepting.includes(state)) {
       return { accepted: true, frames: log.value, outcome: 'accept' };

@@ -16,8 +16,9 @@ import { minimise, ringLayout, subsetConstruction, withinCanvas } from '../src/e
 import { run, runSuite, simulatePDA, simulateTM } from '../src/engine/simulate';
 import { SOLUTIONS, solutionFor } from '../src/engine/solutions';
 import { CANVAS, EPSILON, LIMITS, STACK_BOTTOM, BLANK } from '../src/engine/types';
-import type { Level, Machine } from '../src/engine/types';
+import type { Level, Machine, MachineKind, Transition } from '../src/engine/types';
 import { validate } from '../src/engine/validate';
+import { transitionPlain } from '../src/engine/formal';
 
 // ---------------------------------------------------------------------------
 // counters, reported at the end of the run
@@ -528,6 +529,44 @@ describe('subset construction', () => {
 // ---------------------------------------------------------------------------
 
 describe('trace frames', () => {
+  it('every step after the first names the rule that produced it', () => {
+    for (const id of ['dfa-ends-in-1', 'pda-an-bn', 'tm-an-bn']) {
+      const level = levelOf(id);
+      const machine = solutionFor(id) as Machine;
+      const input = id.startsWith('dfa') ? '0101' : 'aabb';
+      const result = run(machine, level, input);
+      const ids = new Set(machine.transitions.map((t) => t.id));
+      expect(result.frames[0]?.via).toBeUndefined();
+      for (const frame of result.frames.slice(1)) {
+        expect(frame.via, `${id} step`).toHaveLength(1);
+        expect(ids.has(frame.via?.[0] as string)).toBe(true);
+      }
+    }
+  });
+
+  it('a DFA step names the very rule a reader would follow by hand', () => {
+    const level = levelOf('dfa-ends-in-1');
+    const machine = solutionFor(level.id) as Machine;
+    const result = run(machine, level, '01');
+    const rule = (i: number) => machine.transitions.find((t) => t.id === result.frames[i]?.via?.[0]);
+    expect(rule(1)?.read).toBe('0');
+    expect(rule(2)?.read).toBe('1');
+    expect(rule(2)?.to).toBe(result.frames[2]?.active[0]);
+  });
+
+  it('an NFA step names every rule that fired on the symbol', () => {
+    const level = LEVELS.find((l) => l.type === 'NFA') as Level;
+    const machine = solutionFor(level.id) as Machine;
+    const input = level.tests.find((w) => w.length > 0 && level.accepts(w)) as string;
+    const result = run(machine, level, input);
+    for (const frame of result.frames.slice(1)) {
+      for (const tid of frame.via ?? []) {
+        const t = machine.transitions.find((x) => x.id === tid);
+        expect(t?.read).not.toBe(EPSILON);
+      }
+    }
+  });
+
   it('a DFA run produces one frame per symbol plus the start frame', () => {
     const level = levelOf('dfa-ends-in-1');
     const result = run(solutionFor(level.id) as Machine, level, '0101');
@@ -569,3 +608,42 @@ describe('trace frames', () => {
     expect(result.frames.length).toBeLessThanOrEqual(LIMITS.frames);
   });
 });
+
+describe('rules in plain words', () => {
+  const m: Machine = {
+    states: [
+      { id: 's0', label: 'q0', x: 0, y: 0 },
+      { id: 's1', label: 'q1', x: 0, y: 0 },
+    ],
+    transitions: [],
+    start: 's0',
+    accepting: ['s1'],
+  };
+  const say = (t: Partial<Transition>, kind: MachineKind): string =>
+    transitionPlain({ id: 't', from: 's0', to: 's0', read: 'a', ...t } as Transition, kind, m);
+
+  it('says what a finite rule reads and where it goes', () => {
+    expect(say({ read: '1', to: 's1' }, 'DFA')).toBe('read 1 · go to q1');
+    expect(say({ read: EPSILON, to: 's1' }, 'NFA')).toBe('read nothing · go to q1');
+    expect(say({ read: '0' }, 'DFA')).toBe('read 0 · stay in q0');
+  });
+
+  it('says what a pushdown rule does to the stack, in words rather than push and pop', () => {
+    expect(say({ read: '(', pop: EPSILON, push: 'X' }, 'PDA')).toBe('read ( · put X on top · stay in q0');
+    expect(say({ read: ')', pop: 'X', push: EPSILON }, 'PDA')).toBe('read ) · take X off the top · stay in q0');
+    expect(say({ read: EPSILON, pop: STACK_BOTTOM, push: EPSILON, to: 's1' }, 'PDA')).toBe(
+      'read nothing · take the bottom marker $ off · go to q1',
+    );
+    expect(say({ read: EPSILON, pop: EPSILON, push: EPSILON, to: 's1' }, 'PDA')).toBe(
+      'read nothing · leave the stack alone · go to q1',
+    );
+  });
+
+  it('says what a Turing rule writes and which way it moves', () => {
+    expect(say({ read: 'a', write: 'X', move: 'R', to: 's1' }, 'TM')).toBe('read a · write X · move right · go to q1');
+    expect(say({ read: BLANK, write: BLANK, move: 'L' }, 'TM')).toBe(
+      'read a blank · leave the cell as it is · move left · stay in q0',
+    );
+  });
+});
+
