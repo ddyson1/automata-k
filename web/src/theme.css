@@ -1,43 +1,54 @@
 /*
- * Ink.
+ * Mist and Dusk.
  *
- * Achromatic. Paper, hairlines, and one weight of near-black. Structure comes
- * from rules and space, never from fills or shadows, so the permanent delta
- * list reads as part of one document rather than a stack of cards.
+ * One world in two lights. Mist is the light theme: a cool, pale ground with a
+ * little haze in it. Dusk is the dark one: slate rather than black, so the
+ * machine can glow against something. The system setting chooses between them
+ * unless the player has chosen in Settings.
  *
- * The only colour in the app is pass and fail, and it is deliberately quiet:
- * a machine that works should feel settled, not congratulated.
+ * Structure is ink and hairlines. Colour has exactly two jobs. Energy, the one
+ * saturated hue, means the machine is doing something: the state a trace is
+ * in, the rule it just used, the cell under the read head, and whatever part a
+ * line of the formal layer is pointing at. Pass and fail carry the verdict.
+ * Nothing else is coloured, so neither ever has to compete.
  *
- * Literata for level titles, Inter for interface text, JetBrains Mono for
- * anything that is machine notation. Notation is always mono, always
- * selectable, and never uppercased, because delta is not Delta.
+ * Every word is set in Martian Mono, a terminal face, because the game is
+ * about machines. Its Greek and operators come from JetBrains Mono under the
+ * same family name; see scripts/build-fonts.py. Notation is never uppercased,
+ * because delta is not Delta.
  */
 
 :root {
   color-scheme: light dark;
 
-  --ground: #f7f7f5;
-  --surface: #ffffff;
-  --sunken: #f1f1ee;
-  --ink: #14161a;
-  --ink-soft: #34383e;
-  --muted: #6b6f76;
-  --faint: #9a9ea4;
-  --hairline: #e4e4e0;
-  --rule: #c8c8c2;
-  --accent: #14161a;
-  --accent-ink: #ffffff;
-  --accent-tint: #ebebe7;
-  --pass: #1f6f43;
-  --pass-tint: #eef4f0;
-  --fail: #a32d18;
-  --fail-tint: #f8efec;
-  --scrim: rgb(20 22 26 / 32%);
-  --dot: #e3e3df;
+  --ground: #eef1f5;
+  --ground-top: #f4f6f9;
+  --ground-bottom: #e3e8ef;
+  --surface: #fbfcfe;
+  --sunken: #e7ebf1;
+  --ink: #17202b;
+  --ink-soft: #364152;
+  --muted: #5a6577;
+  --faint: #8a94a3;
+  --hairline: #d9dee6;
+  --rule: #b7bfcb;
+  --accent: #17202b;
+  --accent-ink: #fbfcfe;
+  --accent-tint: #e2e7ee;
+  --energy: #2a54f5;
+  --energy-ink: #ffffff;
+  --energy-tint: #e2e8fe;
+  --pass: #13824b;
+  --pass-tint: #e2f1e8;
+  --fail: #b83a20;
+  --fail-tint: #f7e6e1;
+  --scrim: rgb(23 32 43 / 32%);
+  --dot: #d6dce5;
 
-  --serif: 'Automata Serif', ui-serif, Georgia, serif;
-  --sans: 'Automata Sans', ui-sans-serif, system-ui, sans-serif;
+  /* One face for everything. The three names stay, because the roles do. */
   --mono: 'Automata Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --serif: var(--mono);
+  --sans: var(--mono);
 
   --r-chip: 5px;
   --r-control: 8px;
@@ -54,70 +65,85 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --ground: #141518;
-    --surface: #1a1c1f;
-    --sunken: #17181b;
-    --ink: #eceae5;
-    --ink-soft: #c9c7c2;
-    --muted: #92959b;
-    --faint: #6a6d73;
-    --hairline: #2b2d31;
-    --rule: #43464b;
-    --accent: #eceae5;
-    --accent-ink: #141518;
-    --accent-tint: #26282c;
-    --pass: #7fb595;
-    --pass-tint: #1a241e;
-    --fail: #dd9276;
-    --fail-tint: #261915;
-    --scrim: rgb(0 0 0 / 58%);
-    --dot: #24262a;
+    --ground: #3f4859;
+    --ground-top: #525d71;
+    --ground-bottom: #313848;
+    --surface: #394253;
+    --sunken: #333b4b;
+    --ink: #eef2f8;
+    --ink-soft: #d2d8e1;
+    --muted: #a8b1c0;
+    --faint: #8892a3;
+    --hairline: #535c6c;
+    --rule: #6a7384;
+    --accent: #eef2f8;
+    --accent-ink: #2b3240;
+    --accent-tint: #4a5466;
+    --energy: #a8d6ff;
+    --energy-ink: #0d1420;
+    --energy-tint: #45566f;
+    --pass: #95e4b0;
+    --pass-tint: #3b5049;
+    --fail: #ffa48e;
+    --fail-tint: #574247;
+    --scrim: rgb(10 14 22 / 55%);
+    --dot: #4b5567;
   }
 }
 
 /* The viewer's explicit choice beats the system in both directions. */
 :root[data-theme='light'] {
   color-scheme: light;
-  --ground: #f7f7f5;
-  --surface: #ffffff;
-  --sunken: #f1f1ee;
-  --ink: #14161a;
-  --ink-soft: #34383e;
-  --muted: #6b6f76;
-  --faint: #9a9ea4;
-  --hairline: #e4e4e0;
-  --rule: #c8c8c2;
-  --accent: #14161a;
-  --accent-ink: #ffffff;
-  --accent-tint: #ebebe7;
-  --pass: #1f6f43;
-  --pass-tint: #eef4f0;
-  --fail: #a32d18;
-  --fail-tint: #f8efec;
-  --scrim: rgb(20 22 26 / 32%);
-  --dot: #e3e3df;
+  --ground: #eef1f5;
+  --ground-top: #f4f6f9;
+  --ground-bottom: #e3e8ef;
+  --surface: #fbfcfe;
+  --sunken: #e7ebf1;
+  --ink: #17202b;
+  --ink-soft: #364152;
+  --muted: #5a6577;
+  --faint: #8a94a3;
+  --hairline: #d9dee6;
+  --rule: #b7bfcb;
+  --accent: #17202b;
+  --accent-ink: #fbfcfe;
+  --accent-tint: #e2e7ee;
+  --energy: #2a54f5;
+  --energy-ink: #ffffff;
+  --energy-tint: #e2e8fe;
+  --pass: #13824b;
+  --pass-tint: #e2f1e8;
+  --fail: #b83a20;
+  --fail-tint: #f7e6e1;
+  --scrim: rgb(23 32 43 / 32%);
+  --dot: #d6dce5;
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --ground: #141518;
-  --surface: #1a1c1f;
-  --sunken: #17181b;
-  --ink: #eceae5;
-  --ink-soft: #c9c7c2;
-  --muted: #92959b;
-  --faint: #6a6d73;
-  --hairline: #2b2d31;
-  --rule: #43464b;
-  --accent: #eceae5;
-  --accent-ink: #141518;
-  --accent-tint: #26282c;
-  --pass: #7fb595;
-  --pass-tint: #1a241e;
-  --fail: #dd9276;
-  --fail-tint: #261915;
-  --scrim: rgb(0 0 0 / 58%);
-  --dot: #24262a;
+  --ground: #3f4859;
+  --ground-top: #525d71;
+  --ground-bottom: #313848;
+  --surface: #394253;
+  --sunken: #333b4b;
+  --ink: #eef2f8;
+  --ink-soft: #d2d8e1;
+  --muted: #a8b1c0;
+  --faint: #8892a3;
+  --hairline: #535c6c;
+  --rule: #6a7384;
+  --accent: #eef2f8;
+  --accent-ink: #2b3240;
+  --accent-tint: #4a5466;
+  --energy: #a8d6ff;
+  --energy-ink: #0d1420;
+  --energy-tint: #45566f;
+  --pass: #95e4b0;
+  --pass-tint: #3b5049;
+  --fail: #ffa48e;
+  --fail-tint: #574247;
+  --scrim: rgb(10 14 22 / 55%);
+  --dot: #4b5567;
 }
 
 /* --------------------------------------------------------------------------
@@ -141,9 +167,8 @@ body {
   background: var(--ground);
   color: var(--ink);
   font-family: var(--sans);
-  font-size: 15px;
-  line-height: 1.4;
-  font-feature-settings: 'cv05' 1, 'ss03' 1;
+  font-size: 14px;
+  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   -webkit-text-size-adjust: 100%;
   overscroll-behavior-y: none;
@@ -170,7 +195,7 @@ input {
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--energy);
   outline-offset: 2px;
   border-radius: 3px;
 }
@@ -190,29 +215,34 @@ input {
    type
    -------------------------------------------------------------------------- */
 
+/*
+ * Sizes are set by x-height, not by number. Martian Mono's x-height is 0.6em,
+ * against roughly 0.55em for the sans and 0.47em for the serif it replaced, so
+ * each role is a little smaller in pixels than it was and the same size to the
+ * eye. Notation keeps its sizes: a formula can afford to be slightly larger.
+ */
 .t-display {
   font-family: var(--serif);
-  font-size: 26px;
-  line-height: 1.16;
+  font-size: 21px;
+  line-height: 1.22;
   font-weight: 500;
-  letter-spacing: -0.012em;
 }
 
 .t-title {
   font-family: var(--serif);
-  font-size: 19px;
-  line-height: 1.25;
+  font-size: 16px;
+  line-height: 1.3;
   font-weight: 500;
 }
 
 .t-body {
-  font-size: 15px;
-  line-height: 1.45;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .t-small {
-  font-size: 13px;
-  line-height: 1.42;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 /* The one structural device: a mono label above every band. */

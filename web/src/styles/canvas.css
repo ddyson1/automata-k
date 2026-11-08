@@ -8,7 +8,7 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  background: var(--ground);
+  background: linear-gradient(var(--ground-top), var(--ground-bottom));
 }
 
 .diagram-wrap {
@@ -334,15 +334,16 @@
 }
 
 .state.is-active .state-ring {
-  fill: var(--accent);
+  fill: var(--energy);
+  stroke: var(--energy);
 }
 
 .state.is-active .state-label {
-  fill: var(--accent-ink);
+  fill: var(--energy-ink);
 }
 
 .state.is-active .state-accept {
-  stroke: var(--accent-ink);
+  stroke: var(--energy-ink);
 }
 
 /* Clicking a state focuses it; the UA ring around an SVG group is not wanted. */
@@ -373,10 +374,14 @@
   pointer-events: none;
 }
 
-.chip.is-lit .chip-bg,
 .chip:hover .chip-bg {
   fill: var(--accent-tint);
   stroke: var(--ink);
+}
+
+.chip.is-lit .chip-bg {
+  fill: var(--energy-tint);
+  stroke: var(--energy);
 }
 
 .chip.is-selected .chip-bg {
@@ -388,4 +393,29 @@
   stroke: var(--ink);
   stroke-width: 2;
   stroke-dasharray: 3 2;
+}
+
+/* --------------------------------------------------------------------------
+   a rule, read out
+   -------------------------------------------------------------------------- */
+
+.diagram-wrap {
+  position: relative;
+}
+
+.chip-tip {
+  position: absolute;
+  z-index: 5;
+  transform: translate(-50%, -100%);
+  width: max-content;
+  max-width: min(340px, calc(100% - 16px));
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--ground);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+  pointer-events: none;
 }

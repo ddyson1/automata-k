@@ -30,13 +30,20 @@ import {
   edgesPathData,
 } from '../../../src/ui/geometry';
 import type { EdgeSpec, Positions, Pt } from '../../../src/ui/geometry';
-import { transitionChip } from '../../../src/engine/formal';
+import { transitionChip, transitionPlain } from '../../../src/engine/formal';
 import type { Machine, MachineKind, StateId, TransitionId } from '../../../src/engine/types';
 import { h, on, setAttr, svg } from '../dom';
 import { tap } from '../haptics';
 
-/** JetBrains Mono advances 0.6em, and geometry.ts sizes chips at CHIP_CHAR_W. */
-const CHIP_FONT = CHIP_CHAR_W / 0.6;
+/** Martian Mono advances 0.7em at width 100, and geometry.ts sizes chips at CHIP_CHAR_W. */
+const CHIP_FONT = CHIP_CHAR_W / 0.7;
+
+/**
+ * A state's name is drawn inside its circle, and names run to six characters.
+ * Six of Martian Mono at 14px is wider than the circle, so long names step
+ * down a size rather than spill over the rim.
+ */
+const labelSize = (label: string): number => (label.length > 5 ? 11.5 : label.length > 4 ? 12.5 : 14);
 const CHIP_H = 19;
 
 const START_MARKER_LEN = 22;
@@ -185,6 +192,63 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
   let hovered: StateId | null = null;
   let dropTarget: StateId | null = null;
 
+  // -- a rule, read out --------------------------------------------------------
+  //
+  // A chip says a, X → Y. Hovering it, or reaching it with the keyboard, says
+  // what that means: read a, take X off the top, put Y on. Touch has no hover;
+  // there, the rule editor and the trace say it instead.
+
+  const chipTip = h('div', { class: 'chip-tip', role: 'tooltip', 'data-testid': 'chip-tip', hidden: true });
+  el.appendChild(chipTip);
+  let tipFor: string | null = null;
+
+  const plainFor = (id: string): string => {
+    const t = model.machine.transitions.find((x) => x.id === id);
+    return t ? transitionPlain(t, model.kind, model.machine) : '';
+  };
+
+  function showChipTip(chip: Element): void {
+    const id = chip.getAttribute('data-transition');
+    const said = id ? plainFor(id) : '';
+    if (!id || !said) return;
+    tipFor = id;
+    chipTip.textContent = said;
+    chipTip.hidden = false;
+    const box = chip.getBoundingClientRect();
+    const host = el.getBoundingClientRect();
+    const half = chipTip.offsetWidth / 2;
+    const centre = box.left + box.width / 2 - host.left;
+    chipTip.style.left = `${clamp(centre, half + 8, Math.max(half + 8, host.width - half - 8))}px`;
+    chipTip.style.top = `${box.top - host.top - 6}px`;
+  }
+
+  function hideChipTip(): void {
+    tipFor = null;
+    chipTip.hidden = true;
+  }
+
+  const chipOf = (target: EventTarget | null): Element | null =>
+    target instanceof Element ? target.closest('.chip') : null;
+
+  cleanups.push(
+    on(chipLayer, 'pointerover', (event) => {
+      const e = event as PointerEvent;
+      if (e.pointerType === 'touch' || drag || rimDrag) return;
+      const chip = chipOf(e.target);
+      if (chip) showChipTip(chip);
+    }),
+    on(chipLayer, 'pointerout', (event) => {
+      const e = event as PointerEvent;
+      const chip = chipOf(e.target);
+      if (chip && !(e.relatedTarget instanceof Node && chip.contains(e.relatedTarget))) hideChipTip();
+    }),
+    on(chipLayer, 'focusin', (event) => {
+      const chip = chipOf(event.target);
+      if (chip && chip.matches(':focus-visible')) showChipTip(chip);
+    }),
+    on(chipLayer, 'focusout', () => hideChipTip()),
+  );
+
   // -- coordinate mapping ---------------------------------------------------
 
   /**
@@ -265,6 +329,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
    * the same pair read as three rules.
    */
   function drawChips(): void {
+    const keepTip = tipFor;
     chipLayer.textContent = '';
     edgeHitLayer.textContent = '';
 
@@ -286,7 +351,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
           'data-transition': id,
           role: 'button',
           tabindex: '0',
-          'aria-label': `Rule ${label}. Tap to edit.`,
+          'aria-label': `Rule ${label}: ${plainFor(id)}. Tap to edit.`,
         });
         group.append(
           svg('rect', {
@@ -313,6 +378,11 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
         chipLayer.appendChild(group);
       });
     }
+
+    // Chips are rebuilt on every update; a rule being read out stays read out.
+    const again = keepTip ? chipLayer.querySelector(`[data-transition="${CSS.escape(keepTip)}"]`) : null;
+    if (again) showChipTip(again);
+    else if (keepTip) hideChipTip();
   }
 
   function drawStartMarker(): void {
@@ -385,7 +455,10 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
       const accepting = model.machine.accepting.includes(state.id);
       paintStateClass(state.id, node);
       const label = node.querySelector('.state-label') as SVGTextElement;
-      if (label.textContent !== state.label) label.textContent = state.label;
+      if (label.textContent !== state.label) {
+        label.textContent = state.label;
+        label.setAttribute('font-size', String(labelSize(state.label)));
+      }
       node.setAttribute(
         'aria-label',
         `State ${state.label}${isStart ? ', start' : ''}${accepting ? ', accepting' : ''}`,

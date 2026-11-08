@@ -1,0 +1,303 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		08913CB0981C68EC7FAAC029 /* AutomataKApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE4B77499538889901F1FD3D /* AutomataKApp.swift */; };
+		8F3401516367785EE21DB702 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD2E2D43EC3C98686C658038 /* Theme.swift */; };
+		EF23CE801E39DA8FCB3783CD /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1931539167141820D93ABC71 /* Store.swift */; };
+		84A3C7B4F6F5D818E2F6F950 /* Geometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC7107E7345680ED7DDFC80B /* Geometry.swift */; };
+		89B38435A62C637E660BCD30 /* DiagramView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 250BEE2F035B399E8EFAAF1B /* DiagramView.swift */; };
+		E621351FE9D394AC0A59CDB2 /* LevelListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D60AA32DFF266C0949B96E23 /* LevelListView.swift */; };
+		D18F22E95D3F407338412882 /* LevelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ABFCBE740049A6EFBE36615 /* LevelView.swift */; };
+		B0653E0E88758B1F7939CE53 /* PaneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC568E28A7ED6533CD3FF816 /* PaneView.swift */; };
+		796C886FDCB13D2C22A3FA52 /* RuleEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E17CC9B73E191B5AB189CD1 /* RuleEditorView.swift */; };
+		3FA76E1F91AEDCDD2EE92938 /* TraceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8284EA5A3238198D18238228 /* TraceView.swift */; };
+		CBD5D2FBEAA20F6BA83D1D44 /* Types.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052968A9F870C93737AEE895 /* Types.swift */; };
+		3EF6C9F25F4BBB17378E1B98 /* Validate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC4FA95BC3AF975FA9D84FFF /* Validate.swift */; };
+		94B5AB34D6F8A9B1EAFAB98B /* Simulate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FA911B683F20CDA28B2E2DD /* Simulate.swift */; };
+		D8B12A4200E8400ABDC3BAF2 /* Grammar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D1E1095A5FC4C47945AF43C /* Grammar.swift */; };
+		0F33D5DEBBD5C68739DA74AB /* Golden.swift in Sources */ = {isa = PBXBuildFile; fileRef = D47A0E60863B8DB60E0759D1 /* Golden.swift */; };
+		4760DBCDC0B90B5C386F6D13 /* Layout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 671D3B95E85F5DEB305072B0 /* Layout.swift */; };
+		F2D5B0143C7D5F336D87A373 /* golden.json in Resources */ = {isa = PBXBuildFile; fileRef = E2D7CE07E36AF940BE26A7A7 /* golden.json */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		AE4B77499538889901F1FD3D /* AutomataKApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "AutomataKApp.swift"; path = "AutomataK/AutomataKApp.swift"; sourceTree = "<group>"; };
+		DD2E2D43EC3C98686C658038 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "Theme.swift"; path = "AutomataK/Theme.swift"; sourceTree = "<group>"; };
+		1931539167141820D93ABC71 /* Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "Store.swift"; path = "AutomataK/Store.swift"; sourceTree = "<group>"; };
+		EC7107E7345680ED7DDFC80B /* Geometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "Geometry.swift"; path = "AutomataK/Views/Geometry.swift"; sourceTree = "<group>"; };
+		250BEE2F035B399E8EFAAF1B /* DiagramView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "DiagramView.swift"; path = "AutomataK/Views/DiagramView.swift"; sourceTree = "<group>"; };
+		D60AA32DFF266C0949B96E23 /* LevelListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "LevelListView.swift"; path = "AutomataK/Views/LevelListView.swift"; sourceTree = "<group>"; };
+		3ABFCBE740049A6EFBE36615 /* LevelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "LevelView.swift"; path = "AutomataK/Views/LevelView.swift"; sourceTree = "<group>"; };
+		BC568E28A7ED6533CD3FF816 /* PaneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "PaneView.swift"; path = "AutomataK/Views/PaneView.swift"; sourceTree = "<group>"; };
+		0E17CC9B73E191B5AB189CD1 /* RuleEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "RuleEditorView.swift"; path = "AutomataK/Views/RuleEditorView.swift"; sourceTree = "<group>"; };
+		8284EA5A3238198D18238228 /* TraceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "TraceView.swift"; path = "AutomataK/Views/TraceView.swift"; sourceTree = "<group>"; };
+		052968A9F870C93737AEE895 /* Types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "Types.swift"; path = "../Sources/AutomataEngine/Types.swift"; sourceTree = "<group>"; };
+		FC4FA95BC3AF975FA9D84FFF /* Validate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "Validate.swift"; path = "../Sources/AutomataEngine/Validate.swift"; sourceTree = "<group>"; };
+		9FA911B683F20CDA28B2E2DD /* Simulate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "Simulate.swift"; path = "../Sources/AutomataEngine/Simulate.swift"; sourceTree = "<group>"; };
+		8D1E1095A5FC4C47945AF43C /* Grammar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "Grammar.swift"; path = "../Sources/AutomataEngine/Grammar.swift"; sourceTree = "<group>"; };
+		D47A0E60863B8DB60E0759D1 /* Golden.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "Golden.swift"; path = "../Sources/AutomataEngine/Golden.swift"; sourceTree = "<group>"; };
+		671D3B95E85F5DEB305072B0 /* Layout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "Layout.swift"; path = "../Sources/AutomataEngine/Layout.swift"; sourceTree = "<group>"; };
+		E2D7CE07E36AF940BE26A7A7 /* golden.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = "golden.json"; path = "../Tests/AutomataEngineTests/Fixtures/golden.json"; sourceTree = "<group>"; };
+		38A007151ABE87CC01A5B6E9 /* automata-k.app */ = {isa = PBXFileReference; explicitFileType = "wrapper.application"; includeInIndex = 0; path = "automata-k.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		69BE8A4D8E4D9DA4E7DB3928 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		E50290A24C49A459B43487C5 = {
+			isa = PBXGroup;
+			children = (
+				69F8D45498D7E20DA99BB780 /* AutomataK */,
+				2F0F8C3A55EC647ED499748E /* AutomataEngine */,
+				328EC33DF3954DC9B83FA285 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		328EC33DF3954DC9B83FA285 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				38A007151ABE87CC01A5B6E9 /* automata-k.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		69F8D45498D7E20DA99BB780 /* AutomataK */ = {
+			isa = PBXGroup;
+			children = (
+				AE4B77499538889901F1FD3D /* AutomataKApp.swift */,
+				DD2E2D43EC3C98686C658038 /* Theme.swift */,
+				1931539167141820D93ABC71 /* Store.swift */,
+				E2D7CE07E36AF940BE26A7A7 /* golden.json */,
+				70833B5C55E5291733BB3D88 /* Views */,
+			);
+			name = AutomataK;
+			sourceTree = "<group>";
+		};
+		70833B5C55E5291733BB3D88 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				EC7107E7345680ED7DDFC80B /* Geometry.swift */,
+				250BEE2F035B399E8EFAAF1B /* DiagramView.swift */,
+				D60AA32DFF266C0949B96E23 /* LevelListView.swift */,
+				3ABFCBE740049A6EFBE36615 /* LevelView.swift */,
+				BC568E28A7ED6533CD3FF816 /* PaneView.swift */,
+				0E17CC9B73E191B5AB189CD1 /* RuleEditorView.swift */,
+				8284EA5A3238198D18238228 /* TraceView.swift */,
+			);
+			name = Views;
+			sourceTree = "<group>";
+		};
+		2F0F8C3A55EC647ED499748E /* AutomataEngine */ = {
+			isa = PBXGroup;
+			children = (
+				052968A9F870C93737AEE895 /* Types.swift */,
+				FC4FA95BC3AF975FA9D84FFF /* Validate.swift */,
+				9FA911B683F20CDA28B2E2DD /* Simulate.swift */,
+				8D1E1095A5FC4C47945AF43C /* Grammar.swift */,
+				D47A0E60863B8DB60E0759D1 /* Golden.swift */,
+				671D3B95E85F5DEB305072B0 /* Layout.swift */,
+			);
+			name = AutomataEngine;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0E8A3AD980EC179856012B7E /* automata-k */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D3AFF16135CE7066D577B464 /* Build configuration list for PBXNativeTarget "automata-k" */;
+			buildPhases = (
+				4E57AE888889001C06A4F7E8 /* Sources */,
+				69BE8A4D8E4D9DA4E7DB3928 /* Frameworks */,
+				D6C9E8A172005E68A1DD674F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "automata-k";
+			productName = AutomataK;
+			productReference = 38A007151ABE87CC01A5B6E9 /* automata-k.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		98F54143AB4E86B28C3AFEE0 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1520;
+				LastUpgradeCheck = 1520;
+				TargetAttributes = {
+					0E8A3AD980EC179856012B7E = {
+						CreatedOnToolsVersion = 15.2;
+					};
+				};
+			};
+			buildConfigurationList = 41A2CC2D5321B7BB2E956CA5 /* Build configuration list for PBXProject "AutomataK" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = E50290A24C49A459B43487C5;
+			productRefGroup = 328EC33DF3954DC9B83FA285 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				0E8A3AD980EC179856012B7E /* automata-k */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D6C9E8A172005E68A1DD674F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F2D5B0143C7D5F336D87A373 /* golden.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4E57AE888889001C06A4F7E8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				08913CB0981C68EC7FAAC029 /* AutomataKApp.swift in Sources */,
+				8F3401516367785EE21DB702 /* Theme.swift in Sources */,
+				EF23CE801E39DA8FCB3783CD /* Store.swift in Sources */,
+				84A3C7B4F6F5D818E2F6F950 /* Geometry.swift in Sources */,
+				89B38435A62C637E660BCD30 /* DiagramView.swift in Sources */,
+				E621351FE9D394AC0A59CDB2 /* LevelListView.swift in Sources */,
+				D18F22E95D3F407338412882 /* LevelView.swift in Sources */,
+				B0653E0E88758B1F7939CE53 /* PaneView.swift in Sources */,
+				796C886FDCB13D2C22A3FA52 /* RuleEditorView.swift in Sources */,
+				3FA76E1F91AEDCDD2EE92938 /* TraceView.swift in Sources */,
+				CBD5D2FBEAA20F6BA83D1D44 /* Types.swift in Sources */,
+				3EF6C9F25F4BBB17378E1B98 /* Validate.swift in Sources */,
+				94B5AB34D6F8A9B1EAFAB98B /* Simulate.swift in Sources */,
+				D8B12A4200E8400ABDC3BAF2 /* Grammar.swift in Sources */,
+				0F33D5DEBBD5C68739DA74AB /* Golden.swift in Sources */,
+				4760DBCDC0B90B5C386F6D13 /* Layout.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		89E1FD6268CC0F221A2BE178 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				SDKROOT = iphoneos;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		E6DE6C99132752C914FEF632 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				SDKROOT = iphoneos;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		32FAAECAC742100F7753F0C1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "automata-k";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "org.automata-k.AutomataK";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		01F561AC4AB15D6A23A57976 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "automata-k";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "org.automata-k.AutomataK";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		41A2CC2D5321B7BB2E956CA5 /* Build configuration list for PBXProject "AutomataK" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				89E1FD6268CC0F221A2BE178 /* Debug */,
+				E6DE6C99132752C914FEF632 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D3AFF16135CE7066D577B464 /* Build configuration list for PBXNativeTarget "automata-k" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				32FAAECAC742100F7753F0C1 /* Debug */,
+				01F561AC4AB15D6A23A57976 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 98F54143AB4E86B28C3AFEE0 /* Project object */;
+}

@@ -9,9 +9,18 @@
  * to its real limit, so a capped trace still reports the true verdict.
  */
 
+import { transitionPlain } from '../../../src/engine/formal';
 import { run } from '../../../src/engine/simulate';
 import { BLANK, EPSILON } from '../../../src/engine/types';
-import type { Frame, Level, Machine, RunResult, StateId } from '../../../src/engine/types';
+import type {
+  Frame,
+  Level,
+  Machine,
+  MachineKind,
+  RunResult,
+  StateId,
+  Transition,
+} from '../../../src/engine/types';
 import { fill, h, on, setText } from '../dom';
 
 export interface TraceCallbacks {
@@ -74,6 +83,22 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
   let input: string | null = null;
   let timer: ReturnType<typeof setInterval> | null = null;
   let machineLabels = new Map<StateId, string>();
+  /** The machine being traced, so each step can say which rule it used. */
+  let traced: { machine: Machine; kind: MachineKind; rules: Map<string, Transition> } | null = null;
+
+  /** What the step did, in words: the rule that fired, or where the machine now is. */
+  function describe(frame: Frame | undefined, where: string): string {
+    if (frame?.label) return `${frame.label} In ${where}.`;
+    const fired = (frame?.via ?? [])
+      .map((id) => traced?.rules.get(id))
+      .filter((t): t is Transition => t !== undefined);
+    if (traced && fired.length === 1) {
+      const said = transitionPlain(fired[0] as Transition, traced.kind, traced.machine);
+      return `${said.charAt(0).toUpperCase()}${said.slice(1)}.`;
+    }
+    if (fired.length > 1) return `${fired.length} rules fired at once. In ${where}.`;
+    return `In ${where}.`;
+  }
 
   function stopTimer(): void {
     if (timer) clearInterval(timer);
@@ -152,7 +177,7 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
 
     const names = active.map((id) => machineLabels.get(id) ?? id);
     const where = names.length === 0 ? 'nowhere' : names.join(', ');
-    setText(caption, frame?.label ? `${frame.label} In ${where}.` : `In ${where}.`);
+    setText(caption, describe(frame, where));
     setText(counter, `${Math.min(current + 1, result.frames.length)}/${result.frames.length}`);
     back.toggleAttribute('disabled', current === 0);
     forward.toggleAttribute('disabled', current >= result.frames.length - 1);
@@ -217,6 +242,7 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
     play(machine, level, value) {
       stopTimer();
       machineLabels = new Map(machine.states.map((s) => [s.id, s.label]));
+      traced = { machine, kind: level.type, rules: new Map(machine.transitions.map((t) => [t.id, t])) };
       const outcome = run(machine, level, value);
       if (outcome.error) {
         input = value;

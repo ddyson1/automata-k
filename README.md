@@ -102,6 +102,19 @@ a pushdown automaton, a tape for a Turing machine.
 
 ![A pushdown automaton mid-run, with its stack](docs/trace.png)
 
+## On iOS
+
+`ios/App/AutomataK.xcodeproj` is a SwiftUI app running the same engine, with the
+same forty two levels read from the same golden fixture. It is direction A of
+`docs/design-brief.md`: the rail across the top, the tools and Run in the
+thumb's arc. The one thing that is native rather than ported is drawing an
+arrow — the web reveals a state's grips on hover, and a touch screen has none,
+so selecting a state reveals them instead.
+
+Nothing in `ios/` has been compiled: it was written where there is no Swift
+toolchain. `python3 ios/check-app.py` does what it can without one, and
+`ios/README.md` says exactly what that covers and what it does not.
+
 ## Playing it locally
 
 ```
@@ -300,15 +313,18 @@ question visible throughout rather than never.
 
 ## Design
 
-Ink: achromatic, hairline rules, no fills, no shadows. Structure comes from
-rules and space. Pass and fail are the only colour in the app, and they are
-quiet; a machine that works should feel settled, not congratulated.
+Mist and Dusk: one world in two lights, a pale cool ground for the light theme
+and slate rather than black for the dark one. Structure is ink and hairlines.
+Colour has two jobs only. Energy, the single saturated hue, marks the machine
+doing something: the state a trace is in, the rule it used, the cell under the
+read head. Pass and fail carry the verdict.
 
-Literata for level titles, Inter for interface text, JetBrains Mono for anything
-that is machine notation. All three are bundled and cut by
-`scripts/build-fonts.py` from the complete originals down to the ranges the app
-can draw. 189KB, and δ, ε, Σ and the set-theory symbols are drawn by the
-typeface rather than by whatever the system happened to have.
+Everything is set in Martian Mono, a terminal face, pinned at width 100. It has
+no Greek or operators, so JetBrains Mono is cut down to exactly what it lacks
+and declared under the same family name, scaled to Martian Mono's x-height.
+Both are bundled and cut by `scripts/build-fonts.py`, 64KB together, and δ,
+ε, Σ and the set-theory symbols are drawn by a typeface rather than by
+whatever the system happened to have.
 
 Exponents are written `^n` in source, not with Unicode superscript codepoints.
 A type study measured every non-ASCII character the app shows against nine
@@ -378,7 +394,7 @@ device behind a single `storage.ts` interface. No paid dependencies.
 
 ## Licence
 
-The bundled typefaces are JetBrains Mono, Inter and Literata, all under the SIL
+The bundled typefaces are Martian Mono and JetBrains Mono, both under the SIL
 Open Font License 1.1. Their notices travel with them in
 [`web/src/fonts/OFL.txt`](web/src/fonts/OFL.txt), and that file has to stay with
 any copy of the fonts.

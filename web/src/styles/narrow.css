@@ -58,7 +58,13 @@
   }
 
   .brief-q {
-    font-size: 19px;
+    font-size: 17px;
+  }
+
+  /* The rail is measured to the pixel. The key lives in the rule editor and
+     the trace on a phone, where a rule is actually being read. */
+  .brief-key {
+    display: none;
   }
 
   /* The verdict is a tinted line at the foot of the rail, and only once a run

@@ -46,8 +46,11 @@ const LOOP_RADIUS = 0.68;
 export const LOOP_REACH = LOOP_CENTRE + LOOP_RADIUS;
 /** Height of one chip row in a stack. */
 export const CHIP_ROW_HEIGHT = 24;
-/** Advance of one character in the chip's monospace face, at the chip's size. */
-export const CHIP_CHAR_W = 7.2;
+/**
+ * Advance of one character in the chip's monospace face, at the chip's size:
+ * Martian Mono pinned at width 100 is 0.7em, and chips are set at 12px.
+ */
+export const CHIP_CHAR_W = 8.4;
 /** Horizontal padding inside a chip. */
 export const CHIP_PAD_X = 6;
 /** Gap between a curve and the near edge of its chip stack. */

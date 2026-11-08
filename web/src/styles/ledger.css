@@ -99,9 +99,12 @@
   color: var(--fail);
 }
 
-.delta-line.is-lit,
 .delta-line:hover {
   background: var(--accent-tint);
+}
+
+.delta-line.is-lit {
+  background: var(--energy-tint);
 }
 
 .delta-note {
