@@ -10,6 +10,9 @@
 import { describe, expect, it } from 'vitest';
 
 import { CANVAS } from '../src/engine/types';
+import { transitionChip } from '../src/engine/formal';
+import { LEVELS } from '../src/engine/levels';
+import { solutionFor } from '../src/engine/solutions';
 import {
   ARROW_CLEARANCE,
   BEND_DEFAULT,
@@ -21,8 +24,11 @@ import {
   CHIP_PAD_X,
   CHIP_ROW_HEIGHT,
   chipAnchor,
+  chipAnchors,
+  chipStackSize,
   edgeGeometry,
   edgesPathData,
+  START_ENTRY_LEN,
   STATE_RADIUS,
   type EdgeSpec,
   type Positions,
@@ -367,3 +373,206 @@ describe('batching', () => {
     expect(heads).toBe('');
   });
 });
+
+describe('chip placement, all at once', () => {
+  type Box = { x0: number; y0: number; x1: number; y1: number };
+  const boxOf = (p: { x: number; y: number }, size: { w: number; h: number }): Box => ({
+    x0: p.x - size.w / 2,
+    y0: p.y - size.h / 2,
+    x1: p.x + size.w / 2,
+    y1: p.y + size.h / 2,
+  });
+  const overlap = (a: Box, b: Box): number =>
+    Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) *
+    Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
+  const intrudes = (b: Box, c: { x: number; y: number }): boolean =>
+    Math.hypot(Math.max(b.x0 - c.x, 0, c.x - b.x1), Math.max(b.y0 - c.y, 0, c.y - b.y1)) <
+    STATE_RADIUS - 1;
+
+  /** Every reference solution, laid out as authored, with its chips placed. */
+  const solutions = [...LEVELS]
+    .sort((a, b) => a.index - b.index)
+    .map((level) => {
+      const m = solutionFor(level.id);
+      if (!m) throw new Error(`no solution for ${level.id}`);
+      const positions: Positions = Object.fromEntries(
+        m.states.map((st) => [st.id, { x: st.x, y: st.y }]),
+      );
+      const edges = buildEdges(
+        m.transitions.map((t) => ({
+          id: t.id,
+          from: t.from,
+          to: t.to,
+          chip: transitionChip(t, level.type),
+        })),
+        m.start,
+      );
+      const placed = chipAnchors(edges, positions, STATE_RADIUS, undefined, undefined, m.start);
+      const { anchors } = placed;
+      const boxes = edges.map((e) =>
+        boxOf(anchors.get(e.key) as { x: number; y: number }, chipStackSize(e)),
+      );
+      return { level, machine: m, positions, edges, boxes };
+    });
+
+  it('spreads the stacks of a cycle round it instead of piling them in the middle', () => {
+    // Counting in threes: three edges round a triangle, two rules each. Each
+    // bends the same way round, so on their own all three stacks face inward.
+    const l3 = solutions.find((x) => x.level.index === 3);
+    if (!l3) throw new Error('no level 3');
+    const alone = l3.edges.map((e) => boxOf(chipAnchor(e, l3.positions), chipStackSize(e)));
+    const collisions = (boxes: Box[]): number =>
+      boxes
+        .flatMap((a, i) => boxes.slice(i + 1).map((b) => overlap(a, b)))
+        .filter((o) => o > 1).length;
+    expect(collisions(alone)).toBeGreaterThan(0);
+    expect(collisions(l3.boxes)).toBe(0);
+  });
+
+  it('puts no chip on a state, in any reference solution', () => {
+    for (const { level, positions, boxes } of solutions) {
+      for (const b of boxes) {
+        for (const c of Object.values(positions)) expect(intrudes(b, c), level.id).toBe(false);
+      }
+    }
+  });
+
+  it('lets no two stacks overlap, in any reference solution', () => {
+    // The Turing ones included: seven states and a stack of six rules in the
+    // 340 by 460 sheet, which is the tightest a phone gets.
+    for (const { level, boxes } of solutions) {
+      for (let i = 0; i < boxes.length; i++) {
+        for (let j = i + 1; j < boxes.length; j++) {
+          expect(overlap(boxes[i] as Box, boxes[j] as Box), level.id).toBe(0);
+        }
+      }
+    }
+  });
+
+  it('keeps clear air between stacks on every finite or pushdown solution', () => {
+    // More than the space between the rows of one stack, so two stacks never
+    // read as one taller one.
+    for (const { level, boxes } of solutions.filter((x) => x.level.type !== 'TM')) {
+      for (let i = 0; i < boxes.length; i++) {
+        for (let j = i + 1; j < boxes.length; j++) {
+          const a = boxes[i] as Box;
+          const b = boxes[j] as Box;
+          const gap = Math.max(a.x0 - b.x1, b.x0 - a.x1, a.y0 - b.y1, b.y0 - a.y1);
+          expect(gap, level.id).toBeGreaterThanOrEqual(8);
+        }
+      }
+    }
+  });
+
+  /**
+   * Points on every stroke as drawn, read back from the path data rather than
+   * from the placer's own sampling: quadratic edges, arc loops, and the start
+   * marker's shaft.
+   */
+  function strokePoints(d: string): { x: number; y: number }[] {
+    const n = (d.match(/-?\d+(\.\d+)?/g) ?? []).map(Number);
+    const out: { x: number; y: number }[] = [];
+    if (d.includes('Q')) {
+      const [x0, y0, cx, cy, x1, y1] = n as [number, number, number, number, number, number];
+      for (let i = 0; i <= 24; i++) {
+        const t = i / 24;
+        const u = 1 - t;
+        out.push({
+          x: u * u * x0 + 2 * u * t * cx + t * t * x1,
+          y: u * u * y0 + 2 * u * t * cy + t * t * y1,
+        });
+      }
+    } else if (d.includes('A')) {
+      // M x0 y0 A r r 0 large 1 x1 y1: clockwise, so the centre is right of the chord.
+      const [x0, y0, r, , , large, , x1, y1] = n as number[];
+      const chord = Math.hypot(x1! - x0!, y1! - y0!);
+      const rise = Math.sqrt(Math.max(0, r! * r! - (chord / 2) ** 2)) * (large ? -1 : 1);
+      const c = {
+        x: (x0! + x1!) / 2 - ((y1! - y0!) / chord) * rise,
+        y: (y0! + y1!) / 2 + ((x1! - x0!) / chord) * rise,
+      };
+      const a0 = Math.atan2(y0! - c.y, x0! - c.x);
+      let a1 = Math.atan2(y1! - c.y, x1! - c.x);
+      while (a1 < a0) a1 += Math.PI * 2;
+      for (let i = 0; i <= 24; i++) {
+        const a = a0 + ((a1 - a0) * i) / 24;
+        out.push({ x: c.x + r! * Math.cos(a), y: c.y + r! * Math.sin(a) });
+      }
+    }
+    return out;
+  }
+
+  const covered = (x: (typeof solutions)[number], boxes: Box[]): number => {
+    const lines = x.edges.flatMap((e) => strokePoints(edgeGeometry(e, x.positions).path));
+    const start = x.machine.start ? x.positions[x.machine.start] : undefined;
+    if (start) {
+      for (let i = 0; i <= 24; i++) {
+        lines.push({ x: start.x - STATE_RADIUS - 3 - (START_ENTRY_LEN * i) / 24, y: start.y });
+      }
+    }
+    const under = (b: Box): number =>
+      lines.filter((q) => q.x > b.x0 && q.x < b.x1 && q.y > b.y0 && q.y < b.y1).length;
+    return boxes.reduce((n, b) => n + under(b), 0);
+  };
+
+  it('lays no stack across a line, on any finite or pushdown solution', () => {
+    for (const x of solutions.filter((s) => s.level.type !== 'TM')) {
+      expect(covered(x, x.boxes), x.level.id).toBe(0);
+    }
+  });
+
+  it('leaves most of every Turing diagram\'s lines uncovered, even in the bare sheet', () => {
+    // A dozen wide rules round seven states in 340 by 460 cannot all find open
+    // ground, so some line goes under a label: never more than a fifth of a
+    // diagram's, and under a twelfth of all of it.
+    let hidden = 0;
+    let total = 0;
+    for (const x of solutions.filter((s) => s.level.type === 'TM')) {
+      const all = covered(x, [{ x0: -1e4, y0: -1e4, x1: 1e4, y1: 1e4 }]);
+      const under = covered(x, x.boxes);
+      expect(under / all, x.level.id).toBeLessThanOrEqual(1 / 5);
+      hidden += under;
+      total += all;
+    }
+    expect(hidden / total).toBeLessThan(1 / 12);
+  });
+
+  it('hangs the stack of an upright edge clear of the line, however wide the rule', () => {
+    const positions: Positions = { a: { x: 170, y: 120 }, b: { x: 170, y: 320 } };
+    const one = edge({ key: 'a->b', from: 'a', to: 'b', bend: 0, chips: ['a → X, R'] });
+    const placed = chipAnchors([one], positions).anchors.get('a->b');
+    if (!placed) throw new Error('no anchor');
+    const b = boxOf(placed, chipStackSize(one));
+    expect(b.x0 > 170 || b.x1 < 170).toBe(true);
+    // And so does the stack placed alone.
+    const alone = boxOf(chipAnchor(one, positions), chipStackSize(one));
+    expect(alone.x0 > 170 || alone.x1 < 170).toBe(true);
+  });
+
+  it('keeps an edge on the side it used last time, so labels do not flicker', () => {
+    const positions: Positions = { a: { x: 80, y: 200 }, b: { x: 260, y: 200 } };
+    const one = edge({ key: 'a->b', from: 'a', to: 'b', chips: ['0'] });
+    for (const side of [1, -1] as const) {
+      const was = new Map([['a->b', side]]);
+      const again = chipAnchors([one], positions, STATE_RADIUS, undefined, was);
+      expect(again.sides.get('a->b')).toBe(side);
+    }
+  });
+
+  it('puts the labels of a cycle outside it, with air between stacks', () => {
+    const l3 = solutions.find((x) => x.level.index === 3);
+    if (!l3) throw new Error('no level 3');
+    const cx = Object.values(l3.positions).reduce((n, p) => n + p.x, 0) / 3;
+    const cy = Object.values(l3.positions).reduce((n, p) => n + p.y, 0) / 3;
+    l3.edges.forEach((e, i) => {
+      const g = edgeGeometry(e, l3.positions);
+      const b = l3.boxes[i] as Box;
+      const centre = { x: (b.x0 + b.x1) / 2, y: (b.y0 + b.y1) / 2 };
+      // Further from the middle than the curve it labels.
+      expect(Math.hypot(centre.x - cx, centre.y - cy)).toBeGreaterThan(
+        Math.hypot(g.anchor.x - cx, g.anchor.y - cy),
+      );
+    });
+  });
+});
+

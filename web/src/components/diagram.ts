@@ -24,9 +24,11 @@ import {
   CHIP_CHAR_W,
   CHIP_PAD_X,
   CHIP_ROW_HEIGHT,
+  START_ENTRY_LEN,
   STATE_RADIUS,
   buildEdges,
   chipAnchor,
+  chipAnchors,
   edgeGeometry,
   edgesPathData,
 } from '../../../src/ui/geometry';
@@ -48,8 +50,6 @@ const labelSize = (label: string): number => (label.length > 5 ? 11.5 : label.le
 const CHIP_H = 19;
 
 const START_MARKER_LEN = 22;
-/** How far out in the chamber the start arrow begins its fade in. */
-const START_ENTRY_LEN = 96;
 const MIN_SCALE = 0.45;
 const MAX_SCALE = 3.2;
 const LONG_PRESS_MS = 480;
@@ -394,13 +394,24 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
    * Chips hang off the curve, one row per transition, so three rules between
    * the same pair read as three rules.
    */
+  /** The side of its curve each edge's chips went on last time, so they stay put. */
+  let chipSides = new Map<string, 1 | -1>();
+
+  /** Where every stack goes, placed together so that none lands on another. */
+  function placeChips(at: Positions): Map<string, Pt> {
+    const placed = chipAnchors(edges, at, STATE_RADIUS, box, chipSides, model.machine.start);
+    chipSides = placed.sides;
+    return placed.anchors;
+  }
+
   function drawChips(): void {
     const keepTip = tipFor;
     chipLayer.textContent = '';
     edgeHitLayer.textContent = '';
+    const anchors = placeChips(positions);
 
     for (const edge of edges) {
-      const anchor = chipAnchor(edge, positions, STATE_RADIUS, box);
+      const anchor = anchors.get(edge.key) ?? chipAnchor(edge, positions, STATE_RADIUS, box);
       const rows = edge.chips.length;
       const lit = edge.transitionIds.some((id) => model.activeTransitions.includes(id));
       const selected = model.selectedEdge === edge.key;
@@ -809,8 +820,9 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
       const at = where[model.machine.start];
       if (at) grow(at.x - STATE_RADIUS - START_MARKER_LEN, at.y, 4, 4);
     }
+    const anchors = placeChips(where);
     for (const edge of edges) {
-      const a = chipAnchor(edge, where, STATE_RADIUS, box);
+      const a = anchors.get(edge.key) ?? chipAnchor(edge, where, STATE_RADIUS, box);
       const chars = Math.max(...edge.chips.map((c) => c.length), 1);
       grow(
         a.x,
