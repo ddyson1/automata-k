@@ -81,7 +81,14 @@ export function createSettings(): { sheet: Sheet; open: () => void } {
     () => game.motion,
     (value) => game.setMotion(value),
   );
-  sheet.body.append(theme.el, motion.el);
+  // What used to be the home page's footer: where progress lives, and the type.
+  const about = h(
+    'p',
+    { class: 't-small muted settings-about', 'data-testid': 'about' },
+    'Progress is kept on this device only. No accounts, no analytics, no network calls. ' +
+      'Set in Martian Mono, with JetBrains Mono for Greek and symbols, both under the SIL Open Font License.',
+  );
+  sheet.body.append(theme.el, motion.el, about);
 
   return {
     sheet,

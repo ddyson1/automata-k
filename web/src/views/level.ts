@@ -1,21 +1,26 @@
 /**
- * A level, in the Brief direction.
+ * A level, in the chamber.
  *
- * Two things on screen: the pane, and the canvas. The pane is the question in
- * plain English and the two lists that define the level, plus four more tabs
- * holding the formal layer; those lists are also the grader, so there is no
- * results band anywhere. The canvas is everything else, with no dock: a state
- * is placed by double clicking — tapping twice, where there is no mouse — an
- * arrow is drawn by dragging off a rim, and the controls for a state appear
- * attached to that state when it is selected.
+ * The whole window is one lit volume, and the machine hangs in it. What the
+ * level asks floats in the top left corner; how the machine measures up, the
+ * four tools and the way back to the climb sit in the top right. A glass
+ * console stands on the right: its first tab is the suite, the strings that
+ * must be accepted and rejected, and they are also the grader, so there is no
+ * results band anywhere. Its other tabs hold the formal layer. The readout,
+ * what the machine is reading and what it just did, runs along the bottom
+ * left, and a pushdown machine's stack stands on the stage beside it.
  *
- * Four quiet icons in one corner do the things that have no object to attach
- * to: undo, redo, tidy, fit. On a phone that corner is the bottom left, in
- * reach of a thumb, and the brief is a rail across the top rather than a sheet
- * across the bottom. See the pane rail below, and styles/narrow.css.
+ * Running the suite is something you watch: every string goes through the
+ * machine in turn, ticking off its row. A passing run ends on a card that
+ * says what the theory says about the machine's size.
  *
- * On a wide window the pane's right edge drags to resize it, and a button at
- * its top folds it away; both are remembered (see paneSize.ts).
+ * A state is placed by double clicking — tapping twice, where there is no
+ * mouse — an arrow is drawn by dragging off a rim, and the controls for a
+ * state appear attached to that state when it is selected.
+ *
+ * On a wide window the console's left edge drags to resize it and a button
+ * folds it away, both remembered (see paneSize.ts). On a phone the console is
+ * a sheet along the bottom that opens over the chamber.
  *
  * The checks run when asked rather than on every keystroke. See runChecks.
  */
@@ -31,7 +36,7 @@ import { fitIcon, foldIcon, redoIcon, tidyIcon, undoIcon, unfoldIcon } from '../
 import { PANE_DEFAULT, PANE_MAX, PANE_MIN, clampPaneWidth, readPane, writePane } from '../paneSize';
 import { game } from '../store';
 import { storage } from '../storage';
-import { success, warn } from '../haptics';
+import { reducedMotion, success, warn } from '../haptics';
 import { chime } from '../sound';
 import { createDiagram } from '../components/diagram';
 import type { Diagram } from '../components/diagram';
@@ -42,6 +47,8 @@ import { createTrace } from '../components/trace';
 import { createSheet } from '../components/sheet';
 import { buildRuleEditor } from '../components/ruleEditor';
 import { arriveAt, type Crossing } from '../components/crossing';
+import { createResults } from '../components/results';
+import { createMotes } from '../components/motes';
 
 export interface View {
   el: HTMLElement;
@@ -75,7 +82,7 @@ export function createLevelView(levelId: string, navigate: (hash: string) => voi
 }
 
 function missingView(navigate: (hash: string) => void): View {
-  const back = h('button', { class: 'action', type: 'button' }, 'Back to the levels');
+  const back = h('button', { class: 'action', type: 'button' }, 'Back to the climb');
   on(back, 'click', () => navigate('#/'));
   return {
     el: h('main', { class: 'shell' }, h('p', { class: 't-body' }, 'No such level.'), back),
@@ -99,6 +106,10 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
   let gradedAs: string | null = null;
   /** The machine has changed since the last run, so the marks are not current. */
   let stale = false;
+  /** The suite is being played: the row running now, and the rows done. */
+  let running: { index: number; done: Set<string> } | null = null;
+  /** How long a pulse lasts while the suite plays: one step's worth. */
+  let pulseMs = 420;
 
   const machine = (): Machine => game.machineFor(levelId);
 
@@ -131,6 +142,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
         Math.min(b.x + b.w - pad, Math.max(b.x + pad, x)),
         Math.min(b.y + b.h - pad, Math.max(b.y + pad, y)),
       );
+      diagram.bloom(selectedState, 'place');
       render();
     },
     onBackgroundTap: () => {
@@ -154,7 +166,9 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     if (selectedState) game.setStart(levelId, selectedState);
   });
   const acceptButton = stateButton('Accepting', 'toggle-accepting', () => {
-    if (selectedState) game.toggleAccepting(levelId, selectedState);
+    if (!selectedState) return;
+    game.toggleAccepting(levelId, selectedState);
+    diagram.bloom(selectedState, 'place');
   });
   const renameButton = stateButton('Rename', 'rename', () => {
     if (selectedState) openRename(selectedState);
@@ -189,10 +203,10 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     stateBar.style.transform = `translate(${x.toFixed(1)}px, ${Math.min(box.height - hgt - 8, y).toFixed(1)}px)`;
   }
 
-  // -- corner controls ------------------------------------------------------
+  // -- the four tools ---------------------------------------------------------
 
   /**
-   * A corner control, with its name attached.
+   * A tool, with its name attached.
    *
    * Four drawn glyphs and no words is a quiz. `title` is not the answer: the
    * browser's own tooltip takes about a second to appear, cannot be styled to
@@ -262,23 +276,23 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
   const corner = h('div', { class: 'corner' }, undoButton, redoButton, tidyButton, fitButton);
   const canvasHint = h('p', { class: 'canvas-hint', 'data-testid': 'canvas-hint' });
 
-  // With the pane folded away on a wide window, this is the way back. It sits
-  // where the pane's own fold button was, so the two read as one control.
+  // With the console folded away on a wide window, this is the way back. It
+  // sits where the console's own fold button was, so the two read as one.
   const paneUnfold = h(
     'button',
     {
       class: 'pane-unfold tip',
       type: 'button',
       'data-testid': 'pane-unfold',
-      'aria-label': 'Show the brief',
-      'data-tip': 'Show the brief',
+      'aria-label': 'Show the console',
+      'data-tip': 'Show the console',
       'aria-expanded': 'false',
     },
     unfoldIcon(),
   );
 
   // The one cost of a canvas with no toolbar is that nothing says you can draw
-  // on it. An empty sheet says it, in the middle, where the eye already is.
+  // on it. An empty chamber says it, in the middle, where the eye already is.
   const emptyPrompt = h(
     'div',
     { class: 'empty-prompt', 'data-testid': 'empty-prompt', hidden: true },
@@ -292,6 +306,17 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     ),
   );
 
+  // A passing or failing suite washes the chamber with its colour, briefly.
+  const tint = h('div', { class: 'tint', 'aria-hidden': 'true' });
+  function flashTint(kind: 'pass' | 'fail'): void {
+    if (reducedMotion()) return;
+    tint.classList.remove('is-pass', 'is-fail');
+    void tint.offsetWidth;
+    tint.classList.add(kind === 'pass' ? 'is-pass' : 'is-fail');
+  }
+
+  const motes = createMotes();
+
   // -- trace ----------------------------------------------------------------
 
   const trace = createTrace({
@@ -299,8 +324,9 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
       traceActive = states;
       traceVia = via;
       paintDiagram();
-      // The rule just used runs along its arrow into the state it lit.
-      if (stepped) diagram.pulse(via);
+      // The rule just used runs along its arrow into the state it lit, as
+      // fast as the run that used it.
+      if (stepped) diagram.pulse(via, running ? Math.max(120, pulseMs) : undefined);
     },
     onClose: () => {
       traceActive = [];
@@ -309,19 +335,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     },
   });
 
-  const stage = h(
-    'div',
-    { class: 'stage', 'data-testid': 'stage' },
-    diagram.el,
-    emptyPrompt,
-    paneUnfold,
-    corner,
-    stateBar,
-    canvasHint,
-    trace.el,
-  );
-
-  // -- the pane -------------------------------------------------------------
+  // -- the console ------------------------------------------------------------
 
   const ruleSheet = createSheet('rule-sheet');
 
@@ -363,38 +377,43 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     },
   });
 
+  /** On to the next level, by way of its floor's crossing if it has one. */
+  function goNext(): void {
+    const next = game.nextLevel(levelId);
+    if (!next) {
+      navigate('#/');
+      return;
+    }
+    // Finishing a floor's last level is the usual way onto the next floor,
+    // so its crossing plays here as well as from the climb.
+    crossing?.destroy();
+    crossing = arriveAt(next, el, () => {
+      crossing = null;
+      navigate(`#/level/${next.id}`);
+    });
+  }
+
   const brief = createBrief({
-    onBack: () => navigate('#/'),
     onTrace: (input) => {
-      trace.play(machine(), level, input);
+      stopShow();
+      // One string, slowly, the way the suite runs them all quickly.
+      trace.play(machine(), level, input, { autoplay: !reducedMotion() });
       // You asked a question about the machine, so get out of the machine's
-      // way. On a phone the pane closes back to its rail.
+      // way. On a phone the console closes back to its bar.
       togglePane(false);
       render();
     },
     onRun: () => runChecks(),
-    onNext: () => {
-      const next = game.nextLevel(levelId);
-      if (!next) {
-        navigate('#/');
-        return;
-      }
-      // Finishing a floor's last level is the usual way onto the next floor,
-      // so its crossing plays here as well as from the climb.
-      crossing?.destroy();
-      crossing = arriveAt(next, el, () => {
-        crossing = null;
-        navigate(`#/level/${next.id}`);
-      });
-    },
+    onNext: () => goNext(),
   });
 
-  // The tabs the pane can be in. The brief is one of them rather than the
-  // thing the others cover up, which is what lets the head and the foot stay
-  // put: whichever tab is open, the level line is above it and the verdict is
-  // below it.
+  const results = createResults({ onNext: () => goNext(), onClimb: () => navigate('#/') });
+
+  // The tabs the console can be in. The suite is one of them rather than the
+  // thing the others cover up, which is what lets the foot stay put: whichever
+  // tab is open, the verdict and Run are below it.
   const TABS: { key: PaneTab; label: string }[] = [
-    { key: 'brief', label: 'Brief' },
+    { key: 'brief', label: 'Suite' },
     { key: 'machine', label: 'Machine' },
     { key: 'theory', label: 'Theory' },
     { key: 'analysis', label: 'Analysis' },
@@ -418,97 +437,70 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
 
   const paneBody = h('div', { class: 'pane-body' }, brief.body, panels.el);
 
+  // A phone only: the console is a bar along the bottom until opened.
   const paneGrab = h(
     'button',
     {
       class: 'pane-grab tip',
       type: 'button',
       'data-testid': 'pane-grab',
-      'aria-label': 'Show the brief',
-      'data-tip': 'Show the brief',
+      'aria-label': 'Open the console',
+      'data-tip': 'Open the console',
     },
-    h('span', { class: 'pane-grab-i', 'aria-hidden': 'true' }, '⌄'),
+    h('span', { class: 'pane-grab-i', 'aria-hidden': 'true' }, '⌃'),
   );
 
-  // A wide window only: fold the pane away and give the canvas everything.
+  // A wide window only: fold the console away and give the chamber everything.
   const paneFold = h(
     'button',
     {
       class: 'pane-fold tip',
       type: 'button',
       'data-testid': 'pane-fold',
-      'aria-label': 'Fold the brief away',
-      'data-tip': 'Fold the brief away',
+      'aria-label': 'Fold the console away',
+      'data-tip': 'Fold the console away',
       'aria-expanded': 'true',
     },
     foldIcon(),
   );
 
-  // The pane's right edge, which can be dragged. A separator in ARIA terms,
+  // The console's left edge, which can be dragged. A separator in ARIA terms,
   // so it also answers to the arrow keys, Home and End.
   const paneResize = h('div', {
     class: 'pane-resize',
     role: 'separator',
     tabindex: 0,
     'aria-orientation': 'vertical',
-    'aria-label': 'Resize the brief',
+    'aria-label': 'Resize the console',
     'aria-valuemin': PANE_MIN,
     'aria-valuemax': PANE_MAX,
     'data-testid': 'pane-resize',
   });
 
-  /**
-   * Which level this is, what it asks, and how the machine is doing.
-   *
-   * On a wide window this is simply the top of the pane. On a phone it is the
-   * whole of the pane until you open it: a rail across the top carrying the
-   * question, with the canvas taking everything below.
-   *
-   * The sheet it replaces spent 202px of a 664px screen on a verdict line and
-   * five tab labels, and never had room for the question at all. The rail is
-   * 150px and the question is the thing it is mostly made of. During a trace
-   * it collapses to its title line, so the transport is the only panel with
-   * any height to it — 33% of the screen covered where the sheet and the
-   * transport together took 57%.
-   */
-  const paneRail = h(
-    'div',
-    { class: 'pane-rail', 'data-testid': 'pane-rail' },
-    brief.head,
-    brief.statement,
-    brief.mark,
-    paneGrab,
-    paneFold,
-  );
+  const consoleFoot = h('div', { class: 'console-foot' }, brief.mark, brief.actions, paneGrab);
 
   const pane = h(
-    'div',
-    { class: 'pane', 'data-testid': 'pane' },
-    paneRail,
+    'aside',
+    { class: 'pane console', 'data-testid': 'pane', 'aria-label': 'Console' },
     tabStrip,
     paneBody,
-    brief.actions,
+    consoleFoot,
+    paneFold,
     paneResize,
   );
 
   function togglePane(want?: boolean): void {
     const open = pane.classList.toggle('is-open', want);
-    const label = open ? 'Hide the brief' : 'Show the brief';
+    const label = open ? 'Close the console' : 'Open the console';
     paneGrab.setAttribute('aria-label', label);
     paneGrab.setAttribute('data-tip', label);
-    setText(paneGrab.firstElementChild as HTMLElement, open ? '⌃' : '⌄');
+    paneGrab.setAttribute('aria-expanded', String(open));
+    setText(paneGrab.firstElementChild as HTMLElement, open ? '⌄' : '⌃');
   }
 
   on(paneGrab, 'click', (event) => {
     event.stopPropagation();
     togglePane();
-  });
-
-  // The rail is the button. Anything with its own job inside it — Back, the
-  // chevron — keeps that job; the rest of the rail opens the level.
-  on(paneRail, 'click', (event) => {
-    if ((event.target as HTMLElement).closest('button') !== null) return;
-    togglePane(true);
   });
 
   function setTab(next: PaneTab): void {
@@ -520,6 +512,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     }
     brief.body.hidden = next !== 'brief';
     panels.el.hidden = next === 'brief';
+    pane.dataset.tab = next;
     // Highlighting belongs to the transition list; leaving it takes it away.
     if (next !== 'machine' && highlighted.length > 0) {
       highlighted = [];
@@ -544,6 +537,19 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     togglePane(false);
     requestAnimationFrame(() => diagram.fit());
   }
+
+  // -- the chamber's corners ---------------------------------------------------
+
+  const back = h(
+    'button',
+    { class: 'climb-back', type: 'button', 'data-testid': 'back', 'aria-label': 'Back to the climb' },
+    h('span', { 'aria-hidden': 'true' }, '←'),
+    h('span', { class: 'climb-back-t' }, 'Climb'),
+  );
+  on(back, 'click', () => navigate('#/'));
+
+  const hud = h('header', { class: 'hud', 'data-testid': 'hud' }, brief.kicker, brief.statement);
+  const topbar = h('div', { class: 'topbar' }, corner, brief.meter, back);
 
   // -- sheets ---------------------------------------------------------------
 
@@ -636,19 +642,40 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     setText(liveRegion, message);
   }
 
-  const el = h(
-    'main',
-    { class: 'level', 'data-testid': 'level-view', 'data-level': levelId },
-    liveRegion,
+  const stage = h(
+    'div',
+    { class: 'stage', 'data-testid': 'stage' },
+    motes.el,
+    diagram.el,
+    tint,
+    emptyPrompt,
+    hud,
+    topbar,
+    trace.memory,
+    trace.el,
+    canvasHint,
+    stateBar,
     pane,
-    stage,
-    ruleSheet.el,
+    paneUnfold,
   );
 
-  // -- pane size ------------------------------------------------------------
+  const el = h(
+    'main',
+    {
+      class: `level kind-${level.type.toLowerCase()}`,
+      'data-testid': 'level-view',
+      'data-level': levelId,
+    },
+    liveRegion,
+    stage,
+    ruleSheet.el,
+    results.el,
+  );
+
+  // -- console size -----------------------------------------------------------
   //
   // The stored width is what was asked for; what is applied is that, clamped
-  // to this window, so a narrow window never squeezes the canvas and widening
+  // to this window, so a narrow window never squeezes the chamber and widening
   // it again gives the asked-for width back.
 
   const panePrefs = readPane(storage);
@@ -684,6 +711,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
   });
   on(paneUnfold, 'click', () => foldPane(false, true));
 
+  // The handle is the console's left edge, so dragging it left widens it.
   let drag: { x: number; width: number } | null = null;
   on(paneResize, 'pointerdown', (event) => {
     const e = event as PointerEvent;
@@ -695,7 +723,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
   });
   on(paneResize, 'pointermove', (event) => {
     if (drag === null) return;
-    setPaneWidth(drag.width + (event as PointerEvent).clientX - drag.x, false);
+    setPaneWidth(drag.width - ((event as PointerEvent).clientX - drag.x), false);
   });
   const endDrag = (): void => {
     if (drag === null) return;
@@ -712,9 +740,9 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     const now = clampPaneWidth(panePrefs.width, window.innerWidth);
     const next =
       e.key === 'ArrowLeft'
-        ? now - step
+        ? now + step
         : e.key === 'ArrowRight'
-          ? now + step
+          ? now - step
           : e.key === 'Home'
             ? PANE_MIN
             : e.key === 'End'
@@ -754,30 +782,94 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
    * were always live. Live is honest but it has no moment in it: the answer
    * arrives while you are still mid-thought, and by the time you look up it
    * has already been true for a while. On a press there is something to press,
-   * something to wait for, and something to hear.
+   * something to watch, and something to hear.
+   *
+   * The verdict is computed at once; what takes time is showing it. Every
+   * string goes through the machine on screen, its row ticking as it lands,
+   * in about four seconds however long the suite. With reduced motion the
+   * marks simply appear.
    *
    * `quiet` is for the run at startup, which is restoring a verdict rather
    * than reaching one.
    */
   function runChecks({ quiet = false } = {}): void {
+    stopShow();
     const current = machine();
     suiteResult = runSuite(current, level);
     gradedAs = signature(current);
     stale = false;
+    const watch =
+      !quiet && !reducedMotion() && current.states.length > 0 && !suiteResult.error;
+    if (watch) playShow(current);
+    else settle(quiet);
+  }
 
+  function playShow(current: Machine): void {
+    trace.stop();
+    const inputs = brief.order(level);
+    const steps = inputs.reduce((n, w) => n + w.length + 1, 0);
+    const per = Math.round(Math.max(40, Math.min(150, 4200 / Math.max(1, steps + inputs.length * 2))));
+    const show = { index: 0, done: new Set<string>() };
+    running = show;
+    pulseMs = Math.round(per * 1.6);
+    togglePane(false);
+    el.classList.add('is-showing');
+    trace.playAll(current, level, inputs, {
+      per,
+      gap: Math.round(per * 1.5),
+      onRow: (index, phase) => {
+        if (running !== show) return;
+        const word = inputs[index];
+        if (phase === 'run') show.index = index;
+        else if (word !== undefined) {
+          show.done.add(word);
+          const row = suiteResult.rows.find((r) => r.input === word);
+          if (row) for (const id of traceActive) diagram.bloom(id, row.pass ? 'pass' : 'fail');
+        }
+        paintBrief();
+      },
+      onDone: () => {
+        if (running !== show) return;
+        running = null;
+        el.classList.remove('is-showing');
+        settle(false);
+      },
+    });
+    paintBrief();
+  }
+
+  /** Stop the suite mid-show. The verdict it was showing stands. */
+  function stopShow(): void {
+    if (!running) return;
+    running = null;
+    el.classList.remove('is-showing');
+    trace.stop();
+  }
+
+  function settle(quiet: boolean): void {
+    const current = machine();
     if (suiteResult.solved) {
+      const again = game.isSolved(levelId);
       const score = scoreOf(current, level);
       game.markSolved(levelId, score.scored);
       if (!quiet) {
         success();
         chime();
+        flashTint('pass');
         announce(
           `Every test agrees with ${score.drawn} states` +
             (score.impliedDead ? ' and the dead state they imply.' : '.'),
         );
+        results.show({
+          level,
+          machine: current,
+          again,
+          hasNext: game.nextLevel(levelId) !== undefined,
+        });
       }
     } else if (!quiet) {
       if (suiteResult.error) warn();
+      else flashTint('fail');
       announce(`${suiteResult.passed} of ${suiteResult.total} agree.`);
     }
     paintBrief();
@@ -788,8 +880,9 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
       level,
       machine: machine(),
       result: suiteResult,
-      stale,
+      stale: stale && !running,
       playing: trace.input,
+      running,
       solved: game.isSolved(levelId),
       best: game.progress.bestStates[levelId],
       hasNext: game.nextLevel(levelId) !== undefined,
@@ -798,6 +891,10 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
 
   function render(): void {
     const current = machine();
+
+    // An edit while the suite plays makes the show a show of the wrong machine.
+    if (running && gradedAs !== null && signature(current) !== gradedAs) stopShow();
+
     paintDiagram();
 
     stateBar.hidden = selectedState === null;
@@ -826,7 +923,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
             : 'Double click to place a state · drag from a rim to draw an arrow',
     );
 
-    // Nothing but the transport belongs over the canvas while a string plays.
+    // Nothing but the readout belongs over the chamber's foot while a string plays.
     el.classList.toggle('is-tracing', trace.input !== null);
 
     stale = gradedAs === null || signature(current) !== gradedAs;
@@ -846,7 +943,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
   const unsubscribe = game.subscribe(() => render());
 
   const offKeys = on(window as unknown as EventTarget, 'keydown', ((event: KeyboardEvent) => {
-    if (ruleSheet.isOpen) return;
+    if (ruleSheet.isOpen || results.isOpen) return;
     const target = event.target as HTMLElement | null;
     if (target && (target.tagName === 'INPUT' || target.isContentEditable)) return;
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
@@ -855,7 +952,13 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
       else game.undo(levelId);
       return;
     }
-    // Escape steps back through the pane before it clears the canvas.
+    // Escape stops a show, then steps back through the console, then clears
+    // the selection.
+    if (event.key === 'Escape' && running) {
+      stopShow();
+      settle(true);
+      return;
+    }
     if (event.key === 'Escape' && tab !== 'brief') {
       setTab('brief');
       return;
@@ -880,13 +983,17 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     placeStateBar();
   });
 
-  // The stage sits under the rail, and the rail is as tall as the question
-  // makes it — one line on level 1, three on level 41 — so its height is
-  // measured rather than assumed. A constant here was wrong on most levels.
-  const railWatch = new ResizeObserver(() => {
-    el.style.setProperty('--rail', `${Math.round(paneRail.getBoundingClientRect().height)}px`);
+  // The machine hangs below the question, and the question is as tall as its
+  // words make it — one line on level 1, three on level 41 — so its height is
+  // measured rather than assumed.
+  // The question also stops short of the instruments in the top right, which
+  // are as wide as their words.
+  const hudWatch = new ResizeObserver(() => {
+    stage.style.setProperty('--hud-h', `${Math.round(hud.getBoundingClientRect().height)}px`);
+    stage.style.setProperty('--topbar-w', `${Math.round(topbar.getBoundingClientRect().width)}px`);
   });
-  railWatch.observe(paneRail);
+  hudWatch.observe(hud);
+  hudWatch.observe(topbar);
 
   setTab('brief');
   render();
@@ -904,12 +1011,15 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     el,
     destroy() {
       crossing?.destroy();
+      stopShow();
+      results.close();
       unsubscribe();
       offKeys();
       offResize();
-      railWatch.disconnect();
+      hudWatch.disconnect();
       ruleSheet.destroy();
       trace.stop();
+      motes.destroy();
       diagram.destroy();
     },
   };

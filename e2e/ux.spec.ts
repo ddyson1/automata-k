@@ -1,8 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * The pane's edge, the settings sheet, and the controls' focus and reach.
- * Resize and fold exist on a wide window only; a phone keeps its rail.
+ * The console's edge, the settings sheet, and the controls' focus and reach.
+ * Resize and fold exist on a wide window only; on a phone the console is a
+ * bar along the bottom.
  */
 
 async function open(page: Page, levelId: string): Promise<void> {
@@ -28,22 +29,23 @@ async function dragEdge(page: Page, dx: number): Promise<void> {
 test.describe('on a wide window', () => {
   test.skip(({ isMobile, viewport }) => isMobile || (viewport?.width ?? 0) < 900, 'wide only');
 
-  test('the pane resizes from its right edge, and remembers', async ({ page }) => {
+  test('the console resizes from its left edge, and remembers', async ({ page }) => {
     await open(page, 'dfa-ends-in-1');
     expect(await paneWidth(page)).toBeCloseTo(380, 0);
 
-    await dragEdge(page, 120);
+    // The edge is on the console's left, so dragging it left widens it.
+    await dragEdge(page, -120);
     expect(await paneWidth(page)).toBeCloseTo(500, -1);
     await page.reload();
     await expect(page.getByTestId('stage')).toBeVisible();
     expect(await paneWidth(page)).toBeCloseTo(500, -1);
 
-    // The keyboard can do what the pointer does.
+    // The keyboard can do what the pointer does: the arrows move the edge.
     const edge = page.getByTestId('pane-resize');
     await edge.focus();
     await page.keyboard.press('Home');
     await expect(edge).toHaveAttribute('aria-valuenow', '320');
-    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowLeft');
     await expect(edge).toHaveAttribute('aria-valuenow', '336');
     expect(await paneWidth(page)).toBeCloseTo(336, 0);
 
@@ -52,17 +54,18 @@ test.describe('on a wide window', () => {
     expect(await paneWidth(page)).toBeCloseTo(380, 0);
   });
 
-  test('the pane never squeezes the canvas', async ({ page }) => {
+  test('the console never squeezes the chamber', async ({ page }) => {
     await page.setViewportSize({ width: 1000, height: 800 });
     await open(page, 'dfa-ends-in-1');
-    await dragEdge(page, 600);
+    await dragEdge(page, -600);
     // 1000 minus the 420 the canvas keeps, capped at 560.
     expect(await paneWidth(page)).toBeCloseTo(560, 0);
 
     await page.setViewportSize({ width: 920, height: 800 });
     await expect.poll(() => paneWidth(page)).toBeCloseTo(500, 0);
-    const stage = await page.getByTestId('stage').boundingBox();
-    expect(stage?.width ?? 0).toBeGreaterThanOrEqual(420);
+    // The machine keeps the 420 the console leaves, less the chamber's gutters.
+    const machine = await page.getByTestId('diagram').boundingBox();
+    expect(machine?.width ?? 0).toBeGreaterThanOrEqual(380);
 
     // Asked-for width comes back when the window does.
     await page.setViewportSize({ width: 1280, height: 800 });
@@ -78,7 +81,7 @@ test.describe('on a wide window', () => {
     await expect.poll(() => paneWidth(page)).toBeCloseTo(560, 0);
   });
 
-  test('the pane folds away and comes back, and stays folded', async ({ page }) => {
+  test('the console folds away and comes back, and stays folded', async ({ page }) => {
     await open(page, 'dfa-ends-in-1');
     // Run appears once there is a machine to run.
     await page.getByTestId('tab-hint').click();
@@ -102,7 +105,7 @@ test.describe('on a wide window', () => {
   });
 });
 
-test('on a phone the pane is still the rail, with no edge to drag', async ({ page, viewport }) => {
+test('on a phone the console is a bar along the bottom, with no edge to drag', async ({ page, viewport }) => {
   test.skip((viewport?.width ?? 0) >= 900, 'narrow only');
   await open(page, 'dfa-ends-in-1');
   await expect(page.getByTestId('pane-grab')).toBeVisible();

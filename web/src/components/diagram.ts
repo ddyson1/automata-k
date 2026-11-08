@@ -48,6 +48,8 @@ const labelSize = (label: string): number => (label.length > 5 ? 11.5 : label.le
 const CHIP_H = 19;
 
 const START_MARKER_LEN = 22;
+/** How far out in the chamber the start arrow begins its fade in. */
+const START_ENTRY_LEN = 96;
 const MIN_SCALE = 0.45;
 const MAX_SCALE = 3.2;
 const LONG_PRESS_MS = 480;
@@ -126,8 +128,13 @@ export interface Diagram {
   visibleBounds(): { x: number; y: number; w: number; h: number };
   /** The next change of positions, and the fit after it, move rather than jump. */
   glide(): void;
-  /** Send a pulse along the arrows that carry these rules: the trace just used them. */
-  pulse(ids: readonly TransitionId[]): void;
+  /**
+   * Send a pulse along the arrows that carry these rules: the trace just used
+   * them. `ms` is how long it takes; a fast run passes a short one.
+   */
+  pulse(ids: readonly TransitionId[], ms?: number): void;
+  /** A ring off a state: just placed, or a string of the suite landing in it. */
+  bloom(id: StateId, kind: 'place' | 'pass' | 'fail'): void;
   destroy(): void;
 }
 
@@ -160,28 +167,70 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
   pattern.appendChild(svg('circle', { cx: 1, cy: 1, r: 1, class: 'dot' }));
   defs.appendChild(pattern);
 
+  // The chamber's light. A halo every state gives off, brighter while the
+  // trace is in it; the lit core itself; the shadow a state casts on Mist;
+  // and the fade the input arrives along.
+  const uid = Math.random().toString(36).slice(2, 9);
+  const stop = (offset: string, cls: string, opacity = '1'): SVGStopElement =>
+    svg('stop', { offset, class: cls, 'stop-opacity': opacity });
+  const entryGradient = svg(
+    'linearGradient',
+    { id: `entry-${uid}`, gradientUnits: 'userSpaceOnUse', x1: 0, x2: 1, y1: 0, y2: 0 },
+    stop('0', 'g-ink', '0'),
+    stop('0.55', 'g-ink', '0.55'),
+    stop('1', 'g-ink', '1'),
+  );
+  defs.append(
+    svg('radialGradient', { id: `halo-${uid}` }, stop('0.3', 'g-energy'), stop('1', 'g-energy', '0')),
+    svg(
+      'radialGradient',
+      { id: `core-${uid}`, cx: '0.38', cy: '0.34', r: '0.78' },
+      stop('0', 'g-energy-hi'),
+      stop('1', 'g-energy'),
+    ),
+    svg(
+      'radialGradient',
+      { id: `shade-${uid}` },
+      stop('0.15', 'g-shade', '0.17'),
+      stop('1', 'g-shade', '0'),
+    ),
+    entryGradient,
+  );
+
   const grid = svg('rect', { class: 'grid', fill: `url(#${dotsId})` });
 
   const viewport = svg('g', { class: 'viewport' });
+  root.style.setProperty('--core-fill', `url(#core-${uid})`);
+  const edgeGlow = svg('path', { class: 'edge-glow', d: '', fill: 'none' });
   const edgeStrokes = svg('path', { class: 'edge-stroke', d: '', fill: 'none' });
   const edgeHeads = svg('path', { class: 'edge-head', d: '' });
   const pulseLayer = svg('g', { class: 'pulses', 'aria-hidden': 'true' });
   const edgeHitLayer = svg('g', { class: 'edge-hits' });
   const chipLayer = svg('g', { class: 'chips' });
   const startMarker = svg('g', { class: 'start-marker' });
-  const startShaft = svg('path', { class: 'start-shaft', d: '', fill: 'none' });
+  const startShaft = svg('path', {
+    class: 'start-shaft',
+    d: '',
+    fill: 'none',
+    stroke: `url(#entry-${uid})`,
+  });
+  // A little energy running in along the shaft: the input arriving.
+  const startFlow = svg('path', { class: 'start-flow', d: '', fill: 'none' });
+  const bloomLayer = svg('g', { class: 'blooms', 'aria-hidden': 'true' });
   const startHead = svg('path', { class: 'start-head', d: '' });
   const stateLayer = svg('g', { class: 'states' });
   const pending = svg('path', { class: 'pending', d: '', fill: 'none' });
 
-  startMarker.append(startShaft, startHead);
+  startMarker.append(startShaft, startFlow, startHead);
   viewport.append(
+    edgeGlow,
     edgeStrokes,
     edgeHeads,
     pulseLayer,
-    chipLayer,
     startMarker,
     stateLayer,
+    bloomLayer,
+    chipLayer,
     edgeHitLayer,
     pending,
   );
@@ -334,6 +383,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
 
   function drawEdges(): void {
     const { strokes, heads } = edgesPathData(edges, positions, STATE_RADIUS, box);
+    setAttr(edgeGlow, 'd', strokes);
     setAttr(edgeStrokes, 'd', strokes);
     setAttr(edgeHeads, 'd', heads);
     drawChips();
@@ -406,12 +456,18 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
     const at = start ? positions[start] : undefined;
     if (!at) {
       setAttr(startShaft, 'd', '');
+      setAttr(startFlow, 'd', '');
       setAttr(startHead, 'd', '');
       return;
     }
     const tipX = at.x - STATE_RADIUS - 3;
-    const tailX = tipX - START_MARKER_LEN;
-    setAttr(startShaft, 'd', `M${tailX.toFixed(2)} ${at.y.toFixed(2)}H${(tipX - 8).toFixed(2)}`);
+    // The input arrives from out in the chamber, fading in along the way.
+    const tailX = tipX - START_ENTRY_LEN;
+    const shaft = `M${tailX.toFixed(2)} ${at.y.toFixed(2)}H${(tipX - 8).toFixed(2)}`;
+    setAttr(startShaft, 'd', shaft);
+    setAttr(startFlow, 'd', shaft);
+    setAttr(entryGradient, 'x1', tailX.toFixed(2));
+    setAttr(entryGradient, 'x2', (tipX - 8).toFixed(2));
     setAttr(
       startHead,
       'd',
@@ -436,8 +492,22 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
         });
         node.append(
           svg('circle', { class: 'state-hit', r: CONNECT_OUTER, cx: 0, cy: 0 }),
-          // The light a state gives off while the trace is in it.
-          svg('circle', { class: 'state-halo', r: STATE_RADIUS + 9, cx: 0, cy: 0 }),
+          // The shadow it casts on Mist, and the light it gives off: faint at
+          // rest, bright while the trace is in it.
+          svg('circle', {
+            class: 'state-shadow',
+            r: (STATE_RADIUS * 1.35).toFixed(2),
+            cx: 2,
+            cy: 10,
+            fill: `url(#shade-${uid})`,
+          }),
+          svg('circle', {
+            class: 'state-halo',
+            r: (STATE_RADIUS * 2.2).toFixed(2),
+            cx: 0,
+            cy: 0,
+            fill: `url(#halo-${uid})`,
+          }),
           svg('circle', { class: 'state-ring', r: STATE_RADIUS, cx: 0, cy: 0 }),
           svg('circle', { class: 'state-accept', r: STATE_RADIUS - 4.5, cx: 0, cy: 0 }),
           svg('text', {
@@ -641,7 +711,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
 
   // -- the trace, along the arrows -------------------------------------------
 
-  function pulse(ids: readonly TransitionId[]): void {
+  function pulse(ids: readonly TransitionId[], ms = PULSE_MS): void {
     if (ids.length === 0 || reducedMotion()) return;
     const at: Positions = glide ? { ...positions } : positions;
     const seen = new Set<string>();
@@ -666,11 +736,51 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
           { strokeDashoffset: -length * 0.5, opacity: 1, offset: 0.5 },
           { strokeDashoffset: -length, opacity: 0.6 },
         ],
-        { duration: PULSE_MS, easing: 'cubic-bezier(0.4, 0, 0.3, 1)' },
+        { duration: ms, easing: 'cubic-bezier(0.4, 0, 0.3, 1)' },
       );
       anim.onfinish = () => path.remove();
       anim.oncancel = () => path.remove();
+      comet(path, length, ms);
     }
+  }
+
+  /** A bright head with a glow, riding the pulse along its arrow. */
+  function comet(path: SVGPathElement, length: number, ms: number): void {
+    const glow = svg('circle', { class: 'pulse-glow', r: 15, cx: 0, cy: 0 });
+    const dot = svg('circle', { class: 'pulse-dot', r: 4.3, cx: 0, cy: 0 });
+    const shine = svg('circle', { class: 'pulse-shine', r: 1.6, cx: -1.1, cy: -1.1 });
+    const head = svg('g', { class: 'pulse-head' }, glow, dot, shine);
+    pulseLayer.appendChild(head);
+    const t0 = performance.now();
+    const ease = (u: number): number => (u < 0.5 ? 2 * u * u : 1 - (-2 * u + 2) ** 2 / 2);
+    const step = (now: number): void => {
+      const u = Math.min(1, (now - t0) / ms);
+      const p = path.getPointAtLength(length * ease(u));
+      head.setAttribute('transform', `translate(${p.x.toFixed(2)} ${p.y.toFixed(2)})`);
+      if (u < 1 && head.isConnected) requestAnimationFrame(step);
+      else head.remove();
+    };
+    requestAnimationFrame(step);
+  }
+
+  /**
+   * A ring off a state. Placing a state or making it accepting sends one out
+   * in energy; a string of the suite landing sends one out in pass or fail.
+   */
+  function bloom(id: StateId, kind: 'place' | 'pass' | 'fail'): void {
+    if (reducedMotion()) return;
+    const at = positions[id];
+    if (!at) return;
+    const ring = svg('circle', {
+      class: `bloom is-${kind}`,
+      cx: at.x.toFixed(2),
+      cy: at.y.toFixed(2),
+      r: STATE_RADIUS,
+    });
+    bloomLayer.appendChild(ring);
+    const done = (): void => ring.remove();
+    ring.addEventListener('animationend', done);
+    setTimeout(done, 1600);
   }
 
   // -- fitting --------------------------------------------------------------
@@ -1140,6 +1250,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
       glideArmed = true;
     },
     pulse,
+    bloom,
     screenPointOf(id) {
       const at = positions[id];
       if (!at) return null;

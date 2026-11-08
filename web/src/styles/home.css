@@ -7,79 +7,126 @@
    stops are ink, with a cast shadow in Mist and a little light in Dusk.
    -------------------------------------------------------------------------- */
 
-.home-shell {
-  max-width: 1120px;
+.climb-scene {
   --stop-shadow: 0 2px 3px rgb(23 32 43 / 22%), 0 0 0 0.5px rgb(23 32 43 / 30%);
   --stop-glow: 0 0 0 5px color-mix(in srgb, var(--energy) 16%, transparent),
     0 0 18px 4px color-mix(in srgb, var(--energy) 26%, transparent);
+  position: relative;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(120% 90% at 46% 30%, var(--haze), transparent 64%),
+    linear-gradient(var(--ground-top), var(--ground-bottom));
+  background-attachment: fixed;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .home-shell {
+  :root:not([data-theme='light']) .climb-scene {
     --stop-shadow: 0 0 6px 1px rgb(238 242 248 / 22%);
     --stop-glow: 0 0 0 5px color-mix(in srgb, var(--energy) 20%, transparent),
       0 0 22px 6px color-mix(in srgb, var(--energy) 34%, transparent);
   }
 }
 
-:root[data-theme='dark'] .home-shell {
+:root[data-theme='dark'] .climb-scene {
   --stop-shadow: 0 0 6px 1px rgb(238 242 248 / 22%);
   --stop-glow: 0 0 0 5px color-mix(in srgb, var(--energy) 20%, transparent),
     0 0 22px 6px color-mix(in srgb, var(--energy) 34%, transparent);
 }
 
-.home-head {
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--rule);
+.climb-scene > .motes {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
-.home-head h1 {
-  margin: 0 0 6px;
+/* the title, top left; the controls, top right ---------------------------- */
+
+.scene-head {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: calc(18px + var(--safe-top)) calc(18px + var(--safe-right)) 0
+    calc(22px + var(--safe-left));
 }
 
-.home-head p {
+.scene-title {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.scene-name {
   margin: 0;
-  max-width: 62ch;
+  font-family: var(--mono);
+  font-size: 15px;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+}
+
+.scene-sub {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.scene-tag {
+  margin: 6px 0 0;
+  max-width: 52ch;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-soft);
 }
 
 .home-meta {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-top: 16px;
+  gap: 8px;
   flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .ghost {
-  font-size: 13px;
-  color: var(--muted);
-  padding: 6px 12px;
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-control);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  padding: 0 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 7px;
+  background: var(--panel);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   min-height: var(--tap);
 }
 
 .ghost:hover,
 .ghost:focus-visible {
-  border-color: var(--rule);
+  border-color: var(--ink-soft);
   color: var(--ink);
 }
 
-/* the climb: the map, and the panel that describes one stop of it ------- */
+/* the map, in the middle of the scene -------------------------------------- */
 
 .climb {
+  position: relative;
+  flex: 1 0 auto;
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 18px;
-  margin-top: 22px;
+  align-items: center;
+  justify-items: center;
+  padding: 12px calc(22px + var(--safe-right)) 18px calc(22px + var(--safe-left));
 }
 
-@media (min-width: 900px) {
-  .climb {
-    grid-template-columns: minmax(0, 1fr) 300px;
-    gap: 30px;
-    align-items: start;
-  }
+.climb-map {
+  width: min(1000px, 100%);
 }
 
 .climb-map {
@@ -359,33 +406,74 @@
   transform: none;
 }
 
-/* the panel ----------------------------------------------------------- */
+/* the tooltip over a pointed stop --------------------------------------------- */
 
-.climb-panel {
+.climb-tip {
+  position: absolute;
+  z-index: 3;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 18px 18px 16px;
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-sheet);
+  gap: 1px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--ground-top);
+  font-size: 11.5px;
+  line-height: 1.45;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 22px));
 }
 
-@media (min-width: 900px) {
-  .climb-panel {
-    position: sticky;
-    top: 20px;
-  }
+.climb-tip[hidden] {
+  display: none;
+}
+
+.climb-tip-d {
+  opacity: 0.72;
+}
+
+/* the status bar: the next level, or the pointed one, and the way in ------- */
+
+.climb-panel {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 10px calc(14px + var(--safe-right)) calc(12px + var(--safe-bottom))
+    calc(22px + var(--safe-left));
+  border-top: 1px solid var(--line-1);
+  background: var(--panel);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .climb-head {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+@media (max-width: 899px) {
+  .climb-head {
+    flex: 1 1 0;
+  }
 }
 
 .climb-eyebrow {
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.climb-eyebrow::before {
+  content: '> ';
+  color: var(--faint);
 }
 
 .climb-panel[data-state='next'] .climb-eyebrow {
@@ -394,23 +482,34 @@
 
 .climb-title {
   margin: 0;
-  text-wrap: balance;
+  font-size: 15px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .climb-goal {
   margin: 0;
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: 12px;
   color: var(--ink-soft);
-  text-wrap: pretty;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.climb-set {
-  display: block;
-  color: var(--muted);
-  overflow-wrap: anywhere;
+.climb-set,
+.climb-floor-note {
+  display: none;
 }
 
 .climb-status {
   margin: 0;
+  flex: none;
+  max-width: 34ch;
+  font-size: 12px;
   color: var(--muted);
 }
 
@@ -420,39 +519,42 @@
 
 .climb-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px 14px;
   align-items: center;
-  margin-top: 4px;
+  gap: 10px;
+  margin-left: auto;
+  flex: none;
 }
 
 .climb-enter {
-  min-height: var(--tap);
-  padding: 0 20px;
-  border-radius: 999px;
-  background: var(--accent);
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--ink);
+  border-radius: 7px;
+  background: var(--ink);
   color: var(--accent-ink);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 11.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
 }
 
 .climb-panel[data-state='next'] .climb-enter {
   background: var(--energy);
+  border-color: var(--energy);
   color: var(--energy-ink);
 }
 
 .climb-enter:disabled {
-  background: var(--sunken);
+  background: transparent;
+  border-color: var(--line-2);
   color: var(--faint);
 }
 
 .climb-replay {
   min-height: var(--tap);
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--muted);
-  text-align: left;
   text-decoration: underline;
-  text-decoration-color: var(--rule);
+  text-decoration-color: var(--line-2);
   text-underline-offset: 3px;
 }
 
@@ -464,65 +566,13 @@
   display: none;
 }
 
-.climb-floor-note {
-  margin: 4px 0 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--hairline);
-  color: var(--muted);
-  text-wrap: pretty;
-}
-
-/* On a phone the panel is pinned under the thumb: which level, and the way in. */
-@media (max-width: 899px) {
-  .climb-panel {
-    position: sticky;
-    bottom: calc(10px + var(--safe-bottom));
-    z-index: 3;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 2px 12px;
-    padding: 10px 10px 10px 16px;
-    border-radius: 999px;
-    box-shadow: 0 6px 22px rgb(23 32 43 / 16%);
-  }
-
-  .climb-goal,
-  .climb-set,
-  .climb-status,
-  .climb-floor-note {
-    display: none;
-  }
-
-  .climb-title {
-    font-size: 15px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .climb-eyebrow {
-    font-size: 9.5px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .climb-actions {
-    margin: 0;
-  }
-
-  .climb-replay {
-    display: none;
-  }
-}
-
+/* Crossings already seen, under the title on a phone. */
 .climb-replays {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 10px;
-  margin-top: 18px;
+  padding: 10px calc(18px + var(--safe-right)) 0 calc(22px + var(--safe-left));
 }
 
 .climb-replays[hidden],
@@ -534,16 +584,37 @@
   margin-right: 4px;
 }
 
-/* A wide window says the same thing in the panel, for the floor pointed at. */
 @media (min-width: 900px) {
   .climb-replays {
     display: none;
   }
 }
 
-.home-foot {
-  margin-top: 34px;
-  padding-top: 16px;
-  border-top: 1px solid var(--hairline);
-  max-width: 68ch;
+@media (max-width: 899px) {
+  .scene-tag,
+  .climb-goal,
+  .climb-status {
+    display: none;
+  }
+
+  .scene-head {
+    flex-direction: column;
+  }
+
+  .home-meta {
+    justify-content: flex-start;
+  }
+
+  .climb {
+    align-items: start;
+    padding-top: 4px;
+  }
+
+  .climb-panel {
+    padding-left: calc(16px + var(--safe-left));
+  }
+
+  .climb-replay {
+    display: none;
+  }
 }

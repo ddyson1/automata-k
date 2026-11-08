@@ -1,21 +1,58 @@
 /* --------------------------------------------------------------------------
-   the stage
+   the stage: the chamber itself
+
+   The ground is the canvas gradient with a haze in it and motes drifting
+   through it; everything else floats over it. The machine's own region is
+   the space left between the question at the top, the console on the right
+   and the readout at the foot, so a fitted machine is never under any of
+   them. --hud-h is measured from the question; --pane-w is the console.
    -------------------------------------------------------------------------- */
 
 .stage {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  background: linear-gradient(var(--ground-top), var(--ground-bottom));
+  --gutter: 18px;
+  --foot: 78px;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 90% at 46% 26%, var(--haze), transparent 64%),
+    linear-gradient(var(--ground-top), var(--ground-bottom));
+}
+
+.motes {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 .diagram-wrap {
-  flex: 1 1 0;
-  min-height: 0;
+  position: absolute;
+  top: calc(var(--hud-h, 96px) + 22px + var(--safe-top));
+  left: var(--safe-left);
+  right: calc(var(--pane-w, 380px) + var(--gutter) * 2 + var(--safe-right));
+  bottom: var(--foot);
   display: flex;
   flex-direction: column;
+}
+
+/* A stack stands between the machine and the console. */
+.kind-pda .diagram-wrap {
+  right: calc(var(--pane-w, 380px) + var(--gutter) * 2 + 70px + var(--safe-right));
+}
+
+/* A tape runs along the foot, above the readout. */
+.kind-tm .stage {
+  --foot: 132px;
+}
+
+.level.is-collapsed .diagram-wrap {
+  right: calc(var(--safe-right) + 12px);
+}
+
+.level.is-collapsed.kind-pda .diagram-wrap {
+  right: calc(var(--safe-right) + 82px);
 }
 
 .diagram {
@@ -31,9 +68,9 @@
 
 .canvas-hint {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(10px + var(--safe-bottom));
+  left: var(--gutter);
+  right: calc(var(--pane-w, 380px) + var(--gutter) * 2);
+  bottom: calc(14px + var(--safe-bottom));
   text-align: center;
   font-size: 11.5px;
   color: var(--faint);
@@ -42,9 +79,17 @@
   transition: opacity 0.12s ease;
 }
 
+.level.is-tracing .canvas-hint,
+.level.is-showing .canvas-hint {
+  opacity: 0;
+}
+
 .empty-prompt {
   position: absolute;
-  inset: 0;
+  top: calc(var(--hud-h, 96px) + 22px);
+  left: 0;
+  right: calc(var(--pane-w, 380px) + var(--gutter) * 2);
+  bottom: var(--foot);
   z-index: 1;
   display: flex;
   flex-direction: column;
@@ -52,7 +97,7 @@
   justify-content: center;
   gap: 14px;
   pointer-events: none;
-  color: var(--faint);
+  color: var(--muted);
   text-align: center;
   padding: 0 24px;
 }
@@ -65,17 +110,51 @@
   margin: 0;
 }
 
+/* An empty chamber's one ring, breathing slowly where the first state goes. */
 .empty-ring {
   width: 62px;
   height: 62px;
   border-radius: 999px;
-  border: 1.6px dashed var(--rule);
+  border: 1.6px dashed var(--line-2);
+  box-shadow: 0 0 34px 6px color-mix(in srgb, var(--energy) 12%, transparent);
+  animation: ring-breathe 3.2s ease-in-out infinite;
 }
 
-.corner {
+@keyframes ring-breathe {
+  50% {
+    box-shadow: 0 0 46px 12px color-mix(in srgb, var(--energy) 18%, transparent);
+  }
+}
+
+/* A suite that passed or failed washes the chamber with its colour, once. */
+.tint {
   position: absolute;
-  top: calc(5px + var(--safe-top));
-  right: calc(5px + var(--safe-right));
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.tint.is-pass {
+  background: var(--pass);
+  animation: tint-wash 1.6s ease-out;
+}
+
+.tint.is-fail {
+  background: var(--fail);
+  animation: tint-wash 1.2s ease-out;
+}
+
+@keyframes tint-wash {
+  from {
+    opacity: 0.09;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* The four tools sit in the top bar, beside the meter. */
+.corner {
   display: flex;
   z-index: 3;
 }
@@ -99,6 +178,10 @@
   display: grid;
 }
 
+.corner-b {
+  color: var(--muted);
+}
+
 .corner-b:hover:not(:disabled),
 .corner-b:focus-visible,
 .pane-fold:hover,
@@ -106,25 +189,25 @@
 .pane-unfold:hover,
 .pane-unfold:focus-visible {
   color: var(--ink);
-  background: var(--surface);
+  background: var(--panel);
 }
 
 .pane-fold:hover,
 .pane-fold:focus-visible {
-  background: var(--sunken);
+  background: var(--line-1);
 }
 
+/* Folded, the console leaves this behind where its own corner was. */
 .stage .pane-unfold {
+  display: none;
   position: absolute;
-  top: calc(5px + var(--safe-top));
-  left: calc(5px + var(--safe-left));
+  top: calc(64px + var(--safe-top));
+  right: calc(var(--gutter) + var(--safe-right));
   z-index: 3;
-}
-
-/* Its label opens rightward, into the canvas, not off the window's edge. */
-.pane-unfold.tip::after {
-  right: auto;
-  left: 0;
+  border: 1px solid var(--line-2);
+  background: var(--panel);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .corner-b:disabled {
@@ -202,9 +285,11 @@
   gap: 1px;
   padding: 3px;
   border-radius: 10px;
-  background: var(--surface);
-  border: 1px solid var(--rule);
-  box-shadow: 0 6px 18px -8px rgb(0 0 0 / 28%);
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  box-shadow: 0 10px 26px -10px rgb(var(--shadow-rgb) / 32%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   white-space: nowrap;
 }
 
@@ -221,7 +306,7 @@
 }
 
 .sb:hover {
-  background: var(--sunken);
+  background: var(--line-1);
 }
 
 .sb.is-on {
@@ -230,77 +315,120 @@
 }
 
 /* --------------------------------------------------------------------------
-   svg
+   svg: the machine in the chamber
+
+   A state is a translucent body hanging in the volume. It always gives off a
+   little light — a faint halo in energy — and on Mist it casts a soft shadow
+   below itself, since a pale ground can take shadow where it cannot take
+   light; on Dusk the shadow goes and the halo does the work. The state a
+   trace is in lights up: its body fills with energy, its halo grows, its rim
+   brightens. An accepting state carries a dashed inner ring that turns,
+   slowly, so accepting reads at a glance and still reads in grey.
+
+   Arrows are thin ink strokes over a soft energy glow, and a rule being used
+   is a comet running along its arrow. Chips are glass.
    -------------------------------------------------------------------------- */
 
+/* The chamber has no grid: the motes are the only texture. */
 .grid {
+  fill: none;
   stroke: none;
 }
 
-.dot {
-  fill: var(--dot);
+.g-energy {
+  stop-color: var(--energy);
+}
+
+.g-energy-hi {
+  stop-color: var(--energy-hi);
+}
+
+.g-shade {
+  stop-color: rgb(var(--shadow-rgb));
+}
+
+.g-ink {
+  stop-color: var(--ink-soft);
+}
+
+.edge-glow {
+  stroke: var(--energy);
+  stroke-width: 7;
+  stroke-linecap: round;
+  opacity: 0.06;
+  fill: none;
 }
 
 .edge-stroke {
-  stroke: var(--ink);
-  stroke-width: 1.6;
+  stroke: var(--ink-soft);
+  stroke-width: 1.4;
   stroke-linecap: round;
   fill: none;
 }
 
 .edge-head {
-  fill: var(--ink);
+  fill: var(--ink-soft);
   stroke: none;
 }
 
-/* A rule the trace just used, running along its arrow. */
+/* A rule the trace just used: a tail, and a bright head riding along it. */
 .edge-pulse {
   stroke: var(--energy);
-  stroke-width: 3.2;
+  stroke-width: 3;
   stroke-linecap: round;
   pointer-events: none;
-  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--energy) 60%, transparent));
+  opacity: 0.7;
+}
+
+.pulse-glow {
+  fill: var(--energy);
+  opacity: 0.32;
+  filter: blur(4px);
+}
+
+.pulse-dot {
+  fill: var(--energy);
+}
+
+.pulse-shine {
+  fill: #fff;
 }
 
 .pending {
-  stroke: var(--ink);
+  stroke: var(--energy);
   stroke-width: 1.6;
-  stroke-dasharray: 6 4;
+  stroke-dasharray: 3 5;
+  stroke-linecap: round;
   fill: none;
-  opacity: 0.65;
+  opacity: 0.85;
 }
 
+/* The input arrives from out in the chamber, and a little light runs in with it. */
 .start-shaft {
-  stroke: var(--ink);
-  stroke-width: 1.6;
+  stroke-width: 1.4;
   stroke-linecap: round;
 }
 
-.start-head {
-  fill: var(--ink);
+.start-flow {
+  stroke: var(--energy);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 16 140;
+  opacity: 0.7;
+  animation: start-flow 3.1s linear infinite;
 }
 
-/*
- * Depth. A state is a thing on the surface: on Mist it casts a shadow, on Dusk
- * it gives off a little light, and while the trace is in it, it glows with
- * energy either way.
- */
-.diagram {
-  --state-depth: drop-shadow(0 1.5px 1.2px rgb(23 32 43 / 16%))
-    drop-shadow(0 4px 6px rgb(23 32 43 / 7%));
-  --state-glow: drop-shadow(0 0 5px color-mix(in srgb, var(--energy) 45%, transparent));
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .diagram {
-    --state-depth: drop-shadow(0 0 3px rgb(238 242 248 / 12%));
-    --state-glow: drop-shadow(0 0 9px color-mix(in srgb, var(--energy) 70%, transparent));
+@keyframes start-flow {
+  from {
+    stroke-dashoffset: 156;
+  }
+  to {
+    stroke-dashoffset: 0;
   }
 }
 
-:root[data-theme='dark'] .diagram {
-  --state-depth: drop-shadow(0 0 3px rgb(238 242 248 / 12%));
-  --state-glow: drop-shadow(0 0 9px color-mix(in srgb, var(--energy) 70%, transparent));
+.start-head {
+  fill: var(--ink-soft);
 }
 
 .state {
@@ -317,28 +445,27 @@
  * leaves, so a diagram at rest is only the diagram.
  */
 
-.state-ring {
-  fill: var(--surface);
-  stroke: var(--ink);
-  stroke-width: 1.6;
-  filter: var(--state-depth);
+.state-shadow {
+  pointer-events: none;
 }
 
 .state-halo {
-  fill: var(--energy);
-  opacity: 0;
+  opacity: 0.1;
   pointer-events: none;
   transform-box: fill-box;
   transform-origin: center;
-  transform: scale(0.7);
   transition:
-    opacity 0.22s ease,
-    transform 0.32s cubic-bezier(0.3, 0.7, 0.3, 1.25);
+    opacity 0.25s ease,
+    transform 0.35s cubic-bezier(0.3, 0.7, 0.3, 1.25);
 }
 
-.state.is-active .state-halo {
-  opacity: 0.2;
-  transform: none;
+.state-ring {
+  fill: var(--fill);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  transition:
+    stroke 0.2s ease,
+    stroke-width 0.2s ease;
 }
 
 .state-accept {
@@ -347,8 +474,18 @@
 }
 
 .state.is-accepting .state-accept {
-  stroke: var(--ink);
-  stroke-width: 1.4;
+  stroke: var(--ink-soft);
+  stroke-width: 1.15;
+  stroke-dasharray: 4.5 3.5;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: accept-turn 21s linear infinite;
+}
+
+@keyframes accept-turn {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .state-label {
@@ -359,7 +496,7 @@
 }
 
 .state-grip {
-  fill: var(--accent);
+  fill: var(--energy);
   stroke: var(--surface);
   stroke-width: 2;
   opacity: 0;
@@ -369,7 +506,7 @@
 }
 
 .state.is-selected .state-ring {
-  stroke-width: 2.6;
+  stroke-width: 2.4;
 }
 
 .state.is-hover .state-grip,
@@ -379,14 +516,24 @@
 }
 
 .state.is-target .state-ring {
-  stroke-width: 2.6;
-  fill: var(--accent-tint);
+  stroke: var(--energy);
+  stroke-width: 2.4;
+}
+
+.state.is-target .state-halo {
+  opacity: 0.35;
+}
+
+/* Lit: the trace is here. */
+.state.is-active .state-halo {
+  opacity: 0.55;
+  transform: scale(1.22);
 }
 
 .state.is-active .state-ring {
-  fill: var(--energy);
+  fill: var(--core-fill, var(--energy));
   stroke: var(--energy);
-  filter: var(--state-glow);
+  stroke-width: 2.6;
 }
 
 .state.is-active .state-label {
@@ -397,6 +544,41 @@
   stroke: var(--energy-ink);
 }
 
+/* Dusk takes light, so its states shed no shadow and glow more. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .state-shadow {
+    display: none;
+  }
+
+  :root:not([data-theme='light']) .state-halo {
+    opacity: 0.18;
+  }
+
+  :root:not([data-theme='light']) .state.is-active .state-halo {
+    opacity: 0.7;
+  }
+
+  :root:not([data-theme='light']) .edge-glow {
+    opacity: 0.08;
+  }
+}
+
+:root[data-theme='dark'] .state-shadow {
+  display: none;
+}
+
+:root[data-theme='dark'] .state-halo {
+  opacity: 0.18;
+}
+
+:root[data-theme='dark'] .state.is-active .state-halo {
+  opacity: 0.7;
+}
+
+:root[data-theme='dark'] .edge-glow {
+  opacity: 0.08;
+}
+
 /* Clicking a state focuses it; the UA ring around an SVG group is not wanted. */
 .diagram:focus,
 .state:focus,
@@ -405,8 +587,63 @@
 }
 
 .state:focus-visible .state-ring {
-  stroke-width: 3;
-  stroke-dasharray: 3 2.5;
+  stroke: var(--energy);
+  stroke-width: 2.6;
+}
+
+.state:focus-visible .state-halo {
+  opacity: 0.4;
+}
+
+/* A ring off a state: just placed, made accepting, or a string landing in it. */
+.bloom {
+  fill: none;
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+  transform-box: fill-box;
+  transform-origin: center;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.bloom.is-place {
+  stroke: var(--energy);
+  animation: bloom-out 0.95s ease-out forwards;
+}
+
+.bloom.is-pass {
+  stroke: var(--pass);
+  animation: bloom-out 0.9s ease-out forwards;
+}
+
+.bloom.is-fail {
+  stroke: var(--fail);
+  animation: bloom-in 0.8s ease-in forwards;
+}
+
+@keyframes bloom-out {
+  from {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+@keyframes bloom-in {
+  from {
+    opacity: 0;
+    transform: scale(3);
+  }
+  40% {
+    opacity: 0.6;
+  }
+  to {
+    opacity: 0;
+    transform: scale(1);
+  }
 }
 
 .chip {
@@ -414,8 +651,8 @@
 }
 
 .chip-bg {
-  fill: var(--surface);
-  stroke: var(--hairline);
+  fill: var(--panel);
+  stroke: var(--line-2);
   stroke-width: 1;
 }
 
@@ -426,8 +663,7 @@
 }
 
 .chip:hover .chip-bg {
-  fill: var(--accent-tint);
-  stroke: var(--ink);
+  stroke: var(--ink-soft);
 }
 
 .chip.is-lit .chip-bg {
@@ -435,24 +671,23 @@
   stroke: var(--energy);
 }
 
+.chip.is-lit .chip-text {
+  fill: var(--energy);
+}
+
 .chip.is-selected .chip-bg {
-  stroke: var(--ink);
-  stroke-width: 1.6;
+  stroke: var(--energy);
+  stroke-width: 1.5;
 }
 
 .chip:focus-visible .chip-bg {
-  stroke: var(--ink);
+  stroke: var(--energy);
   stroke-width: 2;
-  stroke-dasharray: 3 2;
 }
 
 /* --------------------------------------------------------------------------
    a rule, read out
    -------------------------------------------------------------------------- */
-
-.diagram-wrap {
-  position: relative;
-}
 
 .chip-tip {
   position: absolute;

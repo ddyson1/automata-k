@@ -30,6 +30,10 @@ export default defineConfig({
     baseURL: 'http://127.0.0.1:8081',
     trace: 'retain-on-failure',
     ...devices['Desktop Chrome'],
+    // Grading is shown as a run of every string through the machine, and a
+    // tapped string plays itself; with reduced motion both arrive at once.
+    // Tests about motion ask for it back with test.use.
+    contextOptions: { reducedMotion: 'reduce' },
     launchOptions: {
       ...(executablePath ? { executablePath } : {}),
       // Containers commonly run as root, where the Chromium sandbox refuses to start.

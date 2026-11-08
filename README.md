@@ -232,12 +232,15 @@ by eye, and 48 Playwright tests over two viewports.
     geometry.ts  edge geometry, shared by the web app and its tests
 /web             the web app: DOM and SVG, no framework
   /src
-    brief.ts     the question, the two lists, and the live marks
-    diagram.ts   the canvas
-    panels.ts    the formal layer: the pane's other four tabs
+    brief.ts     the question, the meter, the suite and its live marks
+    diagram.ts   the machine in the chamber
+    panels.ts    the formal layer: the console's other four tabs
     ledger.ts    tuple and transition function
     theory.ts    symbol by symbol, grammar, hierarchy, and the hint
-    trace.ts     the stepper
+    trace.ts     the readout, the stepper, and the suite's own run
+    results.ts   the card a passing run ends on
+    crossing.ts  the scenes between floors of the climb
+    motes.ts     the air in the chamber
     fonts/       the three bundled families, subset from the originals
 /ios             the Swift package: the same engine, held to a golden fixture
 /scripts         golden fixture, font build, single file build, shape check
@@ -279,15 +282,35 @@ are capped at 400 but simulation always runs to the real limit.
 
 ## Interface
 
-**The canvas has no dock, and it is the whole right side of the window.** A
-state is placed by double clicking. Dragging inside a state moves it; dragging
+**A level is a chamber.** The whole window is one lit volume with the machine
+hanging in it. What the level asks floats in the top left: which level, the
+question, the language, and on pushdown and Turing levels how to read a rule.
+The top right is the instruments: the four tools, states against par and
+arrows, and the way back to the climb. A glass console stands on the right; its
+first tab is the suite, the strings that must be accepted and rejected, which
+are also the grader, and its other four hold the formal layer. Its foot never
+moves: how the machine is doing, and Run. The readout runs along the bottom
+left — the input with the symbol being read underlined, one line of words for
+the rule that fired, and the transport — and a pushdown machine's stack stands
+on the stage beside it as a column, while a Turing machine's tape runs across
+the foot.
+
+**Running the suite is something you watch.** Every string goes through the
+machine in turn, its row marked with a triangle while it runs and a tick or a
+cross when it lands, with a ring off the state it lands in. The verdict is
+computed at once; showing it takes about four seconds however long the suite.
+Escape stops the show and the verdict stands. A passing run ends on a card that
+says what the theory says about the machine's size. With reduced motion the
+marks simply appear.
+
+**The machine has no dock.** A state is placed by double clicking. Dragging inside a state moves it; dragging
 from the band just outside it pulls an arrow, and the state under the pointer
 grows four grips that say so. The state you would land on lights up while you
 drag. A state's own controls appear attached to it when it is selected, and an
 empty canvas says what to do in the middle of itself.
 
-Four quiet icons in one corner do the things with nothing to attach to: undo,
-redo, tidy, fit. Each draws its own label on hover and on keyboard focus, and
+Four quiet icons in the top right do the things with nothing to attach to:
+undo, redo, tidy, fit. Each draws its own label on hover and on keyboard focus, and
 flashes it after a press on a touch screen, which has no hover to draw it with.
 The browser's own `title` tooltip is not used: it takes about a second to
 appear, cannot be styled, and never shows on touch at all.
@@ -310,9 +333,10 @@ path that turns back at the end of each row. Each floor is a strictly larger
 class of machine, and the picture says so before any prose does. The pushdown
 floor raises a stack beside the path, one cell filling per pushdown level
 solved, and solved Turing levels cross cells off a tape over the top floor. The
-next level glows in energy and is named on the map; a panel beside it describes
-whichever stop is pointed at and enters it, and on a phone that panel is pinned
-under the thumb with only the name and the button. The stops are real buttons in
+next level glows in energy and is named on the map, a tooltip names any stop
+pointed at, and a glass bar along the bottom describes it and enters it. The
+whole home screen is the scene: the name top left, the controls top right, the
+map in the middle. The stops are real buttons in
 order, labelled for a screen reader; one takes Tab and the arrow keys walk the
 path from there.
 
@@ -326,18 +350,11 @@ from outside, which means "show me this level". Each plays once, can be skipped
 from its first frame, can be watched again from the climb, and with reduced
 motion is the same scene all at once. They are native modal dialogs.
 
-On a phone the brief is a rail across the top rather than a sheet across the
-bottom. It carries which level this is, what the level asks in words and in
-set-builder, and the verdict once a run has happened — the question stays on
-screen while you draw, which the sheet never had room for. Tapping the rail
-anywhere opens the same five tabs full screen. Run docks bottom right and the
-four tools bottom left, in reach of a thumb, and a trace collapses the rail to
-its title line and takes the bottom outright rather than stacking a second
-panel over the canvas.
-
-Measured on a 390 × 664 viewport, that is 23% of the screen spent on furniture
-while drawing against 30% before, 33% during a trace against 57%, and the
-question visible throughout rather than never.
+On a phone the question stays at the top, with only the way back beside it,
+and the console becomes a bar along the bottom: how the machine is doing, Run,
+and a grab that opens the suite and the formal layer over the chamber. The four
+tools float just above the bar, bottom left, in reach of a thumb, and a trace
+takes the foot outright rather than stacking a second panel over the machine.
 
 ## Design
 
@@ -386,7 +403,7 @@ instant. With reduced motion nothing travels.
 
 The canvas grows its visible region from the size of the window in pixels, so a
 taller window shows more of the world rather than magnifying the same part of
-it, and the grid runs edge to edge because the pane is the canvas. The logical
+it. There is no grid: the motes are the chamber's only texture. The logical
 340 x 460 box is where authored solutions live and what the iOS port shares; on
 screen it is only a starting frame, and a drag is bounded by what is visible.
 
