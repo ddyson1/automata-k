@@ -27,13 +27,14 @@ import {
   STATE_RADIUS,
   buildEdges,
   chipAnchor,
+  edgeGeometry,
   edgesPathData,
 } from '../../../src/ui/geometry';
 import type { EdgeSpec, Positions, Pt } from '../../../src/ui/geometry';
 import { transitionChip, transitionPlain } from '../../../src/engine/formal';
 import type { Machine, MachineKind, StateId, TransitionId } from '../../../src/engine/types';
 import { h, on, setAttr, svg } from '../dom';
-import { tap } from '../haptics';
+import { reducedMotion, tap } from '../haptics';
 
 /** Martian Mono advances 0.7em at width 100, and geometry.ts sizes chips at CHIP_CHAR_W. */
 const CHIP_FONT = CHIP_CHAR_W / 0.7;
@@ -68,6 +69,15 @@ const FIT_PAD_TOP = 54;
  * magnification.
  */
 const BASE_ZOOM = 1.1;
+/**
+ * Tidy moves states on a spring rather than in one jump, so the eye can follow
+ * each state to where it went. A little under critical damping: they arrive
+ * with a settle, not a bounce.
+ */
+const SPRING_K = 190;
+const SPRING_C = 22;
+/** How long a pulse takes to run the length of an arrow. Under a trace step. */
+const PULSE_MS = 420;
 
 export interface DiagramCallbacks {
   onSelectState: (id: StateId | null) => void;
@@ -114,6 +124,10 @@ export interface Diagram {
   screenPointOf(id: StateId): { x: number; y: number; r: number } | null;
   /** The region on screen, in logical units. Placement clamps to it. */
   visibleBounds(): { x: number; y: number; w: number; h: number };
+  /** The next change of positions, and the fit after it, move rather than jump. */
+  glide(): void;
+  /** Send a pulse along the arrows that carry these rules: the trace just used them. */
+  pulse(ids: readonly TransitionId[]): void;
   destroy(): void;
 }
 
@@ -151,6 +165,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
   const viewport = svg('g', { class: 'viewport' });
   const edgeStrokes = svg('path', { class: 'edge-stroke', d: '', fill: 'none' });
   const edgeHeads = svg('path', { class: 'edge-head', d: '' });
+  const pulseLayer = svg('g', { class: 'pulses', 'aria-hidden': 'true' });
   const edgeHitLayer = svg('g', { class: 'edge-hits' });
   const chipLayer = svg('g', { class: 'chips' });
   const startMarker = svg('g', { class: 'start-marker' });
@@ -163,6 +178,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
   viewport.append(
     edgeStrokes,
     edgeHeads,
+    pulseLayer,
     chipLayer,
     startMarker,
     stateLayer,
@@ -420,6 +436,8 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
         });
         node.append(
           svg('circle', { class: 'state-hit', r: CONNECT_OUTER, cx: 0, cy: 0 }),
+          // The light a state gives off while the trace is in it.
+          svg('circle', { class: 'state-halo', r: STATE_RADIUS + 9, cx: 0, cy: 0 }),
           svg('circle', { class: 'state-ring', r: STATE_RADIUS, cx: 0, cy: 0 }),
           svg('circle', { class: 'state-accept', r: STATE_RADIUS - 4.5, cx: 0, cy: 0 }),
           svg('text', {
@@ -493,8 +511,12 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
   }
 
   function rebuild(): void {
+    const before: Positions = { ...positions };
     for (const key of Object.keys(positions)) delete positions[key];
     for (const state of model.machine.states) positions[state.id] = { x: state.x, y: state.y };
+    stopGlide(false);
+    if (glideArmed && !reducedMotion()) startGlide(before);
+    glideArmed = false;
 
     edges = buildEdges(
       model.machine.transitions.map((t) => ({
@@ -507,6 +529,148 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
     );
     drawStates();
     drawEdges();
+  }
+
+  // -- gliding --------------------------------------------------------------
+  //
+  // `positions` is what is drawn. While a glide runs it holds where each state
+  // is on its way, and `targets` holds where the model says it is.
+
+  let glideArmed = false;
+  let glide: { targets: Positions; vel: Map<StateId, Pt>; raf: number; last: number } | null =
+    null;
+  let viewTween = 0;
+
+  function paintGliding(): void {
+    root.classList.toggle('is-gliding', glide !== null || viewTween !== 0);
+  }
+
+  function startGlide(from: Positions): void {
+    const targets: Positions = {};
+    const vel = new Map<StateId, Pt>();
+    let moving = false;
+    for (const state of model.machine.states) {
+      const to = positions[state.id];
+      const at = from[state.id];
+      if (!to) continue;
+      targets[state.id] = { ...to };
+      if (!at) continue;
+      if (Math.hypot(to.x - at.x, to.y - at.y) > 0.5) moving = true;
+      positions[state.id] = { x: at.x, y: at.y };
+      vel.set(state.id, { x: 0, y: 0 });
+    }
+    if (!moving) {
+      Object.assign(positions, targets);
+      return;
+    }
+    glide = { targets, vel, raf: 0, last: performance.now() };
+    glide.raf = requestAnimationFrame(stepGlide);
+    paintGliding();
+  }
+
+  function stepGlide(now: number): void {
+    const g = glide;
+    if (!g) return;
+    const dt = Math.min(1 / 30, Math.max(0.001, (now - g.last) / 1000));
+    g.last = now;
+    let settled = true;
+    for (const [id, to] of Object.entries(g.targets)) {
+      const at = positions[id];
+      const v = g.vel.get(id);
+      if (!at || !v) continue;
+      v.x += (SPRING_K * (to.x - at.x) - SPRING_C * v.x) * dt;
+      v.y += (SPRING_K * (to.y - at.y) - SPRING_C * v.y) * dt;
+      at.x += v.x * dt;
+      at.y += v.y * dt;
+      if (Math.hypot(to.x - at.x, to.y - at.y) > 0.2 || Math.hypot(v.x, v.y) > 3) settled = false;
+    }
+    if (settled) {
+      stopGlide(true);
+      return;
+    }
+    drawStates();
+    drawEdges();
+    callbacks.onAnchorMoved();
+    g.raf = requestAnimationFrame(stepGlide);
+  }
+
+  /** End a glide. `land` puts every state where it was going. */
+  function stopGlide(land: boolean): void {
+    const g = glide;
+    if (!g) return;
+    cancelAnimationFrame(g.raf);
+    glide = null;
+    paintGliding();
+    if (!land) return;
+    for (const [id, to] of Object.entries(g.targets)) positions[id] = { ...to };
+    drawStates();
+    drawEdges();
+    callbacks.onAnchorMoved();
+  }
+
+  /** Ease the view to `next` instead of cutting to it. */
+  function tweenView(next: View): void {
+    cancelAnimationFrame(viewTween);
+    const from = { ...view };
+    const t0 = performance.now();
+    const step = (now: number): void => {
+      const k = Math.min(1, (now - t0) / 460);
+      const e = 1 - (1 - k) ** 3;
+      view = {
+        scale: from.scale + (next.scale - from.scale) * e,
+        tx: from.tx + (next.tx - from.tx) * e,
+        ty: from.ty + (next.ty - from.ty) * e,
+      };
+      applyView();
+      if (k < 1) viewTween = requestAnimationFrame(step);
+      else {
+        viewTween = 0;
+        paintGliding();
+      }
+    };
+    viewTween = requestAnimationFrame(step);
+    paintGliding();
+  }
+
+  function stopViewTween(): void {
+    if (!viewTween) return;
+    cancelAnimationFrame(viewTween);
+    viewTween = 0;
+    paintGliding();
+  }
+
+  // -- the trace, along the arrows -------------------------------------------
+
+  function pulse(ids: readonly TransitionId[]): void {
+    if (ids.length === 0 || reducedMotion()) return;
+    const at: Positions = glide ? { ...positions } : positions;
+    const seen = new Set<string>();
+    for (const id of ids) {
+      const edge = edges.find((e) => e.transitionIds.includes(id));
+      if (!edge || seen.has(edge.key)) continue;
+      seen.add(edge.key);
+      const d = edgeGeometry(edge, at, STATE_RADIUS, box).path;
+      if (!d) continue;
+      const path = svg('path', { class: 'edge-pulse', d, fill: 'none' });
+      pulseLayer.appendChild(path);
+      const length = path.getTotalLength?.() ?? 0;
+      if (!(length > 0) || typeof path.animate !== 'function') {
+        path.remove();
+        continue;
+      }
+      const run = Math.min(28, length * 0.45);
+      path.style.strokeDasharray = `${run} ${length + run}`;
+      const anim = path.animate(
+        [
+          { strokeDashoffset: run, opacity: 0.2 },
+          { strokeDashoffset: -length * 0.5, opacity: 1, offset: 0.5 },
+          { strokeDashoffset: -length, opacity: 0.6 },
+        ],
+        { duration: PULSE_MS, easing: 'cubic-bezier(0.4, 0, 0.3, 1)' },
+      );
+      anim.onfinish = () => path.remove();
+      anim.oncancel = () => path.remove();
+    }
   }
 
   // -- fitting --------------------------------------------------------------
@@ -528,13 +692,15 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
       x1 = Math.max(x1, x + padX);
       y1 = Math.max(y1, y + padY);
     };
+    // Mid glide, frame where the states are going rather than where they are.
+    const where: Positions = glide ? { ...positions, ...glide.targets } : positions;
     for (const s of states) grow(s.x, s.y, STATE_RADIUS + 6, STATE_RADIUS + 6);
     if (model.machine.start) {
-      const at = positions[model.machine.start];
+      const at = where[model.machine.start];
       if (at) grow(at.x - STATE_RADIUS - START_MARKER_LEN, at.y, 4, 4);
     }
     for (const edge of edges) {
-      const a = chipAnchor(edge, positions, STATE_RADIUS, box);
+      const a = chipAnchor(edge, where, STATE_RADIUS, box);
       const chars = Math.max(...edge.chips.map((c) => c.length), 1);
       grow(
         a.x,
@@ -559,11 +725,18 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
     const availW = Math.max(40, box.w - FIT_PAD * 2);
     const availH = Math.max(40, box.h - FIT_PAD - FIT_PAD_TOP);
     const scale = clamp(Math.min(availW / w, availH / hgt, 1.6), MIN_SCALE, MAX_SCALE);
-    view = {
+    const next = {
       scale,
       tx: box.x + FIT_PAD + availW / 2 - ((b.x0 + b.x1) / 2) * scale,
       ty: box.y + FIT_PAD_TOP + availH / 2 - ((b.y0 + b.y1) / 2) * scale,
     };
+    // A fit that follows a tidy travels with the states.
+    if (glide && !reducedMotion()) {
+      tweenView(next);
+      return;
+    }
+    stopViewTween();
+    view = next;
     applyView();
   }
 
@@ -659,6 +832,9 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
   cleanups.push(
     on(root as unknown as HTMLElement, 'pointerdown', (event) => {
       const e = event as PointerEvent;
+      // A hand on the canvas wins over anything still moving on it.
+      stopGlide(true);
+      stopViewTween();
       root.setPointerCapture(e.pointerId);
       live.set(e.pointerId, {
         id: e.pointerId,
@@ -885,6 +1061,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
       (event) => {
         const e = event as WheelEvent;
         e.preventDefault();
+        stopViewTween();
         const at = toViewport(e.clientX, e.clientY);
         if (e.ctrlKey || e.metaKey) {
           zoomAbout(Math.exp(-e.deltaY / 220), at);
@@ -959,6 +1136,10 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
     visibleBounds() {
       return { ...box };
     },
+    glide() {
+      glideArmed = true;
+    },
+    pulse,
     screenPointOf(id) {
       const at = positions[id];
       if (!at) return null;
@@ -971,6 +1152,8 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
       };
     },
     destroy() {
+      stopGlide(false);
+      stopViewTween();
       for (const off of cleanups) off();
       cleanups.length = 0;
     },

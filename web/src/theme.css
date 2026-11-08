@@ -305,6 +305,7 @@ sup.sup {
   :root:not([data-motion='full']) *::before,
   :root:not([data-motion='full']) *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }
@@ -313,5 +314,7 @@ sup.sup {
 :root[data-motion='reduce'] *::before,
 :root[data-motion='reduce'] *::after {
   animation-duration: 0.01ms !important;
+  /* A looping animation shortened to nothing would flicker at frame rate. */
+  animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;
 }

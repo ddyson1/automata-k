@@ -71,7 +71,13 @@ whose solution stopped matching its own language would fail the build.
 | 41 | Beyond context free | <code>L = { a<sup>n</sup>b<sup>n</sup>c<sup>n</sup> : n ≥ 0 }</code> | TM | 1 | 6 |
 | 42 | Four blocks | <code>L = { aⁿbⁿcⁿdⁿ : n ≥ 0 }</code> | TM | 1 | 7 |
 
-Par is the state count of a verified solution. Levels unlock in order.
+Par is the state count of a verified solution. Levels unlock in order. On a DFA
+level par counts the dead state, because par is the size of the one minimal
+complete DFA; a machine that leaves the dead state implicit, with arrows simply
+missing, is scored as if it had drawn it, since a missing arrow already rejects.
+Once a level is solved, the brief says what the theory says about its size: on a
+DFA level, whether yours is the unique minimal machine and if not which states
+could merge; on the others, why no algorithm could tell you.
 
 ## The machine, as a formal object
 
@@ -290,13 +296,35 @@ Every level opens on a blank canvas. What you draw lives for the session, so
 moving between levels keeps it and a reload does not: arriving at a level and
 finding a machine from a sitting you no longer remember is indistinguishable
 from one the game put there, and a puzzle that appears half solved by nobody is
-worse than one you have to start. Within a session the level list says which
+worse than one you have to start. Within a session the climb says which
 levels have work on them, and Stuck takes it all off again — an edit like any
 other, so undo puts the machine back.
 
 Progress is a separate thing and does persist: which levels are solved, the
-smallest state count each was solved with, whether the answer was revealed, the
-theme and the sound.
+smallest state count each was solved with, whether the answer was revealed,
+which crossings have played, the theme and the sound.
+
+**Home is the climb.** The hierarchy drawn as four floors, finite automata at
+the bottom and Turing machines at the top, with the 42 levels as stops on one
+path that turns back at the end of each row. Each floor is a strictly larger
+class of machine, and the picture says so before any prose does. The pushdown
+floor raises a stack beside the path, one cell filling per pushdown level
+solved, and solved Turing levels cross cells off a tape over the top floor. The
+next level glows in energy and is named on the map; a panel beside it describes
+whichever stop is pointed at and enters it, and on a phone that panel is pinned
+under the thumb with only the name and the button. The stops are real buttons in
+order, labelled for a screen reader; one takes Tab and the arrow keys walk the
+path from there.
+
+**Crossings.** Stepping onto the nondeterministic, pushdown or Turing floor for
+the first time plays a short scene: a machine that guesses, lit as a set of
+states reading 011; a machine with a stack, checking (()) one push and one pop
+at a time; a machine with a tape, crossing off aabb. Each says what the new
+machine can do that the old one could not, in the words the trace uses for a
+rule. They play from the climb and from Next level, never from a link opened
+from outside, which means "show me this level". Each plays once, can be skipped
+from its first frame, can be watched again from the climb, and with reduced
+motion is the same scene all at once. They are native modal dialogs.
 
 On a phone the brief is a rail across the top rather than a sheet across the
 bottom. It carries which level this is, what the level asks in words and in
@@ -346,6 +374,15 @@ chips.
 **Drag.** A drag never commits a position per frame. It writes transforms
 straight onto the SVG nodes and recomputes the batched edge paths in place; one
 commit lands on release, so one undo takes it back.
+
+**Feel.** A state is a thing on the surface: on Mist it casts a soft shadow and
+on Dusk it gives off a little light. The state a trace is in fills with energy
+and grows a halo. Each step of a trace is a rule being used, so its chip lights
+and a short pulse runs along its arrow into the state it lit; stepping back
+shows where the trace was without replaying the rule. Tidy moves every state on
+a spring to its new place, and the view eases to frame the result, so the eye
+can follow each state to where it went; undo still jumps, because undo should be
+instant. With reduced motion nothing travels.
 
 The canvas grows its visible region from the size of the window in pixels, so a
 taller window shows more of the world rather than magnifying the same part of

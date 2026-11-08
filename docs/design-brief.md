@@ -100,11 +100,13 @@ Sizes are set by x-height rather than by number. Martian Mono's x-height is
 0.6em, so every role sits a little smaller in pixels than a proportional face
 would.
 
-**Marks** — no shadows. Structure comes from hairlines and from space; the
-canvas carries a faint vertical gradient and nothing else does. A state is a
-circle with a hairline rim, not a filled disc; an accepting state is a double
-rim; the state a trace is in fills with energy, and that is the one filled
-state you will ever see.
+**Marks** — structure comes from hairlines and from space; the canvas carries
+a faint vertical gradient. A state is a circle with a rim, not a filled disc,
+and an accepting state is a double rim. States are the one thing with depth: on
+Mist a state casts a soft shadow, and on Dusk it gives off a little light, since
+a dark ground can take light where a pale one cannot. The state a trace is in
+fills with energy and grows a halo, and that is the one filled state you will
+ever see. A rule being used is a pulse of energy running along its arrow.
 
 **Rules read out** — every rule can be said in plain words: *read ( · put X
 on top · stay in q0*. Hovering or focusing a rule's chip says it, the trace says
@@ -122,6 +124,11 @@ and Turing levels carry a one-line key to their notation in the brief.
   against the machine being drawn.
 - **The grader is the brief.** There is no score band, no percentage, no stars.
   The lists of strings change as the verdict changes, and that is the feedback.
+  A solved level adds one note, in the brief, about what the theory says of its
+  size: a DFA has exactly one minimal machine, so the note says whether yours is
+  it; finding a minimal NFA is PSPACE-hard and for pushdown and Turing machines
+  it is undecidable, so there the note says that par is only the best found.
+  There is no leaderboard to rank against, because that would need a server.
 
 ## Decisions already made, with the reasoning
 
@@ -150,6 +157,19 @@ not used: about a second of delay, unstyleable, and absent entirely on touch.
 Labels appear on hover and on keyboard focus, and flash for 1.5s after a press
 where there is no hover. An icon is judged on being distinct from the three
 sitting beside it, not on being guessable alone.
+
+**Home is the climb, not a list.** The four groups of the old list were the
+hierarchy; now they are drawn as one: four floors, finite at the bottom, with
+the levels as stops on a path up. The stops are still the level buttons, in
+order and labelled, so nothing about reaching a level by keyboard or screen
+reader got worse. Energy marks only the next level. A panel describes the
+pointed-at stop; on a phone it is pinned under the thumb.
+
+**Each new kind of machine arrives with a crossing.** Going from finite to
+pushdown is the most important step in the hierarchy, and it should feel like
+one. A crossing is short, plays once, can be skipped from its first frame, and
+never plays on a link from outside the game, because a shared link means "show
+me this level". With reduced motion it is the same scene, shown all at once.
 
 **Every level opens on a blank canvas.** What you draw lives for the session and
 no longer. Arriving at a level and finding a machine from a sitting you no longer

@@ -26,6 +26,7 @@
 import { LEVELS } from '../../../src/engine/levels';
 import { shortestCounterexample } from '../../../src/engine/simulate';
 import type { SuiteResult } from '../../../src/engine/simulate';
+import { scoreNote, scoreOf } from '../../../src/engine/minimize';
 import type { Level, Machine, MachineKind } from '../../../src/engine/types';
 import { EPSILON } from '../../../src/engine/types';
 import { TOUCH, fill, h, on, setText } from '../dom';
@@ -128,9 +129,13 @@ export function createBrief(callbacks: BriefCallbacks): Brief {
     key,
   );
 
+  // Once a machine passes, what the theory says about how small it could be.
+  const note = h('p', { class: 't-small brief-note', 'data-testid': 'score-note', hidden: true });
+
   const body = h(
     'section',
     { class: 'brief', 'data-testid': 'brief' },
+    note,
     h(
       'div',
       { class: 'brief-split' },
@@ -206,6 +211,7 @@ export function createBrief(callbacks: BriefCallbacks): Brief {
       // A mark is only shown for a result that is still true of what is on
       // the canvas. After an edit every one goes back to the dot: not "wrong",
       // not "right", but not asked yet.
+      note.hidden = true;
       const started = state.machine.states.length > 0;
       const known = started && !state.stale;
       for (const row of result.rows) {
@@ -244,9 +250,17 @@ export function createBrief(callbacks: BriefCallbacks): Brief {
         setText(score, 'Not a machine yet');
         setText(why, result.error);
       } else if (result.solved) {
-        const n = state.best ?? state.machine.states.length;
+        // The machine on the canvas, counted the way par is counted.
+        const s = scoreOf(state.machine, level);
+        setText(note, scoreNote(state.machine, level));
+        note.hidden = false;
         setText(score, `All ${result.total} agree`);
-        setText(why, `${n} ${n === 1 ? 'state' : 'states'}, par ${level.par}.`);
+        setText(
+          why,
+          `${s.drawn} ${s.drawn === 1 ? 'state' : 'states'}` +
+            (s.impliedDead ? ' and the dead state they imply' : '') +
+            `, par ${level.par}.`,
+        );
       } else {
         setText(score, `${result.passed} of ${result.total} agree`);
         const witness = shortestCounterexample(state.machine, level);

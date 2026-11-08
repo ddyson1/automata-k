@@ -21,6 +21,7 @@
  */
 
 import { runSuite } from '../../../src/engine/simulate';
+import { scoreOf } from '../../../src/engine/minimize';
 import type { SuiteResult } from '../../../src/engine/simulate';
 import { LEVEL_BY_ID } from '../../../src/engine/levels';
 import type { Level, Machine, StateId, TransitionId } from '../../../src/engine/types';
@@ -40,6 +41,7 @@ import type { PaneTab } from '../components/panels';
 import { createTrace } from '../components/trace';
 import { createSheet } from '../components/sheet';
 import { buildRuleEditor } from '../components/ruleEditor';
+import { arriveAt, type Crossing } from '../components/crossing';
 
 export interface View {
   el: HTMLElement;
@@ -89,6 +91,9 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
   let selectedTransitions: TransitionId[] = [];
   let highlighted: readonly TransitionId[] = [];
   let traceActive: readonly StateId[] = [];
+  /** The rules the trace used to reach the step it is showing. */
+  let traceVia: readonly TransitionId[] = [];
+  let crossing: Crossing | null = null;
   let suiteResult: SuiteResult = runSuite(game.machineFor(levelId), level);
   /** The signature the current `suiteResult` was computed from. */
   let gradedAs: string | null = null;
@@ -245,6 +250,8 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
   const undoButton = cornerButton('Undo', 'undo', undoIcon(), () => game.undo(levelId));
   const redoButton = cornerButton('Redo', 'redo', redoIcon(), () => game.redo(levelId));
   const tidyButton = cornerButton('Arrange the diagram', 'tidy', tidyIcon(), () => {
+    // Each state travels to its new place, so the eye can follow where it went.
+    diagram.glide();
     game.tidy(levelId);
     requestAnimationFrame(() => diagram.fit());
   });
@@ -288,12 +295,16 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
   // -- trace ----------------------------------------------------------------
 
   const trace = createTrace({
-    onActive: (states) => {
+    onActive: (states, via = [], stepped = false) => {
       traceActive = states;
+      traceVia = via;
       paintDiagram();
+      // The rule just used runs along its arrow into the state it lit.
+      if (stepped) diagram.pulse(via);
     },
     onClose: () => {
       traceActive = [];
+      traceVia = [];
       render();
     },
   });
@@ -364,7 +375,17 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     onRun: () => runChecks(),
     onNext: () => {
       const next = game.nextLevel(levelId);
-      navigate(next ? `#/level/${next.id}` : '#/');
+      if (!next) {
+        navigate('#/');
+        return;
+      }
+      // Finishing a floor's last level is the usual way onto the next floor,
+      // so its crossing plays here as well as from the climb.
+      crossing?.destroy();
+      crossing = arriveAt(next, el, () => {
+        crossing = null;
+        navigate(`#/level/${next.id}`);
+      });
     },
   });
 
@@ -717,7 +738,12 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
       selectedState,
       selectedEdge,
       activeStates: traceActive,
-      activeTransitions: highlighted.length > 0 ? highlighted : selectedTransitions,
+      activeTransitions:
+        highlighted.length > 0
+          ? highlighted
+          : traceVia.length > 0
+            ? traceVia
+            : selectedTransitions,
     });
   }
 
@@ -740,11 +766,15 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     stale = false;
 
     if (suiteResult.solved) {
-      game.markSolved(levelId, current.states.length);
+      const score = scoreOf(current, level);
+      game.markSolved(levelId, score.scored);
       if (!quiet) {
         success();
         chime();
-        announce(`Every test agrees with ${current.states.length} states.`);
+        announce(
+          `Every test agrees with ${score.drawn} states` +
+            (score.impliedDead ? ' and the dead state they imply.' : '.'),
+        );
       }
     } else if (!quiet) {
       if (suiteResult.error) warn();
@@ -873,6 +903,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
   return {
     el,
     destroy() {
+      crossing?.destroy();
       unsubscribe();
       offKeys();
       offResize();
