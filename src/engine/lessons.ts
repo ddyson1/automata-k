@@ -116,6 +116,28 @@ const PARITY_RULES: RuleSpec[] = [
   ['odd', 'even', '0'],
 ];
 
+/** Does what has been read so far end with 0? Each state is one answer. */
+const ENDS_STATES: StateSpec[] = [
+  ['no', 'no', 105, 230],
+  ['yes', 'yes', 235, 230],
+];
+
+/** The ids and labels a player's own first two states get, so the answer matches them. */
+const OWN_STATES: StateSpec[] = [
+  ['s0', 'q0', 105, 230],
+  ['s1', 'q1', 235, 230],
+];
+
+const STARTS_STATES: StateSpec[] = [
+  ['s', 's', 95, 165],
+  ['yes', 'yes', 245, 165],
+];
+const STARTS_RULES: RuleSpec[] = [
+  ['s', 'yes', '1'],
+  ['yes', 'yes', '0'],
+  ['yes', 'yes', '1'],
+];
+
 export const LESSONS: Lesson[] = [
   {
     id: 'lesson-reading',
@@ -217,6 +239,120 @@ export const LESSONS: Lesson[] = [
     takeaway:
       'From every state, every symbol needs an arrow, so the machine always knows where to go. ' +
       'Where one is missing the run stops dead, and the string is rejected.',
+  },
+  {
+    id: 'lesson-memory',
+    index: 4,
+    title: 'A state is a memory',
+    pitch: 'Give each state a meaning, and the arrows follow.',
+    level: level(
+      4,
+      {
+        id: 'lesson-memory',
+        title: 'A state is a memory',
+        goal: 'Accept the strings that end with 0.',
+        tests: ['', '0', '1', '00', '01', '10', '11', '010', '011', '100', '0110', '1011'],
+        accepts: (w) => w.endsWith('0'),
+        setBuilder: 'L = { w ∈ {0,1}* : w ends with 0 }',
+        grammar: grammar(
+          ['S'],
+          [
+            ['S', '0S'],
+            ['S', '1S'],
+            ['S', '0'],
+          ],
+        ),
+      },
+      2,
+    ),
+    start: machine('lesson-memory', ENDS_STATES, 'no', ['yes'], []),
+    answer: machine('lesson-memory', ENDS_STATES, 'no', ['yes'], [
+      ['no', 'yes', '0'],
+      ['yes', 'yes', '0'],
+      ['yes', 'no', '1'],
+      ['no', 'no', '1'],
+    ]),
+    takeaway:
+      'Each state is a summary of everything read so far: just enough of it to decide. To ' +
+      'design a machine, ask what it needs to remember, give each answer a state, and the ' +
+      'arrows follow from what each symbol does to the answer.',
+  },
+  {
+    id: 'lesson-own',
+    index: 5,
+    title: 'Your own states',
+    pitch: 'Start from nothing: decide what to remember, and build it.',
+    level: level(
+      5,
+      {
+        id: 'lesson-own',
+        title: 'Your own states',
+        goal: 'Accept the strings that contain a 1.',
+        tests: ['', '0', '1', '00', '01', '10', '11', '000', '001', '100', '0000', '0100'],
+        accepts: (w) => w.includes('1'),
+        setBuilder: 'L = { w ∈ {0,1}* : w contains a 1 }',
+        grammar: grammar(
+          ['S', 'A'],
+          [
+            ['S', '0S'],
+            ['S', '1A'],
+            ['A', '0A'],
+            ['A', '1A'],
+            ['A', ''],
+          ],
+        ),
+      },
+      2,
+    ),
+    start: { states: [], transitions: [], start: null, accepting: [] },
+    answer: machine('lesson-own', OWN_STATES, 's0', ['s1'], [
+      ['s0', 's1', '1'],
+      ['s0', 's0', '0'],
+      ['s1', 's1', '0'],
+      ['s1', 's1', '1'],
+    ]),
+    takeaway:
+      'Every machine you build starts with the same question: what does it need to remember? ' +
+      'Here, only whether a 1 has turned up, so two states, and nothing that can undo it.',
+  },
+  {
+    id: 'lesson-trapped',
+    index: 6,
+    title: 'Trapped',
+    pitch: 'Where a string goes once it can never be accepted.',
+    level: level(
+      6,
+      {
+        id: 'lesson-trapped',
+        title: 'Trapped',
+        goal: 'Accept the strings that start with 1.',
+        tests: ['', '0', '1', '00', '01', '10', '11', '010', '011', '100', '0111', '1000'],
+        accepts: (w) => w.startsWith('1'),
+        setBuilder: 'L = { w ∈ {0,1}* : w starts with 1 }',
+        grammar: grammar(
+          ['S', 'A'],
+          [
+            ['S', '1A'],
+            ['A', '0A'],
+            ['A', '1A'],
+            ['A', ''],
+          ],
+        ),
+      },
+      3,
+    ),
+    start: machine('lesson-trapped', STARTS_STATES, 's', ['yes'], STARTS_RULES),
+    answer: machine(
+      'lesson-trapped',
+      [...STARTS_STATES, ['s0', 'q0', 95, 315]],
+      's',
+      ['yes'],
+      [...STARTS_RULES, ['s', 's0', '0'], ['s0', 's0', '0'], ['s0', 's0', '1']],
+    ),
+    takeaway:
+      'A dead state is where a string goes once it can never be accepted: no double ring and ' +
+      'no way out. Leaving an arrow out means the same thing, which is why a missing arrow ' +
+      'counts as a dead state toward par.',
   },
 ];
 

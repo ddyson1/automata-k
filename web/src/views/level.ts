@@ -147,6 +147,8 @@ function levelView(
   /** The string of a guess still playing, if one is. */
   let guessing: string | null = null;
   let coach: Coach | null = null;
+  /** How many of the lesson's steps are done, so an edit can tell it finished one. */
+  let stepsTaken = 0;
 
   const machine = (): Machine => game.machineFor(levelId);
 
@@ -174,12 +176,16 @@ function levelView(
     onPlaceState: (x, y) => {
       const pad = CANVAS.stateRadius;
       const b = diagram.visibleBounds();
-      selectedState = game.addState(
+      const before = stepsTaken;
+      const placed = game.addState(
         levelId,
         Math.min(b.x + b.w - pad, Math.max(b.x + pad, x)),
         Math.min(b.y + b.h - pad, Math.max(b.y + pad, y)),
       );
-      diagram.bloom(selectedState, 'place');
+      // The new state is selected, unless placing it finished a lesson's step,
+      // which has already cleared the way for the next one.
+      selectedState = stepsTaken === before ? placed : null;
+      diagram.bloom(placed, 'place');
       render();
     },
     onBackgroundTap: () => {
@@ -211,9 +217,10 @@ function levelView(
     if (selectedState) game.setStart(levelId, selectedState);
   });
   const acceptButton = stateButton('Accepting', 'toggle-accepting', () => {
-    if (!selectedState) return;
-    game.toggleAccepting(levelId, selectedState);
-    diagram.bloom(selectedState, 'place');
+    const id = selectedState;
+    if (!id) return;
+    game.toggleAccepting(levelId, id);
+    diagram.bloom(id, 'place');
   });
   const renameButton = stateButton('Rename', 'rename', () => {
     if (selectedState) openRename(selectedState);
@@ -708,8 +715,19 @@ function levelView(
             navigate(nextLesson ? `#/lesson/${nextLesson.id}` : `#/level/${LEVELS[0]?.id ?? ''}`),
           onClimb: () => navigate('#/'),
           onDone: () => finishLesson(),
-          onStep: (step) => {
-            beckon = step?.point ?? null;
+          onPoint: (state) => {
+            beckon = state;
+            paintDiagram();
+          },
+          // What was selected was for the step just done. Its controls would
+          // otherwise sit over the canvas the next step needs, on a phone often
+          // on the very state it asks for.
+          onStep: () => {
+            stepsTaken++;
+            if (selectedState === null && selectedTransitions.length === 0) return;
+            selectedState = null;
+            selectedTransitions = [];
+            stateBar.hidden = true;
             paintDiagram();
           },
         })

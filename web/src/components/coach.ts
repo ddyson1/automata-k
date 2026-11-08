@@ -44,8 +44,10 @@ export interface CoachCallbacks {
   onClimb: () => void;
   /** The last step is done. Called once. */
   onDone: () => void;
-  /** A different step is up. */
-  onStep: (step: Step | null) => void;
+  /** The state worth looking at changed: a step points at it, or nothing does. */
+  onPoint: (state: string | null) => void;
+  /** A step was done and the next is up. */
+  onStep: () => void;
 }
 
 export interface Coach {
@@ -113,6 +115,8 @@ export function createCoach(
   let lastGuess: Prediction | null = null;
   /** The offer currently drawn, so it is only rebuilt when it changes. */
   let drawn = '';
+  /** The state last pointed at, so the view is only told when that changes. */
+  let pointed: string | null = null;
 
   const current = (): Step | null => (finished ? null : (script.steps[index] ?? null));
 
@@ -133,16 +137,15 @@ export function createCoach(
       runs: facts?.runs.length ?? 0,
     };
     waiting = false;
-    callbacks.onStep(current());
   }
 
   function advance(): void {
     const ctx = latest ? contextOf(latest) : null;
     lastGuess = ctx?.predicted.at(-1) ?? null;
     index++;
+    callbacks.onStep();
     if (index >= script.steps.length) {
       finished = true;
-      callbacks.onStep(null);
       callbacks.onDone();
     } else begin(latest);
     paint();
@@ -230,6 +233,20 @@ export function createCoach(
       line.classList.toggle('is-help', help !== null);
     }
     paintOffer(step);
+
+    // A step may point at a state the player has not placed yet, so where it
+    // points is worked out again with every change.
+    const target = finished || !step?.point
+      ? null
+      : typeof step.point === 'string'
+        ? step.point
+        : ctx
+          ? (step.point(ctx) ?? null)
+          : null;
+    if (target !== pointed) {
+      pointed = target;
+      callbacks.onPoint(target);
+    }
   }
 
   begin(null);

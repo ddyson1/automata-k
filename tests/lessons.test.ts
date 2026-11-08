@@ -58,7 +58,8 @@ describe('lessons', () => {
   });
 
   it.each(LESSONS)('$title: the starting machine runs, and sits on the sheet', (lesson) => {
-    expect(validate(lesson.start, lesson.level).ok).toBe(true);
+    // Your own states starts from nothing, which is not a machine yet.
+    if (lesson.start.states.length > 0) expect(validate(lesson.start, lesson.level).ok).toBe(true);
     for (const s of lesson.start.states) {
       expect(s.x).toBeGreaterThanOrEqual(CANVAS.stateRadius);
       expect(s.x).toBeLessThanOrEqual(CANVAS.width - CANVAS.stateRadius);
@@ -67,9 +68,16 @@ describe('lessons', () => {
     }
   });
 
-  it('start with something to do, except the first, which is about watching', () => {
+  it('start with something to do, except two that are about seeing what is already there', () => {
+    // Reading hands over a finished machine to watch. Trapped hands over one
+    // that already passes, because a missing arrow already behaves like a dead
+    // state; the lesson is about making that dead state a real one.
     const solvedAtStart = LESSONS.filter((l) => runSuite(l.start, l.level).solved).map((l) => l.id);
-    expect(solvedAtStart).toEqual(['lesson-reading']);
+    expect(solvedAtStart).toEqual(['lesson-reading', 'lesson-trapped']);
+    const trapped = LESSON_BY_ID['lesson-trapped'];
+    if (!trapped) throw new Error('no lesson-trapped');
+    expect(run(trapped.start, trapped.level, '01').frames.at(-1)?.active).toEqual([]);
+    expect(run(trapped.answer, trapped.level, '01').frames.at(-1)?.active).toEqual(['s0']);
   });
 
   it('every lesson has a script, and every script offers something at every step', () => {
@@ -99,9 +107,16 @@ describe('lessons', () => {
 
   it('a state a step points at is on the canvas', () => {
     for (const lesson of LESSONS) {
-      const ids = new Set(lesson.start.states.map((s) => s.id));
       for (const step of SCRIPTS[lesson.id]?.steps ?? []) {
-        if (step.point) expect(ids.has(step.point), `${lesson.id}: ${step.point}`).toBe(true);
+        if (!step.point) continue;
+        // A named state is there from the start; one found on the canvas is
+        // there once the lesson is finished.
+        const at = typeof step.point === 'string' ? lesson.start : lesson.answer;
+        const id = typeof step.point === 'string' ? step.point : step.point(idle(lesson.answer));
+        const ids = new Set(at.states.map((s) => s.id));
+        expect(id !== null && id !== undefined && ids.has(id), `${lesson.id}: ${step.say}`).toBe(
+          true,
+        );
       }
     }
   });
@@ -124,5 +139,9 @@ describe('lessons', () => {
     expect(tools('lesson-accepting')).toMatchObject({ accepting: true, connect: false });
     expect(tools('lesson-accepting')).toMatchObject({ place: false });
     expect(tools('lesson-arrows')).toMatchObject({ connect: true, editRules: true, place: false });
+    expect(tools('lesson-memory')).toMatchObject({ connect: true, place: false, accepting: false });
+    expect(tools('lesson-own')).toMatchObject({ place: true, connect: true, accepting: true });
+    expect(tools('lesson-trapped')).toMatchObject({ place: true, connect: true });
+    expect(tools('lesson-trapped')).toMatchObject({ accepting: false });
   });
 });
