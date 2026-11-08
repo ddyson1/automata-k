@@ -1,0 +1,466 @@
+/* --------------------------------------------------------------------------
+   the crossing: a short scene between floors of the climb
+
+   A native modal dialog over the whole window, on the stage's own gradient,
+   because the scene is a place rather than a message. Lines type out over
+   their own full-length ghosts, so the demonstration under them never moves.
+   -------------------------------------------------------------------------- */
+
+.crossing {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: calc(28px + var(--safe-top)) calc(18px + var(--safe-right))
+    calc(22px + var(--safe-bottom)) calc(18px + var(--safe-left));
+  border: 0;
+  background: linear-gradient(var(--ground-top), var(--ground-bottom));
+  color: var(--ink);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.crossing[open] {
+  display: flex;
+  justify-content: center;
+}
+
+.crossing::backdrop {
+  background: var(--ground);
+}
+
+.crossing-inner {
+  width: 100%;
+  max-width: 640px;
+  margin: auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.crossing-eyebrow {
+  margin: 0;
+  color: var(--energy);
+}
+
+.crossing-title {
+  margin: 0 0 4px;
+}
+
+.crossing-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.crossing-line {
+  display: grid;
+  margin: 0;
+  color: var(--ink);
+  transition: color 0.5s ease;
+  text-wrap: pretty;
+}
+
+.crossing-ghost,
+.crossing-typed {
+  grid-area: 1 / 1;
+}
+
+.crossing-ghost {
+  visibility: hidden;
+}
+
+.crossing-line.is-big {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 4px 0;
+}
+
+.crossing-line.is-past {
+  color: var(--muted);
+}
+
+.crossing-cursor {
+  color: var(--energy);
+  animation: crossing-blink 0.9s steps(1) infinite;
+}
+
+@keyframes crossing-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.crossing-stage {
+  padding: 18px 14px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sheet);
+  background: var(--surface);
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s ease;
+}
+
+.crossing-stage.is-on {
+  opacity: 1;
+  transform: none;
+}
+
+.crossing-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.crossing-skip[hidden],
+.crossing-go[hidden] {
+  display: none;
+}
+
+.crossing-go {
+  min-height: var(--tap);
+  padding: 0 22px;
+  border-radius: 999px;
+  background: var(--energy);
+  color: var(--energy-ink);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* the demonstrations -------------------------------------------------- */
+
+.demo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.demo-input {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 18px;
+}
+
+.demo-input .t-label {
+  margin-right: 4px;
+}
+
+.demo-sym {
+  min-width: 1ch;
+  padding-bottom: 3px;
+  border-bottom: 2px solid transparent;
+  text-align: center;
+  color: var(--ink);
+  transition: color 0.2s ease;
+}
+
+.demo-sym.is-read {
+  color: var(--faint);
+}
+
+.demo-sym.is-reading {
+  color: var(--energy);
+  border-bottom-color: var(--energy);
+}
+
+.demo-caption {
+  margin: 0;
+  min-height: 1.5em;
+  font-size: 12.5px;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+.demo-caption.is-verdict {
+  color: var(--pass);
+}
+
+/* guessing: three states, lit as a set */
+.demo-figure {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  overflow: visible;
+  font-family: var(--mono);
+}
+
+.demo-edge {
+  fill: none;
+  stroke: var(--rule);
+  stroke-width: 1.4;
+  transition:
+    stroke 0.25s ease,
+    stroke-width 0.25s ease;
+}
+
+.demo-edge.is-fired {
+  stroke: var(--energy);
+  stroke-width: 2;
+}
+
+.demo-arrowhead {
+  fill: var(--rule);
+}
+
+.demo-arrowhead.is-fired {
+  fill: var(--energy);
+}
+
+.demo-edge-label {
+  font-size: 12px;
+  fill: var(--muted);
+  text-anchor: middle;
+}
+
+.demo-halo {
+  fill: var(--energy);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.demo-ring {
+  fill: var(--surface);
+  stroke: var(--ink-soft);
+  stroke-width: 1.5;
+  transition: stroke 0.3s ease;
+}
+
+.demo-ring.is-inner {
+  fill: none;
+}
+
+.demo-state-label {
+  font-size: 13px;
+  text-anchor: middle;
+  fill: var(--ink);
+}
+
+.demo-state.is-on .demo-halo {
+  opacity: 0.2;
+}
+
+.demo-state.is-on .demo-ring {
+  stroke: var(--energy);
+  stroke-width: 2;
+}
+
+.demo-state.is-verdict .demo-ring {
+  stroke: var(--pass);
+}
+
+.demo-state.is-verdict .demo-halo {
+  fill: var(--pass);
+  opacity: 0.24;
+}
+
+/* stacking: one state, and the stack it pushes onto */
+.demo-pda-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 26px;
+}
+
+.demo-q {
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink-soft);
+  background: var(--surface);
+  font-size: 15px;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.demo-q.is-on {
+  border-color: var(--energy);
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, var(--energy) 16%, transparent),
+    0 0 18px 4px color-mix(in srgb, var(--energy) 24%, transparent);
+}
+
+.demo-q.is-verdict {
+  border-color: var(--pass);
+}
+
+.demo-stack-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.demo-stack {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 3px;
+  min-height: 98px;
+  padding: 0 6px 6px;
+  border: 1px solid var(--rule);
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+}
+
+.demo-cell {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 26px;
+  border: 1px solid var(--ink-soft);
+  border-radius: 4px;
+  background: var(--surface);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.demo-cell.is-base {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--accent-ink);
+}
+
+.demo-cell.is-base.is-verdict {
+  background: var(--pass);
+  border-color: var(--pass);
+}
+
+.demo-cell.is-new {
+  animation: demo-push 0.28s ease-out;
+}
+
+.demo-cell.is-gone {
+  animation: demo-pop 0.3s ease-in forwards;
+}
+
+@keyframes demo-push {
+  from {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+}
+
+@keyframes demo-pop {
+  to {
+    transform: translateY(-16px);
+    opacity: 0;
+  }
+}
+
+.demo-note {
+  margin: 0;
+  padding-bottom: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* taping: a head over six cells */
+.demo-tape-wrap {
+  --pitch: 42px;
+  position: relative;
+  padding-top: 22px;
+}
+
+.demo-tape {
+  display: flex;
+  gap: 4px;
+}
+
+.demo-tape .demo-cell {
+  width: 38px;
+  height: 38px;
+  font-size: 16px;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.demo-tape .demo-cell.is-blank {
+  color: var(--faint);
+  border-style: dashed;
+}
+
+.demo-tape .demo-cell.is-crossed {
+  background: var(--sunken);
+  color: var(--muted);
+}
+
+.demo-tape .demo-cell.is-under {
+  border-color: var(--energy);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--energy) 18%, transparent);
+}
+
+.demo-tape .demo-cell.is-new {
+  animation: demo-write 0.4s ease-out;
+}
+
+@keyframes demo-write {
+  from {
+    background: var(--energy-tint);
+    transform: scale(1.1);
+  }
+}
+
+.demo-head {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 38px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--energy);
+  transform: translateX(calc(var(--at, 0) * var(--pitch)));
+  transition: transform 0.3s cubic-bezier(0.3, 0.7, 0.3, 1);
+}
+
+.demo-head.is-verdict {
+  color: var(--pass);
+}
+
+/* A phone is short as well as narrow: the whole scene should fit on one. */
+@media (max-width: 520px) {
+  .crossing {
+    padding-top: calc(18px + var(--safe-top));
+  }
+
+  .crossing-inner {
+    gap: 10px;
+  }
+
+  .crossing-title {
+    font-size: 18px;
+  }
+
+  .crossing-lines {
+    gap: 5px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .crossing-line.is-big {
+    font-size: 15px;
+    margin: 2px 0;
+  }
+
+  .crossing-stage {
+    padding: 12px 10px 10px;
+  }
+
+  .demo {
+    gap: 9px;
+  }
+}

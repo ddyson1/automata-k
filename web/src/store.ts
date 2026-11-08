@@ -24,6 +24,7 @@ import { solutionFor } from '../../src/engine/solutions';
 import type {
   Level,
   Machine,
+  MachineKind,
   StateId,
   Transition,
   TransitionId,
@@ -44,6 +45,12 @@ export interface Progress {
   shownSolution: string[];
   /** Smallest state count the player has solved each level with. */
   bestStates: Record<string, number>;
+  /**
+   * The floors of the climb the player has crossed onto, each of which opens
+   * with a short scene the first time. Finite automata are where the climb
+   * starts, so there is nothing to cross onto.
+   */
+  crossed: MachineKind[];
 }
 
 interface Draft {
@@ -96,10 +103,21 @@ class Game {
       solved: [],
       shownSolution: [],
       bestStates: {},
+      crossed: [],
     });
     this.progress.solved ??= [];
     this.progress.shownSolution ??= [];
     this.progress.bestStates ??= {};
+    this.progress.crossed ??= [];
+    // A best below par on a DFA level was recorded when only drawn circles
+    // counted. Par is the minimal complete DFA, so the only way under it was a
+    // dead state left implicit, which now counts: that best is exactly par.
+    for (const level of LEVELS) {
+      const best = this.progress.bestStates[level.id];
+      if (level.type === 'DFA' && best !== undefined && best < level.par) {
+        this.progress.bestStates[level.id] = level.par;
+      }
+    }
     this.theme = storage.read<ThemeChoice>(THEME_KEY, 'system');
     this.motion = storage.read<MotionChoice>(MOTION_KEY, 'system');
 
@@ -323,6 +341,17 @@ class Game {
     this.emit();
   }
 
+  hasCrossed(kind: MachineKind): boolean {
+    return this.progress.crossed.includes(kind);
+  }
+
+  markCrossed(kind: MachineKind): void {
+    if (this.hasCrossed(kind)) return;
+    this.progress.crossed = [...this.progress.crossed, kind];
+    this.schedulePersist();
+    this.emit();
+  }
+
   markSolved(levelId: string, stateCount: number): void {
     const best = this.progress.bestStates[levelId];
     if (!this.progress.solved.includes(levelId)) {
@@ -349,7 +378,7 @@ class Game {
   }
 
   resetProgress(): void {
-    this.progress = { solved: [], shownSolution: [], bestStates: {} };
+    this.progress = { solved: [], shownSolution: [], bestStates: {}, crossed: [] };
     this.drafts.clear();
     this.schedulePersist();
     this.emit();

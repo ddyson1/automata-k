@@ -12,7 +12,7 @@
 import { afterAll, describe, expect, it } from 'vitest';
 
 import { LEVELS, enumerateStrings } from '../src/engine/levels';
-import { minimise, ringLayout, subsetConstruction, withinCanvas } from '../src/engine/minimize';
+import { minimise, ringLayout, scoreNote, scoreOf, subsetConstruction, withinCanvas } from '../src/engine/minimize';
 import { run, runSuite, simulatePDA, simulateTM } from '../src/engine/simulate';
 import { SOLUTIONS, solutionFor } from '../src/engine/solutions';
 import { CANVAS, EPSILON, LIMITS, STACK_BOTTOM, BLANK } from '../src/engine/types';
@@ -378,6 +378,35 @@ describe('minimisation', () => {
     },
   );
 
+  it.each(dfaLevels.map((l) => [l.id, l] as const))(
+    'the reference solution for %s scores exactly par',
+    (_id, level) => {
+      expect(scoreOf(solutionFor(level.id) as Machine, level).scored).toBe(level.par);
+    },
+  );
+
+  it('scores a partial DFA with the dead state it implies, so nobody beats a minimal par', () => {
+    const level = levelOf('dfa-no-11');
+    const complete = solutionFor(level.id) as Machine;
+    const dead = complete.states.find((s) => s.label === 'qd')?.id as string;
+    const partial: Machine = {
+      ...complete,
+      states: complete.states.filter((s) => s.id !== dead),
+      transitions: complete.transitions.filter((t) => t.from !== dead && t.to !== dead),
+    };
+    expect(runSuite(partial, level).solved).toBe(true);
+    expect(scoreOf(partial, level)).toEqual({ drawn: 2, scored: 3, impliedDead: true });
+    expect(scoreOf(complete, level)).toEqual({ drawn: 3, scored: 3, impliedDead: false });
+    expect(level.par).toBe(3);
+  });
+
+  it('scores every other class by the circles drawn', () => {
+    for (const level of LEVELS.filter((l) => l.type !== 'DFA')) {
+      const m = solutionFor(level.id) as Machine;
+      expect(scoreOf(m, level)).toEqual({ drawn: m.states.length, scored: m.states.length, impliedDead: false });
+    }
+  });
+
   it('reports how many states a padded machine wastes', () => {
     const level = levelOf('dfa-ends-in-1');
     // Same language, but the accepting state is split in two.
@@ -644,6 +673,60 @@ describe('rules in plain words', () => {
     expect(say({ read: BLANK, write: BLANK, move: 'L' }, 'TM')).toBe(
       'read a blank · leave the cell as it is · move left · stay in q0',
     );
+  });
+});
+
+describe('the score note says what the theory permits', () => {
+  const st = (id: string, label: string) => ({ id, label, x: 0, y: 0 });
+  const tr = (id: string, from: string, to: string, read: string) => ({ id, from, to, read });
+
+  it('calls the reference DFA minimal, and the only one', () => {
+    const level = levelOf('dfa-ends-in-1');
+    expect(scoreNote(solutionFor(level.id) as Machine, level)).toMatch(/^Minimal\. A regular language has exactly one smallest DFA/);
+  });
+
+  it('names the states that could merge when a DFA is not minimal', () => {
+    const level = levelOf('dfa-ends-in-1');
+    const padded: Machine = {
+      states: [st('a', 'q0'), st('b', 'q1'), st('c', 'q2')],
+      transitions: [tr('1', 'a', 'a', '0'), tr('2', 'a', 'b', '1'), tr('3', 'b', 'a', '0'), tr('4', 'b', 'c', '1'), tr('5', 'c', 'a', '0'), tr('6', 'c', 'c', '1')],
+      start: 'a',
+      accepting: ['b', 'c'],
+    };
+    expect(runSuite(padded, level).solved).toBe(true);
+    expect(scoreNote(padded, level)).toBe(
+      'A smaller DFA exists, with 2 states, and it is the only one. q1 and q2 behave the same on every string, so they can be one state.',
+    );
+  });
+
+  it('points out a state nothing can reach', () => {
+    const level = levelOf('dfa-ends-in-1');
+    const ref = solutionFor(level.id) as Machine;
+    const stray: Machine = { ...ref, states: [...ref.states, st('z', 'q9')] };
+    expect(scoreNote(stray, level)).toMatch(/^q9 can never be reached from the start, so it can go\./);
+  });
+
+  it('counts a dead state left out as drawn', () => {
+    const level = levelOf('dfa-no-11');
+    const ref = solutionFor(level.id) as Machine;
+    const dead = ref.states.find((s) => s.label === 'qd')?.id as string;
+    const partial: Machine = {
+      ...ref,
+      states: ref.states.filter((s) => s.id !== dead),
+      transitions: ref.transitions.filter((t) => t.from !== dead && t.to !== dead),
+    };
+    expect(scoreNote(partial, level)).toMatch(/^Minimal\..*Leaving the dead state out counts as drawing it/);
+  });
+
+  it('past the DFA tier, says par is only the author\'s best, and why', () => {
+    const say = (type: string) => {
+      const level = LEVELS.find((l) => l.type === type) as Level;
+      return scoreNote(solutionFor(level.id) as Machine, level);
+    };
+    expect(say('NFA')).toMatch(/^At par\. An NFA has no single smallest form.*PSPACE-hard/);
+    expect(say('PDA')).toMatch(/^At par\. No algorithm can find the smallest pushdown automaton.*undecidable/);
+    expect(say('TM')).toMatch(/^At par\. No algorithm can find the smallest Turing machine/);
+    for (const type of ['NFA', 'PDA', 'TM']) expect(say(type)).toMatch(/not a proven minimum\.$/);
   });
 });
 

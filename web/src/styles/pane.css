@@ -390,3 +390,15 @@
   color: var(--muted);
   max-width: 46ch;
 }
+
+/* What the theory says about a passing machine's size. */
+.brief-note {
+  margin: 0 0 18px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--energy);
+  background: var(--sunken);
+  border-radius: 0 var(--r-control) var(--r-control) 0;
+  color: var(--ink-soft);
+  line-height: 1.55;
+  text-wrap: pretty;
+}
