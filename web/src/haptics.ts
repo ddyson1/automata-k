@@ -6,10 +6,22 @@
  * information, and every one of them accompanies a visible change.
  */
 
+/**
+ * Whether motion is unwelcome. The setting on <html> wins in both directions;
+ * without one, the system's preference decides. theme.css reads the same
+ * attribute, so a buzz and a transition always agree.
+ */
+export const reducedMotion = (): boolean => {
+  const choice = document.documentElement.getAttribute('data-motion');
+  if (choice === 'reduce') return true;
+  if (choice === 'full') return false;
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+};
+
 const can = (): boolean =>
   typeof navigator !== 'undefined' &&
   typeof navigator.vibrate === 'function' &&
-  !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  !reducedMotion();
 
 const buzz = (pattern: number | number[]): void => {
   if (!can()) return;

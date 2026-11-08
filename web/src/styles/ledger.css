@@ -1,0 +1,109 @@
+/* --------------------------------------------------------------------------
+   the ledger, inside the machine tab
+   -------------------------------------------------------------------------- */
+
+.band-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 4px 0 8px;
+}
+
+.band-head .sig {
+  color: var(--muted);
+  margin-left: auto;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.band + .band {
+  border-top: 1px solid var(--hairline);
+  margin-top: 6px;
+}
+
+.band-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 0 8px;
+  min-height: 36px;
+}
+
+.chevron {
+  width: 7px;
+  height: 7px;
+  border-right: 1.4px solid var(--muted);
+  border-bottom: 1.4px solid var(--muted);
+  transform: rotate(45deg) translate(-2px, -2px);
+  transition: transform 0.16s ease;
+}
+
+.band-toggle[aria-expanded='false'] .chevron {
+  transform: rotate(-45deg) translate(-1px, 1px);
+}
+
+.tuple {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 14px;
+  margin: 0 0 14px;
+}
+
+.tuple.is-collapsed {
+  display: none;
+}
+
+.tuple dt {
+  color: var(--muted);
+  padding-top: 1px;
+}
+
+.tuple dd {
+  margin: 0;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.tuple dd code {
+  overflow-wrap: anywhere;
+}
+
+.gloss {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.delta {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.delta-line {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.delta-hit {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 6px;
+  min-height: 38px;
+}
+
+.delta-line.is-missing .delta-hit {
+  color: var(--fail);
+}
+
+.delta-line.is-lit,
+.delta-line:hover {
+  background: var(--accent-tint);
+}
+
+.delta-note {
+  margin: 10px 0 4px;
+}

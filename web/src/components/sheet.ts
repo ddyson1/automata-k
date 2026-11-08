@@ -16,6 +16,8 @@ export interface Sheet {
   close(): void;
   readonly isOpen: boolean;
   onClose?: () => void;
+  /** Detach the document listener; call from the owning view's destroy. */
+  destroy(): void;
 }
 
 const DISMISS_PX = 96;
@@ -69,13 +71,15 @@ export function createSheet(testId: string): Sheet {
       }, 200);
       sheet.onClose?.();
     },
+    destroy() {},
   };
 
   on(backdrop, 'click', () => sheet.close());
   on(closeButton, 'click', () => sheet.close());
-  on(document as unknown as EventTarget, 'keydown', ((event: KeyboardEvent) => {
+  const offKeys = on(document as unknown as EventTarget, 'keydown', ((event: KeyboardEvent) => {
     if (event.key === 'Escape' && sheet.isOpen) sheet.close();
   }) as EventListener);
+  sheet.destroy = offKeys;
 
   // Drag the handle down to dismiss. Dragging up does nothing, so an
   // overshoot cannot leave the panel stuck above its resting position.

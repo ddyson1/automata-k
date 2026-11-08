@@ -1,0 +1,103 @@
+/* --------------------------------------------------------------------------
+   home
+   -------------------------------------------------------------------------- */
+
+.home-head {
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.home-head h1 {
+  margin: 0 0 6px;
+}
+
+.home-head p {
+  margin: 0;
+  max-width: 56ch;
+}
+
+.home-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.ghost {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 6px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-control);
+  min-height: var(--tap);
+}
+
+.ghost:hover,
+.ghost:focus-visible {
+  border-color: var(--rule);
+  color: var(--ink);
+}
+
+.group-head {
+  padding: 26px 0 10px;
+}
+
+.group-head p {
+  margin: 4px 0 0;
+  max-width: 60ch;
+}
+
+.level-row {
+  display: grid;
+  grid-template-columns: 30px 1fr auto 20px;
+  align-items: baseline;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--hairline);
+  min-height: var(--tap);
+}
+
+.level-row:hover:not(:disabled) {
+  background: var(--sunken);
+}
+
+.level-row.is-locked {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.level-row .index {
+  color: var(--faint);
+}
+
+.level-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.level-main code {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.level-row .status {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.level-row .tick {
+  color: var(--pass);
+  text-align: right;
+}
+
+.home-foot {
+  margin-top: 34px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+  max-width: 68ch;
+}

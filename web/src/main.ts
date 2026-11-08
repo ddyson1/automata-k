@@ -21,9 +21,11 @@ if (!root) throw new Error('no #root');
 let current: View | null = null;
 
 function applyTheme(): void {
-  const choice = game.theme;
-  if (choice === 'system') document.documentElement.removeAttribute('data-theme');
-  else document.documentElement.setAttribute('data-theme', choice);
+  const root = document.documentElement;
+  if (game.theme === 'system') root.removeAttribute('data-theme');
+  else root.setAttribute('data-theme', game.theme);
+  if (game.motion === 'system') root.removeAttribute('data-motion');
+  else root.setAttribute('data-motion', game.motion);
 }
 
 function navigate(hash: string): void {

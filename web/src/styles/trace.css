@@ -1,0 +1,109 @@
+/* --------------------------------------------------------------------------
+   the trace, along the foot of the canvas
+   -------------------------------------------------------------------------- */
+
+.trace {
+  flex: none;
+  position: relative;
+  z-index: 2;
+  background: var(--surface);
+  border-top: 1px solid var(--hairline);
+  padding: 10px 14px calc(10px + var(--safe-bottom));
+  display: grid;
+  gap: 8px;
+}
+
+.trace[hidden] {
+  display: none;
+}
+
+/* .band-head is the ledger's; the trace only centres it on its close button. */
+.trace .band-head {
+  align-items: center;
+}
+
+.trace .verdict {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.trace-input,
+.mem-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.trace-memory {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mem-label {
+  flex: none;
+}
+
+.cellx {
+  min-width: 24px;
+  padding: 3px 5px;
+  text-align: center;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-chip);
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+
+.cellx.is-read {
+  color: var(--faint);
+}
+
+.cellx.is-head {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.cellx.is-empty {
+  color: var(--muted);
+}
+
+.trace-caption {
+  margin: 0;
+}
+
+.transport-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.transport {
+  min-width: var(--tap);
+  min-height: var(--tap);
+  padding: 0 10px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-control);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.transport.is-primary {
+  min-width: 62px;
+  font-size: 12.5px;
+}
+
+.transport:focus-visible {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+.transport:disabled {
+  opacity: 0.35;
+}
+
+.transport-row .counter {
+  margin-left: auto;
+  color: var(--muted);
+}
