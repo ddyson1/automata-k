@@ -126,7 +126,15 @@
 }
 
 .climb-map {
-  width: min(1000px, 100%);
+  width: min(1480px, 100%);
+}
+
+/* Laid out at a design width, then scaled to fill the room. */
+.climb-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
 }
 
 .climb-map {

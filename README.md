@@ -336,7 +336,8 @@ solved, and solved Turing levels cross cells off a tape over the top floor. The
 next level glows in energy and is named on the map, a tooltip names any stop
 pointed at, and a glass bar along the bottom describes it and enters it. The
 whole home screen is the scene: the name top left, the controls top right, the
-map in the middle. The stops are real buttons in
+map in the middle, laid out at a design width and scaled up to fill a large
+window, up to 1.6 times. The stops are real buttons in
 order, labelled for a screen reader; one takes Tab and the arrow keys walk the
 path from there.
 
@@ -387,6 +388,16 @@ wider one when a reverse edge exists. Self loops are true circular arcs aimed by
 scoring candidate directions against the state's connections, the walls, and
 every other state's disc. Several transitions on one pair stack as separate
 chips.
+
+**Labels.** The chip stacks are placed together rather than one at a time. Each
+tries both sides of its curve, further out step by step and slid along it (a
+loop's stack turns round its loop instead), and takes the place that costs
+least: on another stack costs more than anything, then on a state, then each
+stretch of line it would hide, the start marker's included, then crowding
+another stack, drifting from its curve, and hanging past the edge of the view.
+Across the 42 reference machines no stack touches another stack or a state, at
+any window size; the tests hold that, and keep every finite and pushdown
+diagram's lines clear.
 
 **Drag.** A drag never commits a position per frame. It writes transforms
 straight onto the SVG nodes and recomputes the batched edge paths in place; one

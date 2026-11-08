@@ -202,8 +202,11 @@ This is the actual ask. A general redesign is not wanted; these are.
    is a sheet of segmented pickers. It is functional and it is dull, and it is
    the screen a player sees most often after the canvas.
 
-4. **Density on the hardest levels.** Where three arrows converge, their symbol
-   chips overlap. State spacing is solved; chip placement is not.
+4. **Density on the hardest levels.** Chip stacks are now placed together, so
+   none lands on another or on a state in any reference machine. On the
+   densest Turing levels at phone width a few still lie across a line or sit a
+   little off their arrow, because there is no open ground left; the answer
+   there is probably layout, not labels.
 
 5. **Teaching the interaction.** Level 1 hands you an empty canvas and a
    sentence. Nothing teaches double-tap-to-place or drag-from-a-rim except a

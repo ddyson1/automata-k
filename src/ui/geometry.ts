@@ -56,6 +56,24 @@ export const CHIP_PAD_X = 6;
 /** Gap between a curve and the near edge of its chip stack. */
 const CHIP_GAP = 10;
 const CHIP_GAP_LOOP = 4;
+/** Length of the start marker's shaft, which comes in from the left of the start state. */
+export const START_ENTRY_LEN = 96;
+/** How hard each stretch of line a chip stack covers counts against a place for it. */
+const LINE_WEIGHT = 20;
+/** How hard each pixel of a chip stack past the visible region counts. */
+const OFF_WEIGHT = 8;
+/** Spacing of the points a line is sampled at, to see what a stack covers. */
+const LINE_STEP = 8;
+/** What one stack overlapping another costs on top of its area: more than any detour. */
+const STACK_ON_STACK = 600;
+/**
+ * Clear space wanted between two stacks, past the space inside a stack's own
+ * rows, so two stacks never read as one; and what each pixel short of it costs.
+ */
+const AIR = 8;
+const AIR_WEIGHT = 8;
+/** What taking the natural spot of a stack not yet placed costs. */
+const RESERVED = 16;
 
 /** Directions tried when aiming a self loop. 24 gives 15 degree steps. */
 const AIM_CANDIDATES = 24;
@@ -271,6 +289,15 @@ export interface Bounds {
 
 export const CANVAS_BOUNDS: Bounds = { x: 0, y: 0, w: CANVAS_W, h: CANVAS_H };
 
+/**
+ * How far a box's centre has to sit from a line, along the line's normal `n`,
+ * for the box to clear it: half its height when the line runs across, half its
+ * width when it runs up and down, and in between when it runs at an angle.
+ */
+function reach(n: Pt, halfW: number, halfH: number): number {
+  return Math.abs(n.x) * halfW + Math.abs(n.y) * halfH;
+}
+
 /** How far a box centred at `c` pokes outside `bounds`. */
 function outsideBy(c: Pt, halfW: number, halfH: number, bounds: Bounds): number {
   let out = 0;
@@ -316,8 +343,7 @@ function awayDirection(
   const rows = Math.max(1, chips.length);
   const halfW = chipHalfWidth(chips);
   const halfH = (rows * CHIP_ROW_HEIGHT) / 2;
-  // Where the chip stack's centre would sit, matching chipAnchor exactly.
-  const out = radius * (LOOP_CENTRE + LOOP_RADIUS) + CHIP_GAP_LOOP + halfH;
+  const rim = radius * (LOOP_CENTRE + LOOP_RADIUS) + CHIP_GAP_LOOP;
 
   let best: Pt = { x: 0, y: -1 };
   let bestScore = -Infinity;
@@ -326,6 +352,8 @@ function awayDirection(
     // Start at straight up so an exact tie keeps it.
     const angle = -Math.PI / 2 + (i / AIM_CANDIDATES) * Math.PI * 2;
     const dir: Pt = { x: Math.cos(angle), y: Math.sin(angle) };
+    // Where the chip stack's centre would sit, matching chipAnchor exactly.
+    const out = rim + reach(dir, halfW, halfH);
     const centre: Pt = { x: at.x + dir.x * out, y: at.y + dir.y * out };
 
     let score = UP_BIAS * -dir.y;
@@ -449,14 +477,359 @@ export function chipAnchor(
   bounds: Bounds = CANVAS_BOUNDS,
 ): Pt {
   const g = edgeGeometry(spec, positions, radius, bounds);
-  const rows = Math.max(1, spec.chips.length);
+  const size = chipStackSize(spec);
   // A self loop's anchor already sits out past the rim, so it needs less push.
   const gap = spec.selfLoop ? CHIP_GAP_LOOP : CHIP_GAP;
-  const lift = (rows * CHIP_ROW_HEIGHT) / 2;
+  const lift = reach(g.normal, size.w / 2, size.h / 2);
   return {
     x: g.anchor.x + g.normal.x * (gap + lift),
     y: g.anchor.y + g.normal.y * (gap + lift),
   };
+}
+
+/** The box a stack of chips occupies, centred on its anchor. */
+export function chipStackSize(spec: EdgeSpec): { w: number; h: number } {
+  const widest = Math.max(0, ...spec.chips.map((c) => c.length * CHIP_CHAR_W + CHIP_PAD_X * 2));
+  return { w: Math.max(22, widest), h: Math.max(1, spec.chips.length) * CHIP_ROW_HEIGHT };
+}
+
+interface Box {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
+const boxAt = (p: Pt, size: { w: number; h: number }): Box => ({
+  x0: p.x - size.w / 2,
+  y0: p.y - size.h / 2,
+  x1: p.x + size.w / 2,
+  y1: p.y + size.h / 2,
+});
+
+const overlapArea = (a: Box, b: Box): number =>
+  Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) *
+  Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
+
+/** How far short of AIR apart two boxes that do not overlap are. Zero when clear. */
+function airShort(a: Box, b: Box): number {
+  const gapX = Math.max(a.x0 - b.x1, b.x0 - a.x1);
+  const gapY = Math.max(a.y0 - b.y1, b.y0 - a.y1);
+  // Side by side they are as far apart as the larger of the two gaps.
+  return Math.max(0, AIR - Math.max(gapX, gapY));
+}
+
+/** How far a disc reaches into a box, as a rough area. Zero when they are clear. */
+function discIntrusion(box: Box, c: Pt, r: number): number {
+  const dx = Math.max(box.x0 - c.x, 0, c.x - box.x1);
+  const dy = Math.max(box.y0 - c.y, 0, c.y - box.y1);
+  const d = Math.hypot(dx, dy);
+  return d >= r ? 0 : (r - d) * 2 * r;
+}
+
+/**
+ * What a box hanging off the visible region costs. Less, per pixel, than a
+ * line hidden under it: the view fits itself to what is drawn, so a stack a
+ * little past the edge only means a little more zoom, where a stack on a line
+ * means a line nobody can follow.
+ */
+function offBounds(box: Box, b: Bounds): number {
+  const over =
+    Math.max(0, b.x - box.x0) +
+    Math.max(0, box.x1 - (b.x + b.w)) +
+    Math.max(0, b.y - box.y0) +
+    Math.max(0, box.y1 - (b.y + b.h));
+  return over * OFF_WEIGHT;
+}
+
+/**
+ * Points along the stroke an edge draws, about every LINE_STEP, so a placer can
+ * tell how much of the line a box would hide. Mirrors `betweenStates` and
+ * `selfLoop`: the part of the curve outside the states, which is what shows.
+ * Takes the edge's geometry, already worked out, for where a loop points.
+ */
+function strokeSamples(
+  spec: EdgeSpec,
+  g: EdgeGeometry,
+  positions: Positions,
+  radius: number,
+): Pt[] {
+  const from = positions[spec.from];
+  if (!from || !g.path) return [];
+  const out: Pt[] = [];
+  if (spec.selfLoop) {
+    const d = radius * LOOP_CENTRE;
+    const rl = radius * LOOP_RADIUS;
+    const base = Math.atan2(g.normal.y, g.normal.x);
+    // The loop shows where its circle is outside the state's, either side of
+    // the way it points.
+    const k = (radius * radius - d * d - rl * rl) / (2 * d * rl);
+    const half = Math.acos(Math.max(-1, Math.min(1, k)));
+    const cx = from.x + g.normal.x * d;
+    const cy = from.y + g.normal.y * d;
+    const n = Math.max(4, Math.ceil((2 * half * rl) / LINE_STEP));
+    for (let i = 0; i <= n; i++) {
+      const t = base - half + (2 * half * i) / n;
+      out.push({ x: cx + rl * Math.cos(t), y: cy + rl * Math.sin(t) });
+    }
+    return out;
+  }
+  const to = positions[spec.to];
+  if (!to) return [];
+  const len = Math.hypot(to.x - from.x, to.y - from.y);
+  const ctrl: Pt = {
+    x: (from.x + to.x) / 2 - ((to.y - from.y) / len) * spec.bend,
+    y: (from.y + to.y) / 2 + ((to.x - from.x) / len) * spec.bend,
+  };
+  const a = tAtDistanceFromStart(from, ctrl, to, from, radius);
+  const b = tAtDistanceFromEnd(from, ctrl, to, to, radius + ARROW_CLEARANCE);
+  const n = Math.max(4, Math.ceil((len - radius * 2) / LINE_STEP));
+  for (let i = 0; i <= n; i++) out.push(quadAt(from, ctrl, to, a + ((b - a) * i) / n));
+  return out;
+}
+
+/** Points along the start marker's shaft, which comes in from the left. */
+function entrySamples(at: Pt, radius: number): Pt[] {
+  const tip = at.x - radius - ARROW_CLEARANCE;
+  const n = Math.ceil(START_ENTRY_LEN / LINE_STEP);
+  const out: Pt[] = [];
+  for (let i = 0; i <= n; i++) out.push({ x: tip - (START_ENTRY_LEN * i) / n, y: at.y });
+  return out;
+}
+
+interface Candidate {
+  p: Pt;
+  side: 1 | -1;
+  /** What getting there costs: distance from the curve, and travel along it. */
+  detour: number;
+}
+
+/** How far each step moves a stack further out. */
+const STEP = 9;
+/**
+ * What `step` steps out cost. Each costs more than the last: a stack a little
+ * off its curve still reads as that curve's, one far off reads as another's.
+ */
+const stepCost = (step: number): number => step * 6 + step * step * 4;
+
+/**
+ * Places for a stack beside an edge between two states: either side of the
+ * curve, a little further out each time, and slid toward either end, which
+ * still reads as that edge's label.
+ */
+function edgeCandidates(g: EdgeGeometry, size: { w: number; h: number }): Candidate[] {
+  const out: Candidate[] = [];
+  const lift = reach(g.normal, size.w / 2, size.h / 2);
+  const along = { x: -g.normal.y, y: g.normal.x };
+  for (const side of [1, -1] as const) {
+    for (let step = 0; step < 7; step++) {
+      for (const slide of [0, -14, 14, -28, 28, -42, 42]) {
+        const d = CHIP_GAP + lift + step * STEP;
+        out.push({
+          p: {
+            x: g.anchor.x + g.normal.x * side * d + along.x * slide,
+            y: g.anchor.y + g.normal.y * side * d + along.y * slide,
+          },
+          side,
+          detour: stepCost(step) + Math.abs(slide) * 0.4,
+        });
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Places for a self loop's stack: off the loop's outer edge, or turned round
+ * it to either side, the way a label sits beside a loop that has a neighbour's
+ * label in front of it. Turned or not, it stays against the loop.
+ */
+function loopCandidates(
+  g: EdgeGeometry,
+  size: { w: number; h: number },
+  radius: number,
+): Candidate[] {
+  const out: Candidate[] = [];
+  const rl = radius * LOOP_RADIUS;
+  const centre = { x: g.anchor.x - g.normal.x * rl, y: g.anchor.y - g.normal.y * rl };
+  for (const turn of [0, -20, 20, -40, 40, -60, 60, -80, 80, -100, 100]) {
+    const a = (turn * Math.PI) / 180;
+    const u = {
+      x: g.normal.x * Math.cos(a) - g.normal.y * Math.sin(a),
+      y: g.normal.x * Math.sin(a) + g.normal.y * Math.cos(a),
+    };
+    const lift = reach(u, size.w / 2, size.h / 2);
+    for (let step = 0; step < 7; step++) {
+      const d = rl + CHIP_GAP_LOOP + lift + step * STEP;
+      out.push({
+        p: { x: centre.x + u.x * d, y: centre.y + u.y * d },
+        side: 1,
+        detour: stepCost(step) + Math.abs(turn) * 0.3,
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * Where every edge's chips go, together, so that no stack lands on another
+ * stack or on a state, and as few as possible lie across a line.
+ *
+ * `chipAnchor` alone puts a stack on the side its curve bulges toward, and
+ * every edge bends the same way round, so around a cycle all the stacks end
+ * up inside it, piled on each other in the middle. Here each edge tries both
+ * sides of its curve, further out step by step and sliding along it (a loop's
+ * stack turns round the loop instead), and takes the place that costs least:
+ * a stack on another stack costs more than anything, then a stack on a state,
+ * then each stretch of line hidden (every edge's, and the start marker's),
+ * then stacks closer than AIR, distance from the curve, and hanging past the
+ * edge of the screen. Loops go first, having fewest places to go, then the
+ * tallest stacks, and each avoids the spots the ones still to come would
+ * naturally take. A side an edge used last time is preferred, so dragging a
+ * state does not make labels flicker from side to side.
+ */
+export function chipAnchors(
+  specs: readonly EdgeSpec[],
+  positions: Positions,
+  radius: number = STATE_RADIUS,
+  bounds: Bounds = CANVAS_BOUNDS,
+  previous?: ReadonlyMap<string, 1 | -1>,
+  start?: string | null,
+): { anchors: Map<string, Pt>; sides: Map<string, 1 | -1> } {
+  const anchors = new Map<string, Pt>();
+  const sides = new Map<string, 1 | -1>();
+  const discs = Object.values(positions);
+  const geometry = specs.map((spec) => edgeGeometry(spec, positions, radius, bounds));
+  const lines: Pt[] = [];
+  specs.forEach((spec, i) => {
+    lines.push(...strokeSamples(spec, geometry[i] as EdgeGeometry, positions, radius));
+  });
+  const entry = start ? positions[start] : undefined;
+  if (entry) lines.push(...entrySamples(entry, radius));
+  // The middle of the machine. All else equal a stack faces away from it, so
+  // round a cycle the labels sit outside rather than meeting in the centre.
+  const middle: Pt = discs.length
+    ? {
+        x: discs.reduce((n, p) => n + p.x, 0) / discs.length,
+        y: discs.reduce((n, p) => n + p.y, 0) / discs.length,
+      }
+    : { x: 0, y: 0 };
+
+  interface Job {
+    spec: EdgeSpec;
+    candidates: (Candidate & { box: Box; lean: number })[];
+    /** The line points any of its candidates could cover. */
+    near: Pt[];
+    /** Where its stack sits with no detour: tight against the curve, either side. */
+    natural: Box[];
+  }
+  const jobs: Job[] = [];
+  const boxes = new Map<string, Box>();
+  specs.forEach((spec, i) => {
+    const g = geometry[i] as EdgeGeometry;
+    const size = chipStackSize(spec);
+    if (!g.path) {
+      // States on top of each other: no curve to hang off, so no choice either.
+      const p = chipAnchor(spec, positions, radius, bounds);
+      anchors.set(spec.key, p);
+      boxes.set(spec.key, boxAt(p, size));
+      return;
+    }
+    const was = previous?.get(spec.key);
+    const places = spec.selfLoop ? loopCandidates(g, size, radius) : edgeCandidates(g, size);
+    const candidates = places.map((c) => {
+      // Keep the side it had; with no history, face away from the middle.
+      const outward =
+        (g.anchor.x - middle.x) * g.normal.x * c.side +
+          (g.anchor.y - middle.y) * g.normal.y * c.side >=
+        0;
+      const lean =
+        was !== undefined ? (c.side === was ? 0 : 6) : !spec.selfLoop && !outward ? 4 : 0;
+      return { ...c, box: boxAt(c.p, size), lean };
+    });
+    let x0 = Infinity;
+    let y0 = Infinity;
+    let x1 = -Infinity;
+    let y1 = -Infinity;
+    for (const { box } of candidates) {
+      x0 = Math.min(x0, box.x0 - 2);
+      y0 = Math.min(y0, box.y0 - 2);
+      x1 = Math.max(x1, box.x1 + 2);
+      y1 = Math.max(y1, box.y1 + 2);
+    }
+    const near = lines.filter((q) => q.x > x0 && q.x < x1 && q.y > y0 && q.y < y1);
+    const natural = candidates.filter((c) => c.detour === 0).map((c) => c.box);
+    jobs.push({ spec, candidates, near, natural });
+  });
+  // Loops go first, having fewest places to go, then the tallest stacks.
+  jobs.sort(
+    (a, b) =>
+      Number(b.spec.selfLoop) - Number(a.spec.selfLoop) ||
+      b.spec.chips.length - a.spec.chips.length,
+  );
+
+  /**
+   * The best place for one edge's stack, given every stack placed so far.
+   * True when even that place lands on another stack.
+   */
+  function place({ spec, candidates, near }: Job): boolean {
+    // Stacks not placed yet still have somewhere they would naturally go.
+    // Taking that spot from one of them pushes its label away from its line,
+    // so it costs a little, as long as there is anywhere else to be.
+    const waiting = jobs.filter((j) => j.spec.key !== spec.key && !boxes.has(j.spec.key));
+    let best: (Candidate & { box: Box }) | null = null;
+    let bestCost = Infinity;
+    for (const c of candidates) {
+      const { box } = c;
+      let cost = c.detour + c.lean + offBounds(box, bounds);
+      for (const d of discs) cost += discIntrusion(box, d, radius + 3) * 3;
+      for (const j of waiting) {
+        for (const spot of j.natural) if (overlapArea(box, spot) > 0) cost += RESERVED;
+      }
+      if (cost >= bestCost) continue;
+      // One stack on top of another is worse than anything else on offer.
+      // Short of that, stacks keep a little air between them, so two never
+      // read as one: closer than AIR costs by how much closer, not by how
+      // long the two run side by side.
+      for (const [key, other] of boxes) {
+        if (key === spec.key) continue;
+        const area = overlapArea(box, other);
+        if (area > 0) cost += STACK_ON_STACK + area * 2;
+        else cost += airShort(box, other) * AIR_WEIGHT;
+      }
+      if (cost >= bestCost) continue;
+      // A line under a stack is a line cut in two; a little air there too.
+      for (const q of near) {
+        if (q.x > box.x0 - 2 && q.x < box.x1 + 2 && q.y > box.y0 - 2 && q.y < box.y1 + 2) {
+          cost += LINE_WEIGHT;
+          if (cost >= bestCost) break;
+        }
+      }
+      if (cost < bestCost) {
+        bestCost = cost;
+        best = c;
+      }
+    }
+    if (!best) return false;
+    anchors.set(spec.key, best.p);
+    sides.set(spec.key, best.side);
+    boxes.set(spec.key, best.box);
+    for (const [key, other] of boxes) {
+      if (key !== spec.key && overlapArea(best.box, other) > 0) return true;
+    }
+    return false;
+  }
+
+  // Greedy first: each stack against those already down. If that leaves two
+  // on top of each other, an early stack took the only spot a later one could
+  // use, so each is placed again against all the others.
+  let tangled = false;
+  for (const job of jobs) tangled = place(job) || tangled;
+  for (let pass = 0; tangled && pass < 2; pass++) {
+    tangled = false;
+    for (const job of jobs) tangled = place(job) || tangled;
+  }
+  return { anchors, sides };
 }
 
 // ---------------------------------------------------------------------------

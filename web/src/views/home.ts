@@ -74,6 +74,10 @@ const floorOf = (level: Level): Floor =>
 
 /** One stop is one full tap target. */
 const STOP = 44;
+/** How far the climb may grow to fill a large window. */
+const MAX_SCALE = 1.6;
+/** The narrowest design width that still gives every floor a single row. */
+const DESIGN_MIN = 780;
 /** Where a stop's dot sits inside its button, from the button's top edge. */
 const DOT_Y = 16;
 /** Room along the top of the Turing floor for its tape. */
@@ -225,7 +229,10 @@ export function createHomeView(navigate: (hash: string) => void): View {
 
   const art = svg('svg', { class: 'climb-art', 'aria-hidden': 'true', focusable: 'false' });
   const list = h('ol', { class: 'climb-stops', 'aria-label': 'Levels, first to last' });
-  const map = h('div', { class: 'climb-map' }, art, list);
+  // Laid out at a design width and scaled to the room the window gives it, so
+  // a large window gets a large climb rather than a small one in a lot of air.
+  const inner = h('div', { class: 'climb-inner' }, art, list);
+  const map = h('div', { class: 'climb-map' }, inner);
 
   interface Stop {
     level: Level;
@@ -316,15 +323,16 @@ export function createHomeView(navigate: (hash: string) => void): View {
   const tipTitle = h('span', { class: 'climb-tip-t' });
   const tipDetail = h('span', { class: 'climb-tip-d' });
   const tip = h('div', { class: 'climb-tip', 'aria-hidden': 'true', hidden: true }, tipTitle, tipDetail);
-  map.append(tip);
+  inner.append(tip);
 
   const motes = createMotes();
+  let sceneHead: HTMLElement | null = null;
 
   const el = h(
     'main',
     { class: 'home climb-scene', 'data-testid': 'home-view' },
     motes.el,
-    h(
+    (sceneHead = h(
       'header',
       { class: 'scene-head' },
       h(
@@ -339,7 +347,7 @@ export function createHomeView(navigate: (hash: string) => void): View {
         ),
       ),
       h('div', { class: 'home-meta' }, settingsButton, soundButton, resetButton),
-    ),
+    )),
     replayRow,
     h('section', { class: 'climb', 'aria-label': 'The climb' }, map),
     panel,
@@ -514,12 +522,41 @@ export function createHomeView(navigate: (hash: string) => void): View {
 
   let current: Plan | null = null;
 
+  let laidOutFor = '';
+
   function relayout(): void {
     const width = Math.round(map.clientWidth);
     if (width <= 0) return;
-    if (current && current.width === width) return;
-    current = plan(width);
-    map.style.height = `${current.height}px`;
+    // The room between the title and the bar.
+    const room = Math.max(
+      300,
+      window.innerHeight -
+        (sceneHead?.offsetHeight ?? 0) -
+        panel.offsetHeight -
+        replayRow.offsetHeight -
+        40,
+    );
+    const key = `${width}x${room}`;
+    if (key === laidOutFor) return;
+    laidOutFor = key;
+
+    // The largest scale at which the climb still fits that room, keeping its
+    // design width wide enough for one row per floor.
+    let scale = 1;
+    if (width >= 560) {
+      for (let s = MAX_SCALE; s > 1.001; s -= 0.05) {
+        if (width / s < DESIGN_MIN) continue;
+        if (plan(width / s).height * s <= room) {
+          scale = s;
+          break;
+        }
+      }
+    }
+    current = plan(Math.round(width / scale));
+    inner.style.width = `${current.width}px`;
+    inner.style.height = `${current.height}px`;
+    inner.style.transform = scale === 1 ? '' : `scale(${scale.toFixed(3)})`;
+    map.style.height = `${Math.ceil(current.height * scale)}px`;
     for (const stop of stops.values()) {
       const p = current.at.get(stop.level.id);
       if (!p) continue;
@@ -528,9 +565,10 @@ export function createHomeView(navigate: (hash: string) => void): View {
       // The next level's name rises above its stop. Near an edge it hangs
       // inward instead of off the map.
       toggle(stop.li, 'is-start', p.x < 96);
-      toggle(stop.li, 'is-end', p.x > width - 96);
+      toggle(stop.li, 'is-end', p.x > current.width - 96);
     }
     paintArt(frontier());
+    paintTip();
   }
 
   function paintArt(next: Level | undefined): void {
@@ -691,7 +729,8 @@ export function createHomeView(navigate: (hash: string) => void): View {
   const observer =
     typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => relayout());
   observer?.observe(map);
-  const offResize = observer ? () => undefined : on(window, 'resize', () => relayout());
+  // The window's height decides the scale as much as its width does.
+  const offResize = on(window, 'resize', () => relayout());
 
   const unsubscribe = game.subscribe(render);
   render();
