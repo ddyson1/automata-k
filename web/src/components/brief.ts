@@ -1,39 +1,32 @@
 /**
- * The brief.
+ * The brief, split across the chamber.
  *
- * What you are being asked, written out: the question in plain English, the
- * language underneath it, and then the two lists that actually define the
- * level. Those lists are also the grader, which is why there is no results
- * band anywhere in this app and no score to translate into a diagnosis: the
- * thing you are reading is the thing that changes.
+ * What you are being asked floats in the chamber's top left corner: which
+ * level this is, the question in plain English, and the language underneath
+ * it. How the machine measures up — states drawn, par, arrows — sits in the
+ * top right beside the way back to the climb.
+ *
+ * The two lists that define the level are the console's first tab, the suite.
+ * They are also the grader, which is why there is no results band anywhere in
+ * this app and no score to translate into a diagnosis: the thing you are
+ * reading is the thing that changes. Each row carries a mark at its right:
+ * a dot before it has run, a triangle while it runs, then a tick or a cross.
  *
  * It changes when asked. Every mark goes back to a dot the moment the machine
  * stops being the one that was run, because a tick that might no longer be
- * true is worse than no tick at all.
- *
- * Tapping a string runs it, so the thing you are reading is also the thing you
- * can step through.
- *
- * Four pieces rather than one block, because the pane arranges them around its
- * tabs. Which level this is, what it is asking, and how the machine is doing
- * are permanent; only the two lists are a tab. That is worth the extra seams:
- * the verdict used to disappear the moment you went to read the transition
- * function, which is exactly when you wanted it, and on a phone those three
- * permanent pieces are the whole top rail — the question stays on screen while
- * you draw, which no amount of sheet ever managed.
+ * true is worse than no tick at all. Tapping a string runs that one string,
+ * slowly, so the thing you are reading is also the thing you can step through.
  */
 
-import { LEVELS } from '../../../src/engine/levels';
 import { shortestCounterexample } from '../../../src/engine/simulate';
 import type { SuiteResult } from '../../../src/engine/simulate';
-import { scoreNote, scoreOf } from '../../../src/engine/minimize';
+import { scoreOf } from '../../../src/engine/minimize';
 import type { Level, Machine, MachineKind } from '../../../src/engine/types';
 import { EPSILON } from '../../../src/engine/types';
 import { TOUCH, fill, h, on, setText } from '../dom';
 import { setNotation } from '../notation';
 
 export interface BriefCallbacks {
-  onBack: () => void;
   onTrace: (input: string) => void;
   onRun: () => void;
   onNext: () => void;
@@ -47,6 +40,8 @@ export interface BriefState {
   stale: boolean;
   /** The string the trace is currently showing. */
   playing: string | null;
+  /** The suite is being played: which row is running, and the rows already done. */
+  running: { index: number; done: ReadonlySet<string> } | null;
   solved: boolean;
   /** Smallest state count this level has been solved with. */
   best: number | undefined;
@@ -54,26 +49,30 @@ export interface BriefState {
 }
 
 export interface Brief {
-  /** Which level this is. Above everything, so it never moves. */
-  head: HTMLElement;
-  /** What the level asks, in words and in set-builder. Permanent. */
+  /** Which level this is, in the chamber's corner. */
+  kicker: HTMLElement;
+  /** What the level asks, in words and in set-builder. */
   statement: HTMLElement;
-  /** How the machine is doing. Permanent, and the rail's last line on a phone. */
+  /** States drawn against par, and arrows. */
+  meter: HTMLElement;
+  /** How the machine is doing. The console's foot. */
   mark: HTMLElement;
-  /** The two lists that define the level, and grade it. The first tab. */
+  /** The two lists that define the level, and grade it. The console's first tab. */
   body: HTMLElement;
-  /** Run, and what comes next. Docked over the canvas on a phone. */
+  /** Run, and what comes next. */
   actions: HTMLElement;
+  /** The strings in the order the suite plays them: accepted first. */
+  order(level: Level): string[];
   update(state: BriefState): void;
 }
 
 const show = (w: string): string => (w === '' ? EPSILON : w);
 
-const CLASS_NAME: Record<string, string> = {
-  DFA: 'Finite automaton',
-  NFA: 'Finite automaton, nondeterministic',
-  PDA: 'Pushdown automaton',
-  TM: 'Turing machine',
+const KIND: Record<MachineKind, string> = {
+  DFA: 'finite',
+  NFA: 'nondeterministic',
+  PDA: 'pushdown',
+  TM: 'Turing',
 };
 
 /** How to read a rule, for the classes whose rules have more than one part. */
@@ -82,29 +81,39 @@ const NOTATION_KEY: Partial<Record<MachineKind, string>> = {
   TM: 'A rule a → X, R reads a, writes X in its place and moves right. ⊔ is a blank cell.',
 };
 
-export function createBrief(callbacks: BriefCallbacks): Brief {
-  const back = h(
-    'button',
-    { class: 'back', type: 'button', 'data-testid': 'back', 'aria-label': 'All levels' },
-    '‹',
-  );
-  on(back, 'click', () => callbacks.onBack());
+const pad = (n: number): string => String(n).padStart(2, '0');
 
-  const eyebrow = h('p', { class: 'brief-eyebrow' });
-  const question = h('h1', { class: 'brief-q', 'data-testid': 'goal' });
-  const language = h('code', { class: 'brief-set t-mono-sm sel', 'data-testid': 'set-builder' });
+export function createBrief(callbacks: BriefCallbacks): Brief {
+  const kickerText = h('span', {});
+  const solvedTag = h('span', { class: 'hud-solved' });
+  const kicker = h('p', { class: 'hud-kicker', 'data-testid': 'kicker' }, kickerText, solvedTag);
+
+  const question = h('h1', { class: 'hud-goal', 'data-testid': 'goal' });
+  const language = h('code', { class: 'hud-set sel', 'data-testid': 'set-builder' });
+  // Where a rule has more than one part, say once how to read it.
+  const key = h('p', { class: 'hud-key', 'data-testid': 'notation-key', hidden: true });
+  const statement = h(
+    'div',
+    { class: 'hud-statement', 'data-testid': 'statement' },
+    question,
+    language,
+    key,
+  );
+
+  const meterStates = h('span', { class: 'meter-states' });
+  const meterRest = h('span', {});
+  const meter = h('p', { class: 'meter', 'data-testid': 'meter' }, meterStates, meterRest);
 
   const acceptList = h('ul', { class: 'verdicts', 'data-testid': 'accept-list' });
   const rejectList = h('ul', { class: 'verdicts', 'data-testid': 'reject-list' });
 
   const score = h('p', { class: 'brief-score', 'data-testid': 'score' });
-  const why = h('p', { class: 't-small brief-why', 'data-testid': 'why' });
+  const why = h('p', { class: 'brief-why', 'data-testid': 'why' });
 
   const runLink = h(
     'button',
-    { class: 'brief-link', type: 'button', 'data-testid': 'run' },
-    'Run the checks',
-    h('span', { 'aria-hidden': 'true' }, '›'),
+    { class: 'brief-link is-run', type: 'button', 'data-testid': 'run' },
+    'Run suite',
   );
   on(runLink, 'click', () => callbacks.onRun());
 
@@ -112,35 +121,18 @@ export function createBrief(callbacks: BriefCallbacks): Brief {
     'button',
     { class: 'brief-link is-next', type: 'button', 'data-testid': 'next-level', hidden: true },
     'Next level',
-    h('span', { 'aria-hidden': 'true' }, '›'),
+    h('span', { 'aria-hidden': 'true' }, ' →'),
   );
   on(nextLink, 'click', () => callbacks.onNext());
 
-  const head = h('div', { class: 'pane-head' }, back, eyebrow);
-
-  // Where a rule has more than one part, say once how to read it.
-  const key = h('p', { class: 't-small brief-key', 'data-testid': 'notation-key', hidden: true });
-
-  const statement = h(
-    'div',
-    { class: 'brief-statement', 'data-testid': 'statement' },
-    question,
-    language,
-    key,
-  );
-
-  // Once a machine passes, what the theory says about how small it could be.
-  const note = h('p', { class: 't-small brief-note', 'data-testid': 'score-note', hidden: true });
-
   const body = h(
     'section',
-    { class: 'brief', 'data-testid': 'brief' },
-    note,
+    { class: 'brief suite', 'data-testid': 'brief' },
     h(
       'div',
-      { class: 'brief-split' },
-      h('section', {}, h('p', { class: 't-label' }, 'These must be accepted'), acceptList),
-      h('section', {}, h('p', { class: 't-label' }, 'These must be rejected'), rejectList),
+      { class: 'suite-groups' },
+      h('section', { class: 'suite-group' }, h('p', { class: 't-label' }, 'Must accept'), acceptList),
+      h('section', { class: 'suite-group' }, h('p', { class: 't-label' }, 'Must reject'), rejectList),
     ),
   );
 
@@ -153,6 +145,11 @@ export function createBrief(callbacks: BriefCallbacks): Brief {
     nextLink,
   );
 
+  const order = (level: Level): string[] => [
+    ...level.tests.filter((w) => level.accepts(w)),
+    ...level.tests.filter((w) => !level.accepts(w)),
+  ];
+
   /** Rows are rebuilt only when the level changes; the marks update in place. */
   let builtFor = '';
   const rows = new Map<string, { node: HTMLLIElement; mark: HTMLElement }>();
@@ -163,24 +160,25 @@ export function createBrief(callbacks: BriefCallbacks): Brief {
     rows.clear();
 
     const make = (word: string): HTMLLIElement => {
-      const mark = h('span', { class: 'mark', 'aria-hidden': 'true' });
+      const glyph = h('span', { class: 'mark', 'aria-hidden': 'true' }, '·');
+      const want = level.accepts(word) ? 'accepted' : 'rejected';
       const node = h(
         'li',
-        { class: 'verdict', 'data-testid': 'verdict' },
+        { class: 'verdict is-blank', 'data-testid': 'verdict' },
         h(
           'button',
           {
             class: 'verdict-hit',
             type: 'button',
             'data-input': word,
-            'aria-label': `${show(word)}. Run it.`,
+            'aria-label': `${show(word)}, must be ${want}. Run it.`,
           },
-          mark,
-          h('code', { class: 't-mono-sm' }, show(word)),
+          h('code', { class: 'verdict-word' }, show(word)),
+          glyph,
         ),
       );
       on(node.firstElementChild as HTMLElement, 'click', () => callbacks.onTrace(word));
-      rows.set(word, { node, mark });
+      rows.set(word, { node, mark: glyph });
       return node;
     };
 
@@ -189,56 +187,70 @@ export function createBrief(callbacks: BriefCallbacks): Brief {
   }
 
   return {
-    head,
+    kicker,
     statement,
+    meter,
     mark,
     body,
     actions,
+    order,
     update(state) {
-      const { level, result } = state;
+      const { level, result, running } = state;
       buildRows(level);
 
-      setText(
-        eyebrow,
-        `Level ${level.index} of ${LEVELS.length} · ${CLASS_NAME[level.type] ?? level.type}`,
-      );
+      setText(kickerText, `L${pad(level.index)} · ${level.title} · ${KIND[level.type]}`);
+      setText(solvedTag, state.solved ? ' · solved' : '');
       setNotation(question, level.goal);
       setNotation(language, level.setBuilder);
       const reading = NOTATION_KEY[level.type];
       key.hidden = !reading;
       if (reading) setText(key, reading);
 
+      // States as par counts them: on a DFA level a missing arrow goes to a
+      // dead state, so leaving it implicit still counts it.
+      const s = scoreOf(state.machine, level);
+      setText(meterStates, `States ${s.drawn}${s.impliedDead ? ' + 1' : ''}`);
+      meterStates.classList.toggle('is-over', s.scored > level.par);
+      meterStates.title = s.impliedDead
+        ? `${s.drawn} drawn, and the dead state their missing arrows go to`
+        : '';
+      setText(meterRest, ` / par ${level.par} · arrows ${state.machine.transitions.length}`);
+
       // A mark is only shown for a result that is still true of what is on
       // the canvas. After an edit every one goes back to the dot: not "wrong",
       // not "right", but not asked yet.
-      note.hidden = true;
       const started = state.machine.states.length > 0;
       const known = started && !state.stale;
+      const now = running ? order(level)[running.index] : undefined;
       for (const row of result.rows) {
         const entry = rows.get(row.input);
         if (!entry) continue;
+        const shown = running ? running.done.has(row.input) : known;
         const ok = row.pass;
-        entry.node.classList.toggle('is-off', known && !ok);
-        entry.node.classList.toggle('is-blank', !known);
-        entry.node.classList.toggle('is-playing', state.playing === row.input);
-        setText(entry.mark, !known ? '·' : ok ? '✓' : '✕');
+        const isRunning = row.input === now;
+        entry.node.classList.toggle('is-off', shown && !ok);
+        entry.node.classList.toggle('is-blank', !shown && !isRunning);
+        entry.node.classList.toggle('is-running', isRunning);
+        entry.node.classList.toggle('is-playing', state.playing === row.input || isRunning);
+        setText(entry.mark, isRunning ? '▸' : !shown ? '·' : ok ? '✓' : '✗');
       }
 
       // The verdict lives in the mark, so the mark carries the state. Idle
-      // means no run has happened that is still true of this machine — on a
-      // phone the rail drops the line entirely rather than reserve space for
-      // a verdict that does not exist yet.
-      mark.classList.toggle('is-solved', known && result.solved);
-      mark.classList.toggle('is-broken', known && Boolean(result.error));
+      // means no run has happened that is still true of this machine.
+      mark.classList.toggle('is-solved', known && result.solved && !running);
+      mark.classList.toggle('is-broken', known && Boolean(result.error) && !running);
       mark.classList.toggle('is-idle', !known);
 
-      if (!started) {
+      if (running) {
+        setText(score, `Running ${running.index + 1} of ${result.total}`);
+        setText(why, `${running.done.size} done.`);
+      } else if (!started) {
         setText(score, 'Nothing drawn yet');
         setText(
           why,
           TOUCH
-            ? 'Tap the canvas twice to place a state.'
-            : 'Double click the canvas to place a state.',
+            ? 'Tap the chamber twice to place a state.'
+            : 'Double click the chamber to place a state.',
         );
       } else if (state.stale) {
         setText(score, 'Not checked yet');
@@ -250,10 +262,6 @@ export function createBrief(callbacks: BriefCallbacks): Brief {
         setText(score, 'Not a machine yet');
         setText(why, result.error);
       } else if (result.solved) {
-        // The machine on the canvas, counted the way par is counted.
-        const s = scoreOf(state.machine, level);
-        setText(note, scoreNote(state.machine, level));
-        note.hidden = false;
         setText(score, `All ${result.total} agree`);
         setText(
           why,
@@ -276,9 +284,10 @@ export function createBrief(callbacks: BriefCallbacks): Brief {
       // Running is the thing to do while the answer is unknown; once it is
       // known, the emphasis moves to whatever comes next.
       runLink.hidden = !started;
-      runLink.classList.toggle('is-next', state.stale && !state.hasNext);
-      setText(runLink.firstChild as Node, state.stale ? 'Run the checks' : 'Run again');
-      nextLink.hidden = !(state.solved && state.hasNext);
+      runLink.disabled = running !== null;
+      runLink.classList.toggle('is-primary', state.stale || !(state.solved && state.hasNext));
+      setText(runLink, state.stale ? 'Run suite' : 'Run again');
+      nextLink.hidden = !(state.solved && state.hasNext) || running !== null;
     },
   };
 }

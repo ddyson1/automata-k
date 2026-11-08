@@ -19,6 +19,7 @@
 @import './styles/home.css';
 @import './styles/pane.css';
 @import './styles/canvas.css';
+@import './styles/chamber.css';
 @import './styles/trace.css';
 @import './styles/ledger.css';
 @import './styles/sheets.css';

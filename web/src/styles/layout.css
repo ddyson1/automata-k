@@ -11,13 +11,11 @@
 }
 
 /* --------------------------------------------------------------------------
-   the level: two columns and nothing else
+   the level: one chamber, the whole window
    -------------------------------------------------------------------------- */
 
 .level {
-  display: grid;
-  /* --pane-w is set from paneSize.ts, already clamped to the window. */
-  grid-template-columns: var(--pane-w, 380px) minmax(0, 1fr);
+  position: relative;
   height: 100dvh;
   overflow: hidden;
 }

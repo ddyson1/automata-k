@@ -100,59 +100,66 @@ test('one stop takes Tab, and the arrow keys walk the path', async ({ page }) =>
   await expect(page.getByTestId('stage')).toBeVisible();
 });
 
-test('stepping onto the pushdown floor plays its crossing, once', async ({ page }) => {
-  await seed(page, 24, { crossed: ['NFA'] });
-  await stop(page, 25).click();
-  const crossing = page.getByTestId('crossing');
-  await expect(crossing).toBeVisible();
-  await expect(crossing).toHaveAttribute('data-kind', 'PDA');
-  await expect(page.getByRole('dialog', { name: 'A machine with a stack' })).toBeVisible();
-  // Skip goes straight into the level.
-  await expect(page.getByTestId('crossing-skip')).toBeFocused();
-  await page.getByTestId('crossing-skip').click();
-  await expect(page).toHaveURL(new RegExp(`#/level/${idAt(25)}$`));
-  await expect(page.getByTestId('stage')).toBeVisible();
-  await expect(crossing).toHaveCount(0);
+test.describe('with motion', () => {
+  // A crossing plays as a scene only where motion is welcome; the test
+  // run's default is reduced motion.
+  test.use({ contextOptions: { reducedMotion: 'no-preference' } });
 
-  // Seen once, it does not play again, and survives a reload.
-  await page.getByTestId('back').click();
-  await page.reload();
-  await stop(page, 25).click();
-  await expect(page.getByTestId('stage')).toBeVisible();
-  await expect(crossing).toHaveCount(0);
+  test('stepping onto the pushdown floor plays its crossing, once', async ({ page }) => {
+    await seed(page, 24, { crossed: ['NFA'] });
+    await stop(page, 25).click();
+    const crossing = page.getByTestId('crossing');
+    await expect(crossing).toBeVisible();
+    await expect(crossing).toHaveAttribute('data-kind', 'PDA');
+    await expect(page.getByRole('dialog', { name: 'A machine with a stack' })).toBeVisible();
+    // Skip goes straight into the level.
+    await expect(page.getByTestId('crossing-skip')).toBeFocused();
+    await page.getByTestId('crossing-skip').click();
+    await expect(page).toHaveURL(new RegExp(`#/level/${idAt(25)}$`));
+    await expect(page.getByTestId('stage')).toBeVisible();
+    await expect(crossing).toHaveCount(0);
 
-  // It can be watched again from the climb, and Escape leaves it. A wide
-  // window offers it in the panel; a phone, in a row under the map.
-  await page.getByTestId('back').click();
-  await stop(page, 25).focus();
-  const wide = (page.viewportSize()?.width ?? 0) >= 900;
-  const replay = page.getByTestId(wide ? 'replay-crossing' : 'replay-PDA');
-  await expect(replay).toBeVisible();
-  await expect(page.getByTestId('replay-TM')).toBeHidden();
-  await replay.click();
-  await expect(crossing).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(crossing).toHaveCount(0);
-  await expect(page.getByTestId('home-view')).toBeVisible();
-  await expect(replay).toBeFocused();
-});
+    // Seen once, it does not play again, and survives a reload.
+    await page.getByTestId('back').click();
+    await page.reload();
+    await stop(page, 25).click();
+    await expect(page.getByTestId('stage')).toBeVisible();
+    await expect(crossing).toHaveCount(0);
 
-test('finishing the last finite level crosses onto the next floor', async ({ page }) => {
-  await seed(page, 13);
-  await page.goto(`/#/level/${idAt(14)}`);
-  await expect(page.getByTestId('stage')).toBeVisible();
-  // A link from outside never plays a crossing: this one was typed.
-  await expect(page.getByTestId('crossing')).toHaveCount(0);
-  const grab = page.getByTestId('pane-grab');
-  if (await grab.isVisible()) await grab.click();
-  await page.getByTestId('tab-hint').click();
-  await page.getByTestId('reveal').click();
-  await page.getByTestId('run').click();
-  await expect(page.getByTestId('score')).toContainText('All ');
-  await page.getByTestId('next-level').click();
-  await expect(page.getByTestId('crossing')).toHaveAttribute('data-kind', 'NFA');
-  await page.getByTestId('crossing-skip').click();
-  await expect(page).toHaveURL(new RegExp(`#/level/${idAt(15)}$`));
+    // It can be watched again from the climb, and Escape leaves it. A wide
+    // window offers it in the panel; a phone, in a row under the map.
+    await page.getByTestId('back').click();
+    await stop(page, 25).focus();
+    const wide = (page.viewportSize()?.width ?? 0) >= 900;
+    const replay = page.getByTestId(wide ? 'replay-crossing' : 'replay-PDA');
+    await expect(replay).toBeVisible();
+    await expect(page.getByTestId('replay-TM')).toBeHidden();
+    await replay.click();
+    await expect(crossing).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(crossing).toHaveCount(0);
+    await expect(page.getByTestId('home-view')).toBeVisible();
+    await expect(replay).toBeFocused();
+  });
+
+  test('finishing the last finite level crosses onto the next floor', async ({ page }) => {
+    await seed(page, 13);
+    await page.goto(`/#/level/${idAt(14)}`);
+    await expect(page.getByTestId('stage')).toBeVisible();
+    // A link from outside never plays a crossing: this one was typed.
+    await expect(page.getByTestId('crossing')).toHaveCount(0);
+    const grab = page.getByTestId('pane-grab');
+    if (await grab.isVisible()) await grab.click();
+    await page.getByTestId('tab-hint').click();
+    await page.getByTestId('reveal').click();
+    await page.getByTestId('run').click();
+    await expect(page.getByTestId('score')).toContainText('All ');
+    // The results card offers the next level, and that way runs through the crossing.
+    await page.getByTestId('results-next').click();
+    await expect(page.getByTestId('crossing')).toHaveAttribute('data-kind', 'NFA');
+    await page.getByTestId('crossing-skip').click();
+    await expect(page).toHaveURL(new RegExp(`#/level/${idAt(15)}$`));
+  });
 });
 
 test('with reduced motion the crossing is all there at once', async ({ page }) => {

@@ -30,6 +30,12 @@ const reveal = async (page: Page): Promise<void> => {
   await expect(page.getByTestId('score')).toHaveText('Not checked yet');
   await page.getByTestId('run').click();
   await expect(page.getByTestId('score')).toHaveText('All 12 agree');
+  // A pass ends on the results card, which says what the theory says about
+  // the machine's size. Stay goes back to the level.
+  await expect(page.getByTestId('results')).toBeVisible();
+  await expect(page.getByTestId('results-verdict')).toHaveText('Minimal.');
+  await page.getByTestId('results-stay').click();
+  await expect(page.getByTestId('results')).toBeHidden();
 };
 
 test('open level 1, take the solution, the marks in the brief turn', async ({ page }) => {

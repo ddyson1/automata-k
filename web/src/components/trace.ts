@@ -1,9 +1,19 @@
 /**
- * The trace player.
+ * The readout: what the machine is reading, and what it just did.
  *
  * A verdict is an answer; a trace is an explanation. Stepping a run shows the
  * live state set, the read head, and whichever extra memory the class has: a
  * stack for a pushdown automaton, a tape for a Turing machine.
+ *
+ * It lives in the chamber's bottom left corner: the input along one line with
+ * the symbol being read underlined in energy, and under it one line of words
+ * saying which rule fired. The memory is not in the readout at all. A stack is
+ * architecture, so it stands on the stage beside the machine as a column, and
+ * a tape runs across the stage above the readout. See `memory`.
+ *
+ * It also plays the whole suite. Run suite sends every string through the
+ * machine in turn, quickly, so a verdict is something you watched happen
+ * rather than a list of ticks that appeared. See `playAll`.
  *
  * Frames are capped at 400 by the engine, but the simulation itself always runs
  * to its real limit, so a capped trace still reports the true verdict.
@@ -35,22 +45,38 @@ export interface TraceCallbacks {
   onClose: () => void;
 }
 
+export interface SuiteShow {
+  /** Milliseconds per step, and between one string and the next. */
+  per: number;
+  gap: number;
+  /** A string has started, or has finished. */
+  onRow: (index: number, phase: 'run' | 'done') => void;
+  onDone: () => void;
+}
+
 export interface TracePlayer {
+  /** The readout itself: input, words, transport. */
   el: HTMLElement;
+  /** The stack or the tape, which the level puts on the stage. */
+  memory: HTMLElement;
   /** Start tracing a string. Returns false if the machine could not be run. */
-  play(machine: Machine, level: Level, input: string): boolean;
+  play(machine: Machine, level: Level, input: string, options?: { autoplay?: boolean }): boolean;
+  /** Send every string through the machine, one after another. */
+  playAll(machine: Machine, level: Level, inputs: readonly string[], show: SuiteShow): void;
   stop(): void;
   readonly input: string | null;
+  /** Whether the suite is being played. */
+  readonly showing: boolean;
 }
 
 const STEP_MS = 620;
 
 export function createTrace(callbacks: TraceCallbacks): TracePlayer {
-  const heading = h('span', { class: 't-label' }, 'Trace');
   const verdict = h('span', { class: 't-mono-sm verdict', 'data-testid': 'trace-verdict' });
+  const inputLabel = h('span', { class: 't-label readout-label' }, 'Input');
   const tape = h('div', { class: 'trace-input', 'data-testid': 'trace-input' });
-  const memory = h('div', { class: 'trace-memory', 'data-testid': 'trace-memory' });
-  const caption = h('p', { class: 't-small muted trace-caption', 'data-testid': 'trace-caption' });
+  const memory = h('div', { class: 'trace-memory', 'data-testid': 'trace-memory', hidden: true });
+  const caption = h('p', { class: 'trace-caption', 'data-testid': 'trace-caption' });
 
   const back = h(
     'button',
@@ -76,12 +102,10 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
 
   const el = h(
     'section',
-    { class: 'trace', 'data-testid': 'trace', hidden: true },
-    h('div', { class: 'band-head' }, heading, verdict, close),
-    tape,
-    memory,
+    { class: 'trace readout', 'data-testid': 'trace', hidden: true, 'aria-label': 'Trace' },
+    h('div', { class: 'readout-input' }, inputLabel, tape),
     caption,
-    h('div', { class: 'transport-row' }, back, playPause, forward, counter),
+    h('div', { class: 'transport-row' }, back, playPause, forward, counter, verdict, close),
   );
 
   let result: RunResult | null = null;
@@ -93,6 +117,8 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
   let machineLabels = new Map<StateId, string>();
   /** The machine being traced, so each step can say which rule it used. */
   let traced: { machine: Machine; kind: MachineKind; rules: Map<string, Transition> } | null = null;
+  /** The suite being played, if it is. */
+  let show: { timers: ReturnType<typeof setTimeout>[] } | null = null;
 
   /** What the step did, in words: the rule that fired, or where the machine now is. */
   function describe(frame: Frame | undefined, where: string): string {
@@ -112,6 +138,27 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
     if (timer) clearInterval(timer);
     timer = null;
     setText(playPause, 'Play');
+  }
+
+  function stopShow(): void {
+    if (!show) return;
+    for (const t of show.timers) clearTimeout(t);
+    show = null;
+    el.classList.remove('is-show');
+  }
+
+  function startTimer(): void {
+    if (!result) return;
+    if (current >= result.frames.length - 1) current = 0;
+    setText(playPause, 'Pause');
+    timer = setInterval(() => {
+      if (!result || current >= result.frames.length - 1) {
+        stopTimer();
+        return;
+      }
+      current++;
+      renderStep();
+    }, STEP_MS);
   }
 
   function renderInput(frame: Frame | undefined): void {
@@ -134,26 +181,39 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
   }
 
   function renderMemory(frame: Frame | undefined): void {
+    memory.hidden = true;
+    memory.classList.remove('is-stack', 'is-tape');
     if (!frame) {
       fill(memory);
       return;
     }
     if (frame.stack) {
-      // Bottom first in the model; drawn top first, which is how a stack reads.
+      memory.hidden = false;
+      memory.classList.add('is-stack');
+      // Bottom first in the model, and bottom first on the stage: the column
+      // stands on its $ the way the stack does.
       fill(
         memory,
         h('span', { class: 't-label mem-label' }, 'Stack'),
         h(
           'div',
           { class: 'mem-row' },
-          ...[...frame.stack].reverse().map((symbol, i) =>
-            h('span', { class: `cellx t-mono${i === 0 ? ' is-head' : ''}` }, symbol),
+          ...frame.stack.map((symbol, i, all) =>
+            h(
+              'span',
+              {
+                class: `cellx t-mono${i === all.length - 1 ? ' is-head' : ''}${i === 0 ? ' is-base' : ''}`,
+              },
+              symbol,
+            ),
           ),
         ),
       );
       return;
     }
     if (frame.tape) {
+      memory.hidden = false;
+      memory.classList.add('is-tape');
       fill(
         memory,
         h('span', { class: 't-label mem-label' }, 'Tape'),
@@ -185,6 +245,7 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
     shownStep = current;
     callbacks.onActive(active, frame?.via ?? [], stepped);
 
+    if (show) return;
     const names = active.map((id) => machineLabels.get(id) ?? id);
     const where = names.length === 0 ? 'nowhere' : names.join(', ');
     setText(caption, describe(frame, where));
@@ -208,6 +269,15 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
     verdict.className = `t-mono-sm verdict ${outcome === 'accept' ? 'pass' : outcome === 'reject' ? 'fail' : 'muted'}`;
   }
 
+  function begin(machine: Machine, level: Level): void {
+    machineLabels = new Map(machine.states.map((s) => [s.id, s.label]));
+    traced = {
+      machine,
+      kind: level.type,
+      rules: new Map(machine.transitions.map((t) => [t.id, t])),
+    };
+  }
+
   on(back, 'click', () => {
     stopTimer();
     current = Math.max(0, current - 1);
@@ -223,21 +293,12 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
       stopTimer();
       return;
     }
-    if (!result) return;
-    if (current >= result.frames.length - 1) current = 0;
-    setText(playPause, 'Pause');
-    timer = setInterval(() => {
-      if (!result || current >= result.frames.length - 1) {
-        stopTimer();
-        return;
-      }
-      current++;
-      renderStep();
-    }, STEP_MS);
+    startTimer();
   });
   on(close, 'click', () => {
     stopTimer();
     el.hidden = true;
+    memory.hidden = true;
     input = null;
     result = null;
     callbacks.onActive([]);
@@ -246,13 +307,17 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
 
   return {
     el,
+    memory,
     get input() {
-      return input;
+      return show ? null : input;
     },
-    play(machine, level, value) {
+    get showing() {
+      return show !== null;
+    },
+    play(machine, level, value, options = {}) {
+      stopShow();
       stopTimer();
-      machineLabels = new Map(machine.states.map((s) => [s.id, s.label]));
-      traced = { machine, kind: level.type, rules: new Map(machine.transitions.map((t) => [t.id, t])) };
+      begin(machine, level);
       const outcome = run(machine, level, value);
       if (outcome.error) {
         input = value;
@@ -262,6 +327,7 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
         verdict.className = 't-mono-sm verdict fail';
         fill(tape);
         fill(memory);
+        memory.hidden = true;
         setText(caption, outcome.error);
         setText(counter, '0/0');
         callbacks.onActive([]);
@@ -275,11 +341,69 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
       setVerdict();
       renderStep();
       if (outcome.note) setText(caption, `${caption.textContent} ${outcome.note}`);
+      if (options.autoplay) startTimer();
       return true;
     },
+    playAll(machine, level, inputs, options) {
+      stopShow();
+      stopTimer();
+      begin(machine, level);
+      const mine = { timers: [] as ReturnType<typeof setTimeout>[] };
+      show = mine;
+      el.hidden = false;
+      el.classList.add('is-show');
+      setText(verdict, '');
+      verdict.className = 't-mono-sm verdict';
+
+      const later = (fn: () => void, ms: number): void => {
+        mine.timers.push(
+          setTimeout(() => {
+            if (show === mine) fn();
+          }, ms),
+        );
+      };
+
+      const row = (index: number): void => {
+        const value = inputs[index];
+        if (value === undefined) {
+          stopShow();
+          el.hidden = true;
+          memory.hidden = true;
+          input = null;
+          result = null;
+          callbacks.onActive([]);
+          options.onDone();
+          return;
+        }
+        const outcome = run(machine, level, value);
+        input = value;
+        result = outcome;
+        current = 0;
+        shownStep = -1;
+        setText(caption, `running ${index + 1} of ${inputs.length}`);
+        options.onRow(index, 'run');
+        const frames = outcome.error ? 0 : outcome.frames.length;
+        if (frames > 0) renderStep();
+        else renderInput(undefined);
+        const step = (): void => {
+          if (!result || current >= frames - 1) {
+            options.onRow(index, 'done');
+            later(() => row(index + 1), options.gap);
+            return;
+          }
+          current++;
+          renderStep();
+          later(step, options.per);
+        };
+        later(step, options.per);
+      };
+      row(0);
+    },
     stop() {
+      stopShow();
       stopTimer();
       el.hidden = true;
+      memory.hidden = true;
       input = null;
       result = null;
       callbacks.onActive([]);

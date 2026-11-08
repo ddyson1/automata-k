@@ -124,11 +124,11 @@ and Turing levels carry a one-line key to their notation in the brief.
   against the machine being drawn.
 - **The grader is the brief.** There is no score band, no percentage, no stars.
   The lists of strings change as the verdict changes, and that is the feedback.
-  A solved level adds one note, in the brief, about what the theory says of its
-  size: a DFA has exactly one minimal machine, so the note says whether yours is
+  A passing run ends on one card saying what the theory says of the machine's
+  size: a DFA has exactly one minimal machine, so the card says whether yours is
   it; finding a minimal NFA is PSPACE-hard and for pushdown and Turing machines
-  it is undecidable, so there the note says that par is only the best found.
-  There is no leaderboard to rank against, because that would need a server.
+  it is undecidable, so there it says that par is only the best found. There is
+  no leaderboard or histogram to rank against, because that would need a server.
 
 ## Decisions already made, with the reasoning
 
@@ -140,14 +140,20 @@ press there is something to press, something to wait for, and something to hear.
 Every mark reverts to a neutral dot the instant the machine stops being the one
 that was run — a tick that might no longer be true is worse than no tick.
 
-**On a phone the brief is a rail across the top, not a sheet across the bottom.**
-The sheet was asked to be a verdict, a way into five tabs, and out of the way,
-and half-did each. Measured on a 390×664 viewport: the old sheet took 30% of the
-screen while you were only drawing, left 212px of machine when opened, and
-stacked with the trace transport to cover 57%. The rail carries the question
-itself — which the sheet never had room for — and costs 23% while drawing, 29%
-once there is a verdict, 33% during a trace. Tapping it anywhere opens the five
-panes full screen.
+**A level is a chamber, not a page beside a canvas.** The whole window is one
+lit volume. The question floats in the top left and the instruments in the top
+right, written on the air; the console is glass on the right, so the machine
+shows through it; the readout runs along the foot. A pushdown machine's stack
+is architecture, standing on the stage beside the machine, not a row in a
+panel. The suite is played through the machine when it runs, string by string,
+because a verdict you watched happen teaches more than ticks that appeared.
+
+**On a phone the question stays at the top and the console is a bar at the
+bottom.** An earlier sheet across the bottom was asked to be a verdict, a way
+into five tabs, and out of the way, and half-did each: 30% of the screen while
+drawing, and 57% once the trace transport stacked on it. Its replacement put
+the question in a rail across the top, which the chamber keeps; the console's
+bar carries only the verdict and Run, and opens over the chamber for the rest.
 
 **Actions live in the thumb's arc.** Run bottom right; undo, redo, tidy and fit
 bottom left. Reading material is at the top, where reaching does not matter.

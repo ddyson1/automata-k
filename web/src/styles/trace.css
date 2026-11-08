@@ -1,102 +1,121 @@
 /* --------------------------------------------------------------------------
-   the trace, along the foot of the canvas
+   the readout, along the chamber's foot
+
+   The input on one line, the symbol being read underlined in energy and the
+   symbols already read faded, then one line of words, then the transport.
+   No panel: it is written on the air, like the question above it.
+
+   The memory is on the stage. A pushdown machine's stack is a column standing
+   between the machine and the console, bottom marker first; a Turing
+   machine's tape runs across the foot, above the readout.
    -------------------------------------------------------------------------- */
 
-.trace {
-  flex: none;
-  position: relative;
-  z-index: 2;
-  background: var(--surface);
-  border-top: 1px solid var(--hairline);
-  padding: 10px 14px calc(10px + var(--safe-bottom));
+.trace.readout {
+  position: absolute;
+  z-index: 3;
+  left: calc(var(--gutter) + 4px + var(--safe-left));
+  right: calc(var(--pane-w, 380px) + var(--gutter) * 2 + 8px);
+  bottom: calc(12px + var(--safe-bottom));
   display: grid;
-  gap: 8px;
+  gap: 5px;
+  pointer-events: none;
 }
 
-.trace[hidden] {
+.trace.readout[hidden] {
   display: none;
 }
 
-/* .band-head is the ledger's; the trace only centres it on its close button. */
-.trace .band-head {
-  align-items: center;
+.level.is-collapsed .trace.readout {
+  right: calc(var(--gutter) + 230px);
 }
 
-.trace .verdict {
-  margin-left: auto;
-  color: var(--muted);
-}
-
-.trace-input,
-.mem-row {
+.readout-input {
   display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-}
-
-.trace-memory {
-  display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 10px;
+  min-width: 0;
 }
 
-.mem-label {
+.readout-label {
   flex: none;
-}
-
-.cellx {
-  min-width: 24px;
-  padding: 3px 5px;
-  text-align: center;
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-chip);
-  background: var(--surface);
-  font-family: var(--mono);
-  font-size: 12.5px;
-}
-
-.cellx.is-read {
   color: var(--faint);
 }
 
-.cellx.is-head {
-  border-color: var(--energy);
-  background: var(--energy);
-  color: var(--energy-ink);
+.trace-input {
+  display: flex;
+  gap: 0.14em;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
-.cellx.is-empty {
-  color: var(--muted);
+.trace-input .cellx {
+  min-width: 0;
+  padding: 0 0 4px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+}
+
+.trace-input .cellx.is-read {
+  color: var(--faint);
+}
+
+.trace-input .cellx.is-head {
+  color: var(--energy);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+}
+
+.trace-input .cellx.is-empty {
+  color: var(--faint);
 }
 
 .trace-caption {
   margin: 0;
+  min-height: 1.45em;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-soft);
 }
 
 .transport-row {
   display: flex;
   align-items: center;
   gap: 6px;
+  pointer-events: auto;
 }
 
 .transport {
   min-width: var(--tap);
   min-height: var(--tap);
-  padding: 0 10px;
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-control);
-  font-size: 14px;
-  line-height: 1;
+  padding: 0 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 7px;
+  background: var(--panel);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  font-size: 15px;
+  color: var(--ink);
 }
 
 .transport.is-primary {
-  min-width: 62px;
-  font-size: 12.5px;
+  font-size: 11.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.transport:hover:not(:disabled) {
+  border-color: var(--ink-soft);
 }
 
 .transport:focus-visible {
-  border-color: var(--energy);
-  color: var(--ink);
+  outline: 2px solid var(--energy);
+  outline-offset: 2px;
 }
 
 .transport:disabled {
@@ -104,6 +123,123 @@
 }
 
 .transport-row .counter {
-  margin-left: auto;
+  margin: 0 4px;
   color: var(--muted);
+}
+
+.trace .verdict {
+  margin-left: auto;
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* The suite's own run: no transport, only the string and how far along. */
+.trace.is-show .transport-row {
+  display: none;
+}
+
+/* the memory, on the stage ------------------------------------------------ */
+
+.trace-memory {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Hidden beats every arrangement below it. */
+.trace-memory[hidden],
+.trace-memory.is-stack[hidden],
+.trace-memory.is-tape[hidden] {
+  display: none;
+}
+
+.mem-label {
+  flex: none;
+  color: var(--faint);
+}
+
+.cellx {
+  display: grid;
+  place-items: center;
+  font-family: var(--mono);
+  font-variant-ligatures: none;
+}
+
+.trace-memory .cellx {
+  min-width: 34px;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  background: var(--panel);
+  box-shadow: 1.5px 3px 0 rgb(var(--shadow-rgb) / 8%);
+  font-size: 12.5px;
+  color: var(--ink);
+}
+
+.trace-memory .cellx.is-head {
+  border-color: var(--energy);
+  box-shadow: 0 0 14px 2px color-mix(in srgb, var(--energy) 32%, transparent);
+}
+
+/* A stack: a column with rails, standing on its bottom marker. */
+.trace-memory.is-stack {
+  right: calc(var(--pane-w, 380px) + var(--gutter) * 2 + 12px);
+  bottom: calc(var(--foot) + 6px);
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 8px;
+}
+
+.level.is-collapsed .trace-memory.is-stack {
+  right: calc(var(--gutter) + 12px);
+}
+
+.trace-memory.is-stack .mem-row {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 3px;
+  padding: 0 8px 6px;
+  border-left: 1px solid var(--line-2);
+  border-right: 1px solid var(--line-2);
+}
+
+.trace-memory.is-stack .cellx.is-base {
+  min-width: 46px;
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--ground-top);
+}
+
+/* A tape: a row of cells across the foot, the head's cell lit. On a Turing
+   level the tape is the input, so it takes the input's line in the readout. */
+.kind-tm .readout-input {
+  display: none;
+}
+
+.trace-memory.is-tape {
+  left: calc(var(--gutter) + 4px + var(--safe-left));
+  right: calc(var(--pane-w, 380px) + var(--gutter) * 2 + 8px);
+  bottom: calc(90px + var(--safe-bottom));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.trace.is-show ~ .trace-memory.is-tape,
+.level.is-showing .trace-memory.is-tape {
+  bottom: calc(40px + var(--safe-bottom));
+}
+
+.trace-memory.is-tape .mem-row {
+  display: flex;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.trace-memory.is-tape .cellx {
+  min-width: 28px;
+  height: 28px;
 }

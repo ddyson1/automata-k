@@ -44,6 +44,16 @@
   --fail-tint: #f7e6e1;
   --scrim: rgb(23 32 43 / 32%);
   --dot: #d6dce5;
+  /* The chamber's glass and air: panels you can see the volume through, the
+     lines drawn on them, a state's translucent body, and the drifting motes. */
+  --panel: rgb(250 251 253 / 74%);
+  --line-1: rgb(23 32 43 / 13%);
+  --line-2: rgb(23 32 43 / 27%);
+  --fill: rgb(255 255 255 / 62%);
+  --haze: rgb(255 255 255 / 60%);
+  --shadow-rgb: 23 32 43;
+  --mote-rgb: 23 32 43;
+  --energy-hi: #6f8dff;
 
   /* One face for everything. The three names stay, because the roles do. */
   --mono: 'Automata Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -88,6 +98,14 @@
     --fail-tint: #574247;
     --scrim: rgb(10 14 22 / 55%);
     --dot: #4b5567;
+    --panel: rgb(44 51 66 / 62%);
+    --line-1: rgb(238 242 248 / 15%);
+    --line-2: rgb(238 242 248 / 30%);
+    --fill: rgb(60 70 90 / 50%);
+    --haze: rgb(190 215 255 / 16%);
+    --shadow-rgb: 8 12 20;
+    --mote-rgb: 225 234 248;
+    --energy-hi: #e4f3ff;
   }
 }
 
@@ -117,6 +135,14 @@
   --fail-tint: #f7e6e1;
   --scrim: rgb(23 32 43 / 32%);
   --dot: #d6dce5;
+  --panel: rgb(250 251 253 / 74%);
+  --line-1: rgb(23 32 43 / 13%);
+  --line-2: rgb(23 32 43 / 27%);
+  --fill: rgb(255 255 255 / 62%);
+  --haze: rgb(255 255 255 / 60%);
+  --shadow-rgb: 23 32 43;
+  --mote-rgb: 23 32 43;
+  --energy-hi: #6f8dff;
 }
 
 :root[data-theme='dark'] {
@@ -144,6 +170,14 @@
   --fail-tint: #574247;
   --scrim: rgb(10 14 22 / 55%);
   --dot: #4b5567;
+  --panel: rgb(44 51 66 / 62%);
+  --line-1: rgb(238 242 248 / 15%);
+  --line-2: rgb(238 242 248 / 30%);
+  --fill: rgb(60 70 90 / 50%);
+  --haze: rgb(190 215 255 / 16%);
+  --shadow-rgb: 8 12 20;
+  --mote-rgb: 225 234 248;
+  --energy-hi: #e4f3ff;
 }
 
 /* --------------------------------------------------------------------------
@@ -306,7 +340,9 @@ sup.sup {
   :root:not([data-motion='full']) *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    /* None, not a very short duration: a duration on every element would make
+       every change a transition, landing one frame late. */
+    transition: none !important;
   }
 }
 
@@ -316,5 +352,5 @@ sup.sup {
   animation-duration: 0.01ms !important;
   /* A looping animation shortened to nothing would flicker at frame rate. */
   animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
+  transition: none !important;
 }

@@ -29,6 +29,7 @@ import { setSound, soundOn } from '../sound';
 import { game } from '../store';
 import { createSettings } from '../components/settings';
 import { arriveAt, playCrossing, type Crossing } from '../components/crossing';
+import { createMotes } from '../components/motes';
 import type { View } from './level';
 
 interface Floor {
@@ -279,7 +280,7 @@ export function createHomeView(navigate: (hash: string) => void): View {
     pGoal,
     pSet,
     pStatus,
-    h('div', { class: 'climb-actions' }, pEnter, pReplay),
+    h('div', { class: 'climb-actions' }, pReplay, pEnter),
     pFloor,
   );
   // On a phone the panel keeps only a name and a button, so the crossings
@@ -311,41 +312,37 @@ export function createHomeView(navigate: (hash: string) => void): View {
     if (kind && kind !== 'DFA') replay(kind, pReplay);
   });
 
+  // A name over the stop being pointed at, as the map's own label.
+  const tipTitle = h('span', { class: 'climb-tip-t' });
+  const tipDetail = h('span', { class: 'climb-tip-d' });
+  const tip = h('div', { class: 'climb-tip', 'aria-hidden': 'true', hidden: true }, tipTitle, tipDetail);
+  map.append(tip);
+
+  const motes = createMotes();
+
   const el = h(
     'main',
-    { class: 'shell home-shell', 'data-testid': 'home-view' },
+    { class: 'home climb-scene', 'data-testid': 'home-view' },
+    motes.el,
     h(
       'header',
-      { class: 'home-head' },
-      h('h1', { class: 't-display' }, 'automata-k'),
-      h(
-        'p',
-        { class: 't-body muted' },
-        'Draw a machine. It is graded against the language, not against an answer key. ' +
-          `${LEVELS.length} levels, from finite automata up to Turing machines.`,
-      ),
+      { class: 'scene-head' },
       h(
         'div',
-        { class: 'home-meta' },
-        h('span', { class: 't-label' }, 'Solved'),
-        solvedCount,
-        settingsButton,
-        soundButton,
-        resetButton,
+        { class: 'scene-title' },
+        h('h1', { class: 'scene-name' }, 'automata-k'),
+        h('p', { class: 'scene-sub' }, 'the climb · ', solvedCount, ' solved'),
+        h(
+          'p',
+          { class: 'scene-tag' },
+          'Draw a machine. It is graded against the language, not against an answer key.',
+        ),
       ),
+      h('div', { class: 'home-meta' }, settingsButton, soundButton, resetButton),
     ),
-    h('section', { class: 'climb', 'aria-label': 'The climb' }, map, panel),
     replayRow,
-    h(
-      'footer',
-      { class: 'home-foot t-small faint' },
-      h(
-        'p',
-        {},
-        'Progress is kept on this device only. No accounts, no analytics, no network calls. ' +
-          'Set in Martian Mono, with JetBrains Mono for Greek and symbols, both under the SIL Open Font License.',
-      ),
-    ),
+    h('section', { class: 'climb', 'aria-label': 'The climb' }, map),
+    panel,
   );
 
   el.append(settings.sheet.el);
@@ -410,6 +407,22 @@ export function createHomeView(navigate: (hash: string) => void): View {
     pointed = level;
     for (const stop of stops.values()) toggle(stop.li, 'is-pointed', stop.level === level);
     paintPanel();
+    paintTip();
+  }
+
+  function paintTip(): void {
+    const at = pointed && current ? current.at.get(pointed.id) : undefined;
+    tip.hidden = !pointed || !at;
+    if (!pointed || !at || !current) return;
+    const state = stateOf(pointed, frontier());
+    setText(tipTitle, `L${pad(pointed.index)} · ${pointed.title}`);
+    setText(
+      tipDetail,
+      `${floorOf(pointed).name} · ${state === 'next' ? 'next' : state} · par ${pointed.par}`,
+    );
+    const x = Math.max(90, Math.min(current.width - 90, at.x));
+    tip.style.left = `${x}px`;
+    tip.style.top = `${at.y}px`;
   }
 
   /** The arrow keys follow the path, which is the order the levels are played in. */
@@ -689,6 +702,7 @@ export function createHomeView(navigate: (hash: string) => void): View {
     el,
     destroy() {
       unsubscribe();
+      motes.destroy();
       observer?.disconnect();
       offResize();
       crossing?.destroy();
