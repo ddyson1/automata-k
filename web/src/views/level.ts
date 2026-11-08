@@ -28,7 +28,8 @@
 import { runSuite } from '../../../src/engine/simulate';
 import { scoreOf } from '../../../src/engine/minimize';
 import type { SuiteResult } from '../../../src/engine/simulate';
-import { LEVEL_BY_ID } from '../../../src/engine/levels';
+import { LEVELS, LEVEL_BY_ID } from '../../../src/engine/levels';
+import { LESSONS, LESSON_BY_ID, type Lesson } from '../../../src/engine/lessons';
 import type { Level, Machine, StateId, TransitionId } from '../../../src/engine/types';
 import { CANVAS } from '../../../src/engine/types';
 import { TOUCH, h, on, setText } from '../dom';
@@ -49,6 +50,9 @@ import { buildRuleEditor } from '../components/ruleEditor';
 import { arriveAt, type Crossing } from '../components/crossing';
 import { createResults } from '../components/results';
 import { createMotes } from '../components/motes';
+import { createCoach, predictionLine, type Coach } from '../components/coach';
+import { createPredict } from '../components/predict';
+import { SCRIPTS, type LessonScript, type Prediction, type RunSummary } from '../lessons';
 
 export interface View {
   el: HTMLElement;
@@ -81,6 +85,19 @@ export function createLevelView(levelId: string, navigate: (hash: string) => voi
   return level ? levelView(level, navigate) : missingView(navigate);
 }
 
+/**
+ * A lesson is a level with a starting machine, a coach, and only the tools it
+ * is about. Everything else — the canvas, the suite, the trace — is the same
+ * screen, so what a lesson teaches is what the levels will ask for.
+ */
+export function createLessonView(lessonId: string, navigate: (hash: string) => void): View {
+  const lesson = LESSON_BY_ID[lessonId];
+  const script = lesson ? SCRIPTS[lesson.id] : undefined;
+  return lesson && script
+    ? levelView(lesson.level, navigate, { lesson, script })
+    : missingView(navigate);
+}
+
 function missingView(navigate: (hash: string) => void): View {
   const back = h('button', { class: 'action', type: 'button' }, 'Back to the climb');
   on(back, 'click', () => navigate('#/'));
@@ -90,8 +107,16 @@ function missingView(navigate: (hash: string) => void): View {
   };
 }
 
-function levelView(level: Level, navigate: (hash: string) => void): View {
+function levelView(
+  level: Level,
+  navigate: (hash: string) => void,
+  lessonMode?: { lesson: Lesson; script: LessonScript },
+): View {
   const levelId = level.id;
+  const lesson = lessonMode?.lesson ?? null;
+  const tools = lessonMode?.script.tools ?? null;
+  // A lesson's script starts from its machine, so every visit does too.
+  if (lesson) game.startLesson(levelId, lesson.start);
 
   let selectedState: StateId | null = null;
   let selectedEdge: string | null = null;
@@ -110,6 +135,18 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
   let running: { index: number; done: Set<string> } | null = null;
   /** How long a pulse lasts while the suite plays: one step's worth. */
   let pulseMs = 420;
+
+  // -- what a lesson's coach judges by ---------------------------------------
+  /** The string fed in from the coach, one symbol per press. */
+  let fed = '';
+  let feeds = 0;
+  const predictions: Prediction[] = [];
+  const runs: RunSummary[] = [];
+  /** A state the coach is pointing at. */
+  let beckon: StateId | null = null;
+  /** The string of a guess still playing, if one is. */
+  let guessing: string | null = null;
+  let coach: Coach | null = null;
 
   const machine = (): Machine => game.machineFor(levelId);
 
@@ -153,6 +190,14 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     },
     onAnchorMoved: () => placeStateBar(),
   });
+  if (tools) {
+    diagram.setAllowed({
+      place: tools.place,
+      connect: tools.connect,
+      editRules: tools.editRules,
+      rename: tools.rename,
+    });
+  }
 
   // -- the controls attached to a selected state ----------------------------
 
@@ -187,6 +232,15 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     renameButton,
     deleteButton,
   );
+  // A lesson shows only the controls it is about, and none at all if it is
+  // about none of them.
+  if (tools) {
+    startButton.hidden = !tools.start;
+    acceptButton.hidden = !tools.accepting;
+    renameButton.hidden = !tools.rename;
+    deleteButton.hidden = !tools.remove;
+  }
+  const stateTools = !tools || tools.start || tools.accepting || tools.rename || tools.remove;
 
   /** Keep the bar under the state it belongs to, and inside the stage. */
   function placeStateBar(): void {
@@ -331,9 +385,91 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     onClose: () => {
       traceActive = [];
       traceVia = [];
+      fed = '';
+      abandonGuess();
       render();
     },
   });
+
+  // -- predict, then run -------------------------------------------------------
+
+  const predict = createPredict({ onStopAsking: () => game.setPredict(false) });
+
+  /** A guess whose string will not now reach its end can be called again. */
+  function abandonGuess(): void {
+    if (guessing === null) return;
+    guessing = null;
+    coach?.cancel();
+  }
+
+  /** Play a string, as tapping its row always has. */
+  function watch(input: string): void {
+    abandonGuess();
+    trace.play(machine(), level, input, { autoplay: !reducedMotion() });
+    render();
+  }
+
+  /** Play a string with the verdict kept back until the end, then say how the guess went. */
+  function guess(input: string, said: boolean): void {
+    abandonGuess();
+    guessing = input;
+    const played = trace.play(machine(), level, input, {
+      autoplay: !reducedMotion(),
+      // Without motion there is nothing to watch, so the answer comes at once.
+      atEnd: reducedMotion(),
+      holdVerdict: true,
+      onEnd: (result) => {
+        guessing = null;
+        const frames = result.frames;
+        const stuck = frames.length > 1 && (frames.at(-1)?.active.length ?? 0) === 0;
+        const ids = (stuck ? frames.at(-2) : frames.at(-1))?.active ?? [];
+        const labels = ids.map((id) => machine().states.find((s) => s.id === id)?.label ?? id);
+        const p: Prediction = {
+          input,
+          said,
+          accepted: result.accepted,
+          stuck,
+          where: labels.join(', ') || 'nowhere',
+        };
+        predictions.push(p);
+        const { right, text } = predictionLine(p);
+        trace.remark(text, right ? 'pass' : 'fail');
+        feedCoach();
+      },
+    });
+    if (!played) abandonGuess();
+    render();
+  }
+
+  // -- feeding a lesson's machine, one symbol at a time -----------------------
+
+  function feed(symbol: string): void {
+    abandonGuess();
+    fed += symbol;
+    feeds++;
+    trace.play(machine(), level, fed, { atEnd: true });
+    render();
+  }
+
+  function clearFeed(): void {
+    abandonGuess();
+    fed = '';
+    trace.play(machine(), level, '', { atEnd: true });
+    render();
+  }
+
+  function feedCoach(): void {
+    coach?.update({ machine: machine(), fed, feeds, predictions, runs });
+  }
+
+  function finishLesson(): void {
+    if (!lesson) return;
+    game.completeLesson(lesson.id);
+    success();
+    chime();
+    flashTint('pass');
+    announce(`Lesson ${lesson.index} done. ${lesson.takeaway}`);
+  }
 
   // -- the console ------------------------------------------------------------
 
@@ -396,12 +532,21 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
   const brief = createBrief({
     onTrace: (input) => {
       stopShow();
-      // One string, slowly, the way the suite runs them all quickly.
-      trace.play(machine(), level, input, { autoplay: !reducedMotion() });
       // You asked a question about the machine, so get out of the machine's
       // way. On a phone the console closes back to its bar.
       togglePane(false);
-      render();
+      // Ask first what you expect, while the marks do not already say.
+      const known = gradedAs !== null && signature(machine()) === gradedAs;
+      if ((lesson !== null || game.predict) && !known) {
+        abandonGuess();
+        // The question goes where the string will play, so nothing else is there.
+        trace.stop();
+        predict.ask(input, (said) => (said === null ? watch(input) : guess(input, said)));
+        render();
+        return;
+      }
+      // One string, slowly, the way the suite runs them all quickly.
+      watch(input);
     },
     onRun: () => runChecks(),
     onNext: () => goNext(),
@@ -548,7 +693,37 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
   );
   on(back, 'click', () => navigate('#/'));
 
-  const hud = h('header', { class: 'hud', 'data-testid': 'hud' }, brief.kicker, brief.statement);
+  const nextLesson = lesson ? (LESSONS.find((l) => l.index === lesson.index + 1) ?? null) : null;
+  coach =
+    lesson && lessonMode
+      ? createCoach(lesson, lessonMode.script, nextLesson, {
+          onFeed: (symbol) => feed(symbol),
+          onClear: () => clearFeed(),
+          onPredict: (input, said) => {
+            predict.close();
+            guess(input, said);
+          },
+          onRun: () => runChecks(),
+          onOnward: () =>
+            navigate(nextLesson ? `#/lesson/${nextLesson.id}` : `#/level/${LEVELS[0]?.id ?? ''}`),
+          onClimb: () => navigate('#/'),
+          onDone: () => finishLesson(),
+          onStep: (step) => {
+            beckon = step?.point ?? null;
+            paintDiagram();
+          },
+        })
+      : null;
+  // A lesson's console is the suite and nothing else.
+  if (lesson) tabStrip.hidden = true;
+
+  const hud = h(
+    'header',
+    { class: 'hud', 'data-testid': 'hud' },
+    brief.kicker,
+    brief.statement,
+    coach?.el ?? null,
+  );
   const topbar = h('div', { class: 'topbar' }, corner, brief.meter, back);
 
   // -- sheets ---------------------------------------------------------------
@@ -653,6 +828,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     topbar,
     trace.memory,
     trace.el,
+    predict.el,
     canvasHint,
     stateBar,
     pane,
@@ -662,8 +838,8 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
   const el = h(
     'main',
     {
-      class: `level kind-${level.type.toLowerCase()}`,
-      'data-testid': 'level-view',
+      class: `level kind-${level.type.toLowerCase()}${lesson ? ' is-lesson' : ''}`,
+      'data-testid': lesson ? 'lesson-view' : 'level-view',
       'data-level': levelId,
     },
     liveRegion,
@@ -772,6 +948,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
           : traceVia.length > 0
             ? traceVia
             : selectedTransitions,
+      beckon,
     });
   }
 
@@ -794,6 +971,8 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
    */
   function runChecks({ quiet = false } = {}): void {
     stopShow();
+    abandonGuess();
+    predict.close();
     const current = machine();
     suiteResult = runSuite(current, level);
     gradedAs = signature(current);
@@ -848,6 +1027,25 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
 
   function settle(quiet: boolean): void {
     const current = machine();
+    // A lesson's run is something the coach is waiting for, not a level to
+    // mark solved: the coach says what comes next.
+    if (lesson) {
+      if (!quiet) {
+        runs.push({
+          solved: suiteResult.solved,
+          passed: suiteResult.passed,
+          total: suiteResult.total,
+          ...(suiteResult.error ? { error: suiteResult.error } : {}),
+        });
+        if (suiteResult.solved) flashTint('pass');
+        else if (suiteResult.error) warn();
+        else flashTint('fail');
+        announce(`${suiteResult.passed} of ${suiteResult.total} agree.`);
+      }
+      paintBrief();
+      feedCoach();
+      return;
+    }
     if (suiteResult.solved) {
       const again = game.isSolved(levelId);
       const score = scoreOf(current, level);
@@ -883,9 +1081,12 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
       stale: stale && !running,
       playing: trace.input,
       running,
-      solved: game.isSolved(levelId),
+      solved: lesson ? game.isLessonDone(levelId) : game.isSolved(levelId),
       best: game.progress.bestStates[levelId],
-      hasNext: game.nextLevel(levelId) !== undefined,
+      hasNext: !lesson && game.nextLevel(levelId) !== undefined,
+      ...(lesson
+        ? { kicker: `Lesson ${lesson.index} of ${LESSONS.length} · ${lesson.title}`, lesson: true }
+        : {}),
     });
   }
 
@@ -897,7 +1098,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
 
     paintDiagram();
 
-    stateBar.hidden = selectedState === null;
+    stateBar.hidden = selectedState === null || !stateTools;
     if (selectedState !== null) {
       const isStart = current.start === selectedState;
       const accepting = current.accepting.includes(selectedState);
@@ -914,7 +1115,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     emptyPrompt.hidden = current.states.length > 0;
     setText(
       canvasHint,
-      current.states.length === 0
+      current.states.length === 0 || lesson
         ? ''
         : selectedState !== null
           ? 'Drag the grip to draw an arrow · hold a state to rename it'
@@ -923,8 +1124,10 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
             : 'Double click to place a state · drag from a rim to draw an arrow',
     );
 
-    // Nothing but the readout belongs over the chamber's foot while a string plays.
+    // Nothing but the readout belongs over the chamber's foot while a string
+    // plays, and nothing but the question while one is about to.
     el.classList.toggle('is-tracing', trace.input !== null);
+    el.classList.toggle('is-asking', predict.isOpen);
 
     stale = gradedAs === null || signature(current) !== gradedAs;
 
@@ -938,12 +1141,18 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
     }
 
     paintBrief();
+    feedCoach();
   }
 
   const unsubscribe = game.subscribe(() => render());
 
   const offKeys = on(window as unknown as EventTarget, 'keydown', ((event: KeyboardEvent) => {
     if (ruleSheet.isOpen || results.isOpen) return;
+    if (event.key === 'Escape' && predict.isOpen) {
+      predict.close();
+      render();
+      return;
+    }
     const target = event.target as HTMLElement | null;
     if (target && (target.tagName === 'INPUT' || target.isContentEditable)) return;
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
@@ -969,7 +1178,7 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
       render();
       return;
     }
-    if (event.key === 'Backspace' && selectedState !== null) {
+    if (event.key === 'Backspace' && selectedState !== null && (!tools || tools.remove)) {
       event.preventDefault();
       game.deleteState(levelId, selectedState);
       selectedState = null;
@@ -997,20 +1206,22 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
 
   setTab('brief');
   render();
-  // Restore the verdict for whatever was in storage, without the fanfare.
-  runChecks({ quiet: true });
+  // Restore the verdict for whatever was in storage, without the fanfare. A
+  // lesson starts with its marks blank: running the suite is one of its steps.
+  if (!lesson) runChecks({ quiet: true });
   // Frame whatever was restored from storage, rather than trusting that the
   // authored coordinates suit this window.
   requestAnimationFrame(() => {
     if (machine().states.length > 0) diagram.fit();
   });
 
-  document.title = `${level.title} · automata-k`;
+  document.title = `${lesson ? lesson.title : level.title} · automata-k`;
 
   return {
     el,
     destroy() {
       crossing?.destroy();
+      predict.close();
       stopShow();
       results.close();
       unsubscribe();

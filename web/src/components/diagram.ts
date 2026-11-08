@@ -106,12 +106,30 @@ export interface DiagramState {
   activeStates: readonly StateId[];
   /** Transitions lit by a hovered or focused delta line. */
   activeTransitions: readonly TransitionId[];
+  /** A state a lesson is drawing the eye to. */
+  beckon?: StateId | null;
 }
 
 interface View {
   scale: number;
   tx: number;
   ty: number;
+}
+
+/**
+ * What a hand on the canvas may do. Everything, on a level. A lesson turns
+ * off whatever it is not about, so the one thing it asks for is the one thing
+ * that works.
+ */
+export interface DiagramAllowed {
+  /** Double click on empty canvas makes a state. */
+  place: boolean;
+  /** Dragging off a rim draws an arrow. */
+  connect: boolean;
+  /** Pressing a rule's chip opens it for editing. */
+  editRules: boolean;
+  /** Holding a state renames it. */
+  rename: boolean;
 }
 
 const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
@@ -135,6 +153,8 @@ export interface Diagram {
   pulse(ids: readonly TransitionId[], ms?: number): void;
   /** A ring off a state: just placed, or a string of the suite landing in it. */
   bloom(id: StateId, kind: 'place' | 'pass' | 'fail'): void;
+  /** Turn gestures on or off. See DiagramAllowed. */
+  setAllowed(allowed: Partial<DiagramAllowed>): void;
   destroy(): void;
 }
 
@@ -237,6 +257,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
   root.append(defs, grid, viewport);
 
   const el = h('div', { class: 'diagram-wrap' }, root);
+  let allowed: DiagramAllowed = { place: true, connect: true, editRules: true, rename: true };
 
   // -- live model -----------------------------------------------------------
 
@@ -584,6 +605,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
     if (model.activeStates.includes(id)) classes.push('is-active');
     if (hovered === id) classes.push('is-hover');
     if (dropTarget === id) classes.push('is-target');
+    if (model.beckon === id) classes.push('is-beckon');
     setAttr(node, 'class', classes.join(' '));
   }
 
@@ -985,7 +1007,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
 
       const p = toCanvas(e.clientX, e.clientY);
       const chip = (e.target as Element).closest?.('.chip');
-      if (chip) {
+      if (chip && allowed.editRules) {
         const ids = chip.getAttribute('data-edge');
         const edge = edges.find((x) => x.key === ids);
         if (edge) callbacks.onSelectEdge(edge.transitionIds);
@@ -994,7 +1016,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
 
       // The grip on the selected state is a rim drag with a visible target.
       const grip = (e.target as Element).getAttribute?.('data-grip');
-      if (grip) {
+      if (grip && allowed.connect) {
         rimDrag = { from: grip, to: p };
         drawPendingArrow();
         return;
@@ -1010,7 +1032,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
       const distance = Math.hypot(p.x - at.x, p.y - at.y);
 
       // Outside the circle but inside the halo: pull a new arrow.
-      if (distance > STATE_RADIUS) {
+      if (distance > STATE_RADIUS && allowed.connect) {
         rimDrag = { from: hit, to: p };
         drawPendingArrow();
         return;
@@ -1022,7 +1044,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
         grabDy: p.y - at.y,
         moved: false,
         longPress: setTimeout(() => {
-          if (!drag || drag.moved) return;
+          if (!drag || drag.moved || !allowed.rename) return;
           drag = null;
           tap();
           callbacks.onRename(hit);
@@ -1199,7 +1221,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
     on(root as unknown as HTMLElement, 'dblclick', (event) => {
       const e = event as MouseEvent;
       const target = e.target as Element;
-      if (target.closest?.('.chip') || target.closest?.('.state')) return;
+      if (target.closest?.('.chip') || target.closest?.('.state') || !allowed.place) return;
       const p = toCanvas(e.clientX, e.clientY);
       callbacks.onPlaceState(p.x, p.y);
       tap();
@@ -1215,7 +1237,7 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
         return;
       }
       const chip = (e.target as Element).closest?.('.chip');
-      if ((e.key === 'Enter' || e.key === ' ') && chip) {
+      if ((e.key === 'Enter' || e.key === ' ') && chip && allowed.editRules) {
         e.preventDefault();
         const edge = edges.find((x) => x.key === chip.getAttribute('data-edge'));
         if (edge) callbacks.onSelectEdge(edge.transitionIds);
@@ -1263,6 +1285,12 @@ export function createDiagram(callbacks: DiagramCallbacks): Diagram {
     },
     pulse,
     bloom,
+    setAllowed(next) {
+      allowed = { ...allowed, ...next };
+      // The grips say an arrow can be pulled from here; where it cannot, they
+      // would be saying something untrue.
+      el.classList.toggle('no-connect', !allowed.connect);
+    },
     screenPointOf(id) {
       const at = positions[id];
       if (!at) return null;

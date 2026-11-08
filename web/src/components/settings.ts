@@ -1,8 +1,9 @@
 /**
- * Settings: how the app looks and how much it moves.
+ * Settings: how the app looks, how much it moves, and whether it asks.
  *
- * Two choices, each with a "follow the system" option that is the default,
- * so a viewer who never opens this gets what their device already asks for.
+ * Theme and motion each have a "follow the system" option that is the
+ * default, so a viewer who never opens this gets what their device already
+ * asks for. The third is whether tapping a string asks for a guess first.
  * Both write through the game store, which owns persistence; main.ts turns
  * them into attributes on <html> that theme.css and haptics.ts read.
  */
@@ -28,6 +29,11 @@ const MOTIONS: Option<MotionChoice>[] = [
   { value: 'system', label: 'System' },
   { value: 'reduce', label: 'Reduce' },
   { value: 'full', label: 'Full' },
+];
+
+const PREDICTS: Option<'ask' | 'play'>[] = [
+  { value: 'ask', label: 'Ask first' },
+  { value: 'play', label: 'Just play' },
 ];
 
 function choiceGroup<T extends string>(
@@ -81,6 +87,14 @@ export function createSettings(): { sheet: Sheet; open: () => void } {
     () => game.motion,
     (value) => game.setMotion(value),
   );
+  const predict = choiceGroup(
+    'predict',
+    'Before a string plays',
+    'Ask what you expect the machine to do before you watch it, until the suite has run.',
+    PREDICTS,
+    () => (game.predict ? 'ask' : 'play'),
+    (value) => game.setPredict(value === 'ask'),
+  );
   // What used to be the home page's footer: where progress lives, and the type.
   const about = h(
     'p',
@@ -88,13 +102,14 @@ export function createSettings(): { sheet: Sheet; open: () => void } {
     'Progress is kept on this device only. No accounts, no analytics, no network calls. ' +
       'Set in Martian Mono, with JetBrains Mono for Greek and symbols, both under the SIL Open Font License.',
   );
-  sheet.body.append(theme.el, motion.el, about);
+  sheet.body.append(theme.el, motion.el, predict.el, about);
 
   return {
     sheet,
     open() {
       theme.sync();
       motion.sync();
+      predict.sync();
       sheet.open('Settings');
     },
   };

@@ -54,15 +54,34 @@ export interface SuiteShow {
   onDone: () => void;
 }
 
+export interface PlayOptions {
+  autoplay?: boolean;
+  /**
+   * Open on the last step rather than the first, as if the string had just
+   * been read to its end. Feeding a machine one symbol at a time is this: the
+   * step shown is the one the newest symbol took.
+   */
+  atEnd?: boolean;
+  /**
+   * Keep the verdict back until the last step is on screen. A guess made
+   * before watching is only a guess if the answer is not already showing.
+   */
+  holdVerdict?: boolean;
+  /** The last step has been shown, by playing or by stepping. Called once. */
+  onEnd?: (result: RunResult) => void;
+}
+
 export interface TracePlayer {
   /** The readout itself: input, words, transport. */
   el: HTMLElement;
   /** The stack or the tape, which the level puts on the stage. */
   memory: HTMLElement;
   /** Start tracing a string. Returns false if the machine could not be run. */
-  play(machine: Machine, level: Level, input: string, options?: { autoplay?: boolean }): boolean;
+  play(machine: Machine, level: Level, input: string, options?: PlayOptions): boolean;
   /** Send every string through the machine, one after another. */
   playAll(machine: Machine, level: Level, inputs: readonly string[], show: SuiteShow): void;
+  /** A line under the readout about the run just shown, such as how a guess went. */
+  remark(text: string, tone: 'pass' | 'fail'): void;
   stop(): void;
   readonly input: string | null;
   /** Whether the suite is being played. */
@@ -77,6 +96,7 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
   const tape = h('div', { class: 'trace-input', 'data-testid': 'trace-input' });
   const memory = h('div', { class: 'trace-memory', 'data-testid': 'trace-memory', hidden: true });
   const caption = h('p', { class: 'trace-caption', 'data-testid': 'trace-caption' });
+  const remarkLine = h('p', { class: 'trace-remark', 'data-testid': 'trace-remark', hidden: true });
 
   const back = h(
     'button',
@@ -105,6 +125,7 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
     { class: 'trace readout', 'data-testid': 'trace', hidden: true, 'aria-label': 'Trace' },
     h('div', { class: 'readout-input' }, inputLabel, tape),
     caption,
+    remarkLine,
     h('div', { class: 'transport-row' }, back, playPause, forward, counter, verdict, close),
   );
 
@@ -119,10 +140,16 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
   let traced: { machine: Machine; kind: MachineKind; rules: Map<string, Transition> } | null = null;
   /** The suite being played, if it is. */
   let show: { timers: ReturnType<typeof setTimeout>[] } | null = null;
+  /** Whether the verdict is being kept back, and who is waiting for the end. */
+  let ending: { hold: boolean; onEnd?: (result: RunResult) => void; done: boolean } | null = null;
 
   /** What the step did, in words: the rule that fired, or where the machine now is. */
   function describe(frame: Frame | undefined, where: string): string {
-    if (frame?.label) return `${frame.label} In ${where}.`;
+    if (frame?.label) {
+      const said = `${frame.label.charAt(0).toUpperCase()}${frame.label.slice(1)}`;
+      // Nowhere to be is the end of the run, and worth saying as such.
+      return frame.active.length === 0 ? `${said}, so the run stops.` : `${said}. In ${where}.`;
+    }
     const fired = (frame?.via ?? [])
       .map((id) => traced?.rules.get(id))
       .filter((t): t is Transition => t !== undefined);
@@ -252,6 +279,12 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
     setText(counter, `${Math.min(current + 1, result.frames.length)}/${result.frames.length}`);
     back.toggleAttribute('disabled', current === 0);
     forward.toggleAttribute('disabled', current >= result.frames.length - 1);
+
+    if (ending && !ending.done && current >= result.frames.length - 1) {
+      ending.done = true;
+      if (ending.hold) setVerdict();
+      ending.onEnd?.(result);
+    }
   }
 
   function setVerdict(): void {
@@ -297,6 +330,8 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
   });
   on(close, 'click', () => {
     stopTimer();
+    ending = null;
+    remarkLine.hidden = true;
     el.hidden = true;
     memory.hidden = true;
     input = null;
@@ -317,9 +352,16 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
     play(machine, level, value, options = {}) {
       stopShow();
       stopTimer();
+      remarkLine.hidden = true;
       begin(machine, level);
       const outcome = run(machine, level, value);
+      ending = {
+        hold: Boolean(options.holdVerdict),
+        done: false,
+        ...(options.onEnd ? { onEnd: options.onEnd } : {}),
+      };
       if (outcome.error) {
+        ending = null;
         input = value;
         result = outcome;
         el.hidden = false;
@@ -335,18 +377,28 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
       }
       input = value;
       result = outcome;
-      current = 0;
-      shownStep = -1;
+      const last = Math.max(0, outcome.frames.length - 1);
+      current = options.atEnd ? last : 0;
+      // One step short of where it opens, so the step it opens on reads as a
+      // step taken and the arrow that took it lights.
+      shownStep = current - 1;
       el.hidden = false;
-      setVerdict();
+      if (options.holdVerdict) {
+        setText(verdict, '');
+        verdict.className = 't-mono-sm verdict';
+      } else setVerdict();
       renderStep();
-      if (outcome.note) setText(caption, `${caption.textContent} ${outcome.note}`);
-      if (options.autoplay) startTimer();
+      if (outcome.note && !options.holdVerdict) {
+        setText(caption, `${caption.textContent} ${outcome.note}`);
+      }
+      if (options.autoplay && current < last) startTimer();
       return true;
     },
     playAll(machine, level, inputs, options) {
       stopShow();
       stopTimer();
+      remarkLine.hidden = true;
+      ending = null;
       begin(machine, level);
       const mine = { timers: [] as ReturnType<typeof setTimeout>[] };
       show = mine;
@@ -399,9 +451,16 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
       };
       row(0);
     },
+    remark(text, tone) {
+      setText(remarkLine, text);
+      remarkLine.className = `trace-remark ${tone}`;
+      remarkLine.hidden = false;
+    },
     stop() {
       stopShow();
       stopTimer();
+      ending = null;
+      remarkLine.hidden = true;
       el.hidden = true;
       memory.hidden = true;
       input = null;

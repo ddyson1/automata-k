@@ -15,7 +15,8 @@
  *
  * Progress is a different thing and still persists: which levels are solved,
  * the smallest state count each was solved with, whether the answer was
- * revealed, the theme, the motion preference and the sound.
+ * revealed, which lessons are finished, the theme, the motion preference, the
+ * sound and whether to predict before watching.
  */
 
 import { layoutMachine } from '../../src/engine/layout';
@@ -34,6 +35,7 @@ import { storage } from './storage';
 const PROGRESS_KEY = 'automata-k.progress.v1';
 const THEME_KEY = 'automata-k.theme.v1';
 const MOTION_KEY = 'automata-k.motion.v1';
+const PREDICT_KEY = 'automata-k.predict.v1';
 /** Drafts are no longer saved. Anyone who has some from an older build gets them cleared. */
 const STALE_DRAFTS_KEY = 'automata-k.drafts.v1';
 const HISTORY_LIMIT = 60;
@@ -51,6 +53,8 @@ export interface Progress {
    * starts, so there is nothing to cross onto.
    */
   crossed: MachineKind[];
+  /** Lessons on the Learn floor that have been finished. */
+  lessons: string[];
 }
 
 interface Draft {
@@ -93,6 +97,11 @@ class Game {
   progress: Progress;
   theme: ThemeChoice;
   motion: MotionChoice;
+  /**
+   * Whether tapping a string to watch it asks first what you expect. A guess
+   * made before watching is what turns watching into checking.
+   */
+  predict: boolean;
 
   private drafts = new Map<string, Draft>();
   private listeners = new Set<Listener>();
@@ -104,11 +113,13 @@ class Game {
       shownSolution: [],
       bestStates: {},
       crossed: [],
+      lessons: [],
     });
     this.progress.solved ??= [];
     this.progress.shownSolution ??= [];
     this.progress.bestStates ??= {};
     this.progress.crossed ??= [];
+    this.progress.lessons ??= [];
     // A best below par on a DFA level was recorded when only drawn circles
     // counted. Par is the minimal complete DFA, so the only way under it was a
     // dead state left implicit, which now counts: that best is exactly par.
@@ -120,6 +131,7 @@ class Game {
     }
     this.theme = storage.read<ThemeChoice>(THEME_KEY, 'system');
     this.motion = storage.read<MotionChoice>(MOTION_KEY, 'system');
+    this.predict = storage.read<boolean>(PREDICT_KEY, true);
 
     // Nothing is restored onto a canvas. Sweeping the old key means a player
     // carrying drafts from an earlier build is not left holding bytes that
@@ -157,6 +169,7 @@ class Game {
     storage.write(PROGRESS_KEY, this.progress);
     storage.write(THEME_KEY, this.theme);
     storage.write(MOTION_KEY, this.motion);
+    storage.write(PREDICT_KEY, this.predict);
   }
 
   // -- reads ----------------------------------------------------------------
@@ -317,6 +330,27 @@ class Game {
     this.edit(levelId, (m) => Object.assign(m, cloneMachine(machine)));
   }
 
+  /**
+   * Put a lesson's starting machine on its canvas, with nothing to undo. A
+   * lesson's script starts from that machine every time it is opened, so the
+   * canvas does too.
+   */
+  startLesson(lessonId: string, machine: Machine): void {
+    this.drafts.set(lessonId, { machine: cloneMachine(machine), past: [], future: [] });
+    this.emit();
+  }
+
+  isLessonDone(lessonId: string): boolean {
+    return this.progress.lessons.includes(lessonId);
+  }
+
+  completeLesson(lessonId: string): void {
+    if (this.isLessonDone(lessonId)) return;
+    this.progress.lessons = [...this.progress.lessons, lessonId];
+    this.schedulePersist();
+    this.emit();
+  }
+
   undo(levelId: string): void {
     const draft = this.drafts.get(levelId);
     if (!draft || draft.past.length === 0) return;
@@ -377,8 +411,14 @@ class Game {
     this.emit();
   }
 
+  setPredict(on: boolean): void {
+    this.predict = on;
+    this.schedulePersist();
+    this.emit();
+  }
+
   resetProgress(): void {
-    this.progress = { solved: [], shownSolution: [], bestStates: {}, crossed: [] };
+    this.progress = { solved: [], shownSolution: [], bestStates: {}, crossed: [], lessons: [] };
     this.drafts.clear();
     this.schedulePersist();
     this.emit();

@@ -195,6 +195,8 @@ test('every control shows its focus and is a full tap target', async ({ page }) 
   }
   await page.getByTestId('tab-brief').click();
   await page.locator('[data-input="aabb"]').click();
+  // Before the suite has run, a tapped string asks for a guess first.
+  await page.getByTestId('predict-skip').click();
   await expect(page.getByTestId('trace')).toBeVisible();
   await page.keyboard.press('Tab');
   await expectReachable(page, '.transport:not(:disabled)');

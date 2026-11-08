@@ -31,6 +31,9 @@ describe('engine purity', () => {
       // and nothing else, so it is pure and it belongs here, but it is not
       // minimisation and it does not belong in minimize.ts alongside it.
       'layout.ts',
+      // Not in section 3's list either. The lessons before level 1 are levels
+      // with a starting machine: data, graded by the same simulator.
+      'lessons.ts',
       'levels.ts',
       'minimize.ts',
       'regex.ts',

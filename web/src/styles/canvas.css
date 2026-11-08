@@ -515,6 +515,13 @@
   pointer-events: auto;
 }
 
+/* Where an arrow cannot be drawn, nothing offers to draw one. */
+.no-connect .state.is-hover .state-grip,
+.no-connect .state.is-selected .state-grip {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .state.is-target .state-ring {
   stroke: var(--energy);
   stroke-width: 2.4;
@@ -534,6 +541,23 @@
   fill: var(--core-fill, var(--energy));
   stroke: var(--energy);
   stroke-width: 2.6;
+}
+
+/* A lesson pointing at a state: its rim in energy, breathing. */
+.state.is-beckon .state-ring {
+  stroke: var(--energy);
+  stroke-width: 2.6;
+  animation: beckon 1.6s ease-in-out infinite;
+}
+
+@keyframes beckon {
+  0%,
+  100% {
+    stroke-opacity: 1;
+  }
+  50% {
+    stroke-opacity: 0.35;
+  }
 }
 
 .state.is-active .state-label {

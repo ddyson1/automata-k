@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { LEVELS } from '../src/engine/levels';
+import { LESSONS } from '../src/engine/lessons';
 
 /**
  * The climb, which is the home screen, and the crossings between its floors.
@@ -89,7 +90,11 @@ test('one stop takes Tab, and the arrow keys walk the path', async ({ page }) =>
   await page.keyboard.press('ArrowLeft');
   await expect(stop(page, 3)).toBeFocused();
   await expect(page.getByTestId('climb-panel')).toHaveAttribute('data-state', 'solved');
+  // The path starts on the Learn floor, and its last lesson leads to level 1.
   await page.keyboard.press('Home');
+  const firstLesson = page.locator('[data-testid="lesson-row"][data-lesson="lesson-reading"]');
+  await expect(firstLesson).toBeFocused();
+  for (let i = 0; i < LESSONS.length; i++) await page.keyboard.press('ArrowRight');
   await expect(stop(page, 1)).toBeFocused();
   await page.keyboard.press('End');
   await expect(stop(page, 4)).toBeFocused();

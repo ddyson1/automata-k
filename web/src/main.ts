@@ -12,7 +12,7 @@ import './app.css';
 
 import { game } from './store';
 import { createHomeView } from './views/home';
-import { createLevelView } from './views/level';
+import { createLessonView, createLevelView } from './views/level';
 import type { View } from './views/level';
 
 const root = document.getElementById('root');
@@ -36,9 +36,14 @@ function navigate(hash: string): void {
 function mount(): void {
   const hash = window.location.hash || '#/';
   const level = /^#\/level\/([A-Za-z0-9-]+)$/.exec(hash);
+  const lesson = /^#\/lesson\/([A-Za-z0-9-]+)$/.exec(hash);
 
   current?.destroy();
-  const next = level ? createLevelView(level[1] as string, navigate) : createHomeView(navigate);
+  const next = level
+    ? createLevelView(level[1] as string, navigate)
+    : lesson
+      ? createLessonView(lesson[1] as string, navigate)
+      : createHomeView(navigate);
   current = next;
 
   root!.textContent = '';
