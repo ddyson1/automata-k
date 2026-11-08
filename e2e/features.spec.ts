@@ -427,6 +427,8 @@ test('a passing run makes a sound, unless it is switched off', async ({ page }) 
 test('tidy spreads the states out instead of piling them up', async ({ page }) => {
   await reveal(page, 'dfa-contains-01');
   await page.getByTestId('tidy').click();
+  // The states travel to their places; measure once they have arrived.
+  await expect(page.getByTestId('diagram')).not.toHaveClass(/is-gliding/);
 
   const centres = await page.locator('.state').evaluateAll((nodes) =>
     nodes.map((n) => {
@@ -608,4 +610,57 @@ test('on a touch screen a tool says its name after it is pressed', async ({ page
   // And it clears itself rather than staying up over the machine.
   await expect(page.getByTestId('tidy')).not.toHaveClass(/is-saying/, { timeout: 4000 });
   await expect(page.locator('.stage')).not.toHaveClass(/is-tipping/);
+});
+
+/**
+ * A trace step is a rule being used. The rule's chip lights, and a pulse runs
+ * along its arrow into the state it lights, unless motion is unwelcome.
+ */
+test('a trace step lights the rule it used, and runs along its arrow', async ({ page }) => {
+  await reveal(page, 'dfa-contains-01');
+  await openPane(page);
+  await page.locator('[data-input="001"]').click();
+  await expect(page.getByTestId('trace-counter')).toHaveText(/^1\/4$/);
+  await expect(page.locator('.chip.is-lit')).toHaveCount(0);
+
+  // How many pulses one step starts. An earlier one may still be running.
+  const pulses = (testId = 'trace-forward'): Promise<number> =>
+    page.evaluate((id) => {
+      const before = document.querySelectorAll('.edge-pulse').length;
+      (document.querySelector(`[data-testid="${id}"]`) as HTMLElement).click();
+      return document.querySelectorAll('.edge-pulse').length - before;
+    }, testId);
+  expect(await pulses()).toBe(1);
+  await expect(page.locator('.chip.is-lit')).toHaveCount(1);
+  await expect(page.locator('.chip.is-lit')).toHaveAttribute('aria-label', /go to q1/);
+  expect(await pulses()).toBe(1);
+  await expect(page.locator('.chip.is-lit')).toHaveAttribute('aria-label', /stay in q1/);
+
+  // Stepping back shows where the trace was, without replaying the rule.
+  expect(await pulses('trace-back')).toBe(0);
+  await expect(page.locator('.chip.is-lit')).toHaveAttribute('aria-label', /go to q1/);
+
+  // With reduced motion the chip still lights, and nothing travels.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  expect(await pulses()).toBe(0);
+  await expect(page.locator('.chip.is-lit')).toHaveCount(1);
+});
+
+test('tidy glides the states into place, unless motion is unwelcome', async ({ page }) => {
+  await reveal(page, 'dfa-contains-01');
+  const tidyNow = (): Promise<boolean> =>
+    page.evaluate(async () => {
+      (document.querySelector('[data-testid="tidy"]') as HTMLElement).click();
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      return document.querySelector('[data-testid="diagram"]')?.classList.contains('is-gliding') ?? false;
+    });
+  expect(await tidyNow()).toBe(true);
+  await expect(page.getByTestId('diagram')).not.toHaveClass(/is-gliding/);
+
+  // Undo puts the old layout back, in one move: only tidy glides.
+  await page.getByTestId('undo').click();
+  await expect(page.getByTestId('diagram')).not.toHaveClass(/is-gliding/);
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  expect(await tidyNow()).toBe(false);
 });

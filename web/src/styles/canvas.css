@@ -253,6 +253,15 @@
   stroke: none;
 }
 
+/* A rule the trace just used, running along its arrow. */
+.edge-pulse {
+  stroke: var(--energy);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  pointer-events: none;
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--energy) 60%, transparent));
+}
+
 .pending {
   stroke: var(--ink);
   stroke-width: 1.6;
@@ -269,6 +278,29 @@
 
 .start-head {
   fill: var(--ink);
+}
+
+/*
+ * Depth. A state is a thing on the surface: on Mist it casts a shadow, on Dusk
+ * it gives off a little light, and while the trace is in it, it glows with
+ * energy either way.
+ */
+.diagram {
+  --state-depth: drop-shadow(0 1.5px 1.2px rgb(23 32 43 / 16%))
+    drop-shadow(0 4px 6px rgb(23 32 43 / 7%));
+  --state-glow: drop-shadow(0 0 5px color-mix(in srgb, var(--energy) 45%, transparent));
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .diagram {
+    --state-depth: drop-shadow(0 0 3px rgb(238 242 248 / 12%));
+    --state-glow: drop-shadow(0 0 9px color-mix(in srgb, var(--energy) 70%, transparent));
+  }
+}
+
+:root[data-theme='dark'] .diagram {
+  --state-depth: drop-shadow(0 0 3px rgb(238 242 248 / 12%));
+  --state-glow: drop-shadow(0 0 9px color-mix(in srgb, var(--energy) 70%, transparent));
 }
 
 .state {
@@ -289,6 +321,24 @@
   fill: var(--surface);
   stroke: var(--ink);
   stroke-width: 1.6;
+  filter: var(--state-depth);
+}
+
+.state-halo {
+  fill: var(--energy);
+  opacity: 0;
+  pointer-events: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(0.7);
+  transition:
+    opacity 0.22s ease,
+    transform 0.32s cubic-bezier(0.3, 0.7, 0.3, 1.25);
+}
+
+.state.is-active .state-halo {
+  opacity: 0.2;
+  transform: none;
 }
 
 .state-accept {
@@ -336,6 +386,7 @@
 .state.is-active .state-ring {
   fill: var(--energy);
   stroke: var(--energy);
+  filter: var(--state-glow);
 }
 
 .state.is-active .state-label {

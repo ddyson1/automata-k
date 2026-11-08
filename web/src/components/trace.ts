@@ -20,12 +20,18 @@ import type {
   RunResult,
   StateId,
   Transition,
+  TransitionId,
 } from '../../../src/engine/types';
 import { fill, h, on, setText } from '../dom';
 
 export interface TraceCallbacks {
-  /** The active state set changed, so the diagram can light up. */
-  onActive: (states: readonly StateId[]) => void;
+  /**
+   * The active state set changed, so the diagram can light up. `via` is the
+   * rule or rules that produced this step, and `stepped` is true when it is
+   * one step on from the step shown before, so the diagram can show the rule
+   * being used rather than only its result.
+   */
+  onActive: (states: readonly StateId[], via?: readonly TransitionId[], stepped?: boolean) => void;
   onClose: () => void;
 }
 
@@ -80,6 +86,8 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
 
   let result: RunResult | null = null;
   let current = 0;
+  /** The step last shown, so a step forward can be told from a jump. */
+  let shownStep = -1;
   let input: string | null = null;
   let timer: ReturnType<typeof setInterval> | null = null;
   let machineLabels = new Map<StateId, string>();
@@ -173,7 +181,9 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
     renderMemory(frame);
 
     const active = frame?.active ?? [];
-    callbacks.onActive(active);
+    const stepped = current === shownStep + 1;
+    shownStep = current;
+    callbacks.onActive(active, frame?.via ?? [], stepped);
 
     const names = active.map((id) => machineLabels.get(id) ?? id);
     const where = names.length === 0 ? 'nowhere' : names.join(', ');
@@ -260,6 +270,7 @@ export function createTrace(callbacks: TraceCallbacks): TracePlayer {
       input = value;
       result = outcome;
       current = 0;
+      shownStep = -1;
       el.hidden = false;
       setVerdict();
       renderStep();

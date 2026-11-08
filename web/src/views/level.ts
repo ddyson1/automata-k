@@ -91,6 +91,8 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
   let selectedTransitions: TransitionId[] = [];
   let highlighted: readonly TransitionId[] = [];
   let traceActive: readonly StateId[] = [];
+  /** The rules the trace used to reach the step it is showing. */
+  let traceVia: readonly TransitionId[] = [];
   let crossing: Crossing | null = null;
   let suiteResult: SuiteResult = runSuite(game.machineFor(levelId), level);
   /** The signature the current `suiteResult` was computed from. */
@@ -248,6 +250,8 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
   const undoButton = cornerButton('Undo', 'undo', undoIcon(), () => game.undo(levelId));
   const redoButton = cornerButton('Redo', 'redo', redoIcon(), () => game.redo(levelId));
   const tidyButton = cornerButton('Arrange the diagram', 'tidy', tidyIcon(), () => {
+    // Each state travels to its new place, so the eye can follow where it went.
+    diagram.glide();
     game.tidy(levelId);
     requestAnimationFrame(() => diagram.fit());
   });
@@ -291,12 +295,16 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
   // -- trace ----------------------------------------------------------------
 
   const trace = createTrace({
-    onActive: (states) => {
+    onActive: (states, via = [], stepped = false) => {
       traceActive = states;
+      traceVia = via;
       paintDiagram();
+      // The rule just used runs along its arrow into the state it lit.
+      if (stepped) diagram.pulse(via);
     },
     onClose: () => {
       traceActive = [];
+      traceVia = [];
       render();
     },
   });
@@ -730,7 +738,12 @@ function levelView(level: Level, navigate: (hash: string) => void): View {
       selectedState,
       selectedEdge,
       activeStates: traceActive,
-      activeTransitions: highlighted.length > 0 ? highlighted : selectedTransitions,
+      activeTransitions:
+        highlighted.length > 0
+          ? highlighted
+          : traceVia.length > 0
+            ? traceVia
+            : selectedTransitions,
     });
   }
 
