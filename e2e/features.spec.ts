@@ -160,9 +160,11 @@ test('a machine that is not a DFA is reported rather than simulated', async ({ p
   await place(page, 0.28, 0.32);
   await place(page, 0.72, 0.32);
 
-  // Two arrows out of q0 on the same symbol, which no DFA is allowed.
+  // Two arrows out of q0 on the same symbol, which no DFA is allowed. A new
+  // arrow offers a symbol its state has no arrow for yet, so 0 is picked by hand.
   for (const target of ['q0', 'q1']) {
     await drawArrow(page, 'q0', target);
+    await page.locator('[data-testid="field-read"] [data-value="0"]').click();
     await page.getByTestId('rule-commit').click();
   }
 

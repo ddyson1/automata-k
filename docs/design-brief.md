@@ -208,9 +208,13 @@ This is the actual ask. A general redesign is not wanted; these are.
    little off their arrow, because there is no open ground left; the answer
    there is probably layout, not labels.
 
-5. **Teaching the interaction.** Level 1 hands you an empty canvas and a
-   sentence. Nothing teaches double-tap-to-place or drag-from-a-rim except a
-   line of grey text. What is the first ninety seconds?
+5. **Teaching the interaction.** Three lessons now come before level 1, on a
+   Learn floor under the finite one: watch a machine read, choose where it says
+   yes, draw the arrow it is missing. A coach under the question says one thing
+   at a time and moves on when it has happened, and each lesson leaves on only
+   the tools it is about. Still open: lessons 4 to 6 (states as memory, placing
+   your own states, dead states), and whether the first ninety seconds should
+   open straight into lesson 1 rather than the climb pointing at it.
 
 6. **The shape of forty two levels.** Fourteen DFA, ten NFA, twelve PDA, six TM,
    unlocking in order. The list says which are solved and in how many states

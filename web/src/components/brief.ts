@@ -46,6 +46,10 @@ export interface BriefState {
   /** Smallest state count this level has been solved with. */
   best: number | undefined;
   hasNext: boolean;
+  /** Said in the corner instead of the level's number and class: a lesson's place. */
+  kicker?: string;
+  /** A lesson: finished rather than solved, and not measured against par. */
+  lesson?: boolean;
 }
 
 export interface Brief {
@@ -198,8 +202,11 @@ export function createBrief(callbacks: BriefCallbacks): Brief {
       const { level, result, running } = state;
       buildRows(level);
 
-      setText(kickerText, `L${pad(level.index)} · ${level.title} · ${KIND[level.type]}`);
-      setText(solvedTag, state.solved ? ' · solved' : '');
+      setText(
+        kickerText,
+        state.kicker ?? `L${pad(level.index)} · ${level.title} · ${KIND[level.type]}`,
+      );
+      setText(solvedTag, state.solved ? (state.lesson ? ' · done' : ' · solved') : '');
       setNotation(question, level.goal);
       setNotation(language, level.setBuilder);
       const reading = NOTATION_KEY[level.type];
@@ -265,9 +272,11 @@ export function createBrief(callbacks: BriefCallbacks): Brief {
         setText(score, `All ${result.total} agree`);
         setText(
           why,
-          `${s.drawn} ${s.drawn === 1 ? 'state' : 'states'}` +
-            (s.impliedDead ? ' and the dead state they imply' : '') +
-            `, par ${level.par}.`,
+          state.lesson
+            ? 'The machine accepts exactly what the language asks for.'
+            : `${s.drawn} ${s.drawn === 1 ? 'state' : 'states'}` +
+                (s.impliedDead ? ' and the dead state they imply' : '') +
+                `, par ${level.par}.`,
         );
       } else {
         setText(score, `${result.passed} of ${result.total} agree`);

@@ -19,9 +19,15 @@
  * A panel beside the map says what the pointed-at stop is and enters it. With
  * nothing pointed at, it shows the next level. On a phone it is pinned under
  * the thumb and keeps only the name and the button.
+ *
+ * Under the finite floor is the Learn floor: the lessons that teach what a
+ * finite automaton is, starting under level 1. A player who has solved
+ * nothing yet is pointed at the first lesson not done; level 1 stays open
+ * beside it for anyone who already knows.
  */
 
 import { LEVELS, isUnlocked } from '../../../src/engine/levels';
+import { LESSONS, type Lesson } from '../../../src/engine/lessons';
 import type { Level, MachineKind } from '../../../src/engine/types';
 import { fill, h, on, setText, svg, toggle } from '../dom';
 import { notation } from '../notation';
@@ -85,6 +91,12 @@ const TAPE_BAND = 24;
 
 type StopState = 'solved' | 'next' | 'open' | 'locked';
 
+/** A stop on the path: a lesson on the Learn floor, or a level of the climb. */
+type Item = { kind: 'lesson'; lesson: Lesson } | { kind: 'level'; level: Level };
+const itemId = (item: Item): string => (item.kind === 'lesson' ? item.lesson.id : item.level.id);
+const asLevel = (level: Level): Item => ({ kind: 'level', level });
+const asLesson = (lesson: Lesson): Item => ({ kind: 'lesson', lesson });
+
 interface Point {
   x: number;
   y: number;
@@ -102,6 +114,8 @@ interface Plan {
   height: number;
   narrow: boolean;
   at: Map<string, Point>;
+  /** The Learn floor, under the finite one. */
+  learn: { top: number; bottom: number };
   floors: FloorBox[];
   stack: { x: number; top: number; bottom: number };
   tape: { left: number; right: number; y: number };
@@ -129,6 +143,19 @@ function plan(width: number): Plan {
   // Measured up from the bottom edge, then flipped.
   let rise = 6;
   let dir = 1;
+
+  // The Learn floor: one row, read left to right like a first page, starting
+  // under level 1, so the path from the last lesson turns back up to it.
+  const finite = ORDER.filter((l) => l.type === 'DFA');
+  const finiteRows = Math.max(1, Math.ceil(finite.length / perRow));
+  const firstRow = Math.ceil(finite.length / finiteRows);
+  const firstLeft = left + (span - (firstRow - 1) * step) / 2;
+  const learnBottom = rise;
+  LESSONS.forEach((lesson, k) => {
+    at.set(lesson.id, { x: firstLeft + k * step, y: rise + rowH / 2 });
+  });
+  rise += rowH + labelH;
+  const learn = { bottom: learnBottom, top: rise };
   for (const floor of FLOORS) {
     const levels = ORDER.filter((l) => l.type === floor.kind);
     const rows = Math.max(1, Math.ceil(levels.length / perRow));
@@ -154,6 +181,8 @@ function plan(width: number): Plan {
     b.top = height - b.top;
     b.bottom = height - b.bottom;
   }
+  learn.top = height - learn.top;
+  learn.bottom = height - learn.bottom;
   const pda = boxes.find((b) => b.floor.kind === 'PDA');
   const tm = boxes.find((b) => b.floor.kind === 'TM');
   const tapeY = (tm?.top ?? 0) + TAPE_BAND / 2;
@@ -162,6 +191,7 @@ function plan(width: number): Plan {
     height,
     narrow,
     at,
+    learn,
     floors: boxes,
     stack: { x: width - right / 2, bottom: (pda?.bottom ?? height) - 8, top: tapeY + 10 },
     tape: { left: left - 14, right: width - right + 4, y: tapeY },
@@ -240,6 +270,37 @@ export function createHomeView(navigate: (hash: string) => void): View {
     button: HTMLButtonElement;
     said: HTMLElement;
   }
+  interface LessonStop {
+    lesson: Lesson;
+    li: HTMLLIElement;
+    button: HTMLButtonElement;
+    said: HTMLElement;
+  }
+  // The lessons come first, in the list as on the path.
+  const lessonStops = new Map<string, LessonStop>();
+  for (const lesson of LESSONS) {
+    const said = h('span', { class: 'visually-hidden' });
+    const button = h(
+      'button',
+      {
+        class: 'level-row is-lesson',
+        type: 'button',
+        'data-testid': 'lesson-row',
+        'data-lesson': lesson.id,
+      },
+      h('span', { class: 'stop-dot', 'aria-hidden': 'true' }),
+      h('span', { class: 'stop-num', 'aria-hidden': 'true' }, String(lesson.index)),
+      h('span', { class: 'stop-name', 'aria-hidden': 'true' }, lesson.title),
+      said,
+    );
+    const li = h('li', { class: 'climb-stop' }, button);
+    on(button, 'click', () => enterLesson(lesson));
+    on(button, 'focus', () => point(asLesson(lesson)));
+    on(li, 'pointerenter', () => point(asLesson(lesson)));
+    list.append(li);
+    lessonStops.set(lesson.id, { lesson, li, button, said });
+  }
+
   const stops = new Map<string, Stop>();
   for (const level of ORDER) {
     const said = h('span', { class: 'visually-hidden' });
@@ -253,10 +314,10 @@ export function createHomeView(navigate: (hash: string) => void): View {
     );
     const li = h('li', { class: 'climb-stop' }, button);
     on(button, 'click', () => enter(level));
-    on(button, 'focus', () => point(level));
+    on(button, 'focus', () => point(asLevel(level)));
     // A locked stop is a disabled button, which takes no pointer events, so
     // the item around it listens instead.
-    on(li, 'pointerenter', () => point(level));
+    on(li, 'pointerenter', () => point(asLevel(level)));
     list.append(li);
     stops.set(level.id, { level, li, button, said });
   }
@@ -279,6 +340,12 @@ export function createHomeView(navigate: (hash: string) => void): View {
     { class: 'climb-replay', type: 'button', 'data-testid': 'replay-crossing', hidden: true },
     '',
   );
+  // Beside the first lesson, for anyone who already knows what it teaches.
+  const pSkip = h(
+    'button',
+    { class: 'climb-replay', type: 'button', 'data-testid': 'skip-lessons', hidden: true },
+    'Skip to level 1',
+  );
   const pFloor = h('p', { class: 't-small climb-floor-note' });
   const panel = h(
     'aside',
@@ -287,7 +354,7 @@ export function createHomeView(navigate: (hash: string) => void): View {
     pGoal,
     pSet,
     pStatus,
-    h('div', { class: 'climb-actions' }, pReplay, pEnter),
+    h('div', { class: 'climb-actions' }, pReplay, pSkip, pEnter),
     pFloor,
   );
   // On a phone the panel keeps only a name and a button, so the crossings
@@ -310,13 +377,18 @@ export function createHomeView(navigate: (hash: string) => void): View {
     return { floor, button };
   });
 
-  let shown: Level | null = null;
+  let shown: Item | null = null;
   on(pEnter, 'click', () => {
-    if (shown) enter(shown);
+    if (shown?.kind === 'lesson') enterLesson(shown.lesson);
+    else if (shown) enter(shown.level);
   });
   on(pReplay, 'click', () => {
-    const kind = shown ? floorOf(shown).kind : null;
+    const kind = shown?.kind === 'level' ? floorOf(shown.level).kind : null;
     if (kind && kind !== 'DFA') replay(kind, pReplay);
+  });
+  on(pSkip, 'click', () => {
+    const first = ORDER[0];
+    if (first) enter(first);
   });
 
   // A name over the stop being pointed at, as the map's own label.
@@ -368,6 +440,21 @@ export function createHomeView(navigate: (hash: string) => void): View {
   const reached = (kind: MachineKind): boolean =>
     ORDER.some((level) => level.type === kind && enterable(level));
 
+  const lessonDone = (lesson: Lesson): boolean => game.isLessonDone(lesson.id);
+  /** Where a new player starts: the first lesson not done, until any level is solved. */
+  const nextLesson = (): Lesson | undefined =>
+    game.progress.solved.length > 0 ? undefined : LESSONS.find((l) => !lessonDone(l));
+  /** The level that is next, unless a lesson is. */
+  const nextLevel = (): Level | undefined => (nextLesson() ? undefined : frontier());
+  const nextItem = (): Item | undefined => {
+    const lesson = nextLesson();
+    if (lesson) return asLesson(lesson);
+    const level = frontier();
+    return level ? asLevel(level) : undefined;
+  };
+  const lessonState = (lesson: Lesson, next: Lesson | undefined): StopState =>
+    lessonDone(lesson) ? 'solved' : lesson === next ? 'next' : 'open';
+
   function statusOf(level: Level): string {
     const best = game.progress.bestStates[level.id];
     // An unsolved level with work saved on it used to read exactly like an
@@ -395,6 +482,11 @@ export function createHomeView(navigate: (hash: string) => void): View {
     });
   }
 
+  function enterLesson(lesson: Lesson): void {
+    if (crossing) return;
+    navigate(`#/lesson/${lesson.id}`);
+  }
+
   function replay(kind: Exclude<MachineKind, 'DFA'>, from: HTMLElement): void {
     if (crossing) return;
     crossing = playCrossing(kind, el, {
@@ -408,26 +500,36 @@ export function createHomeView(navigate: (hash: string) => void): View {
 
   // -- pointing ---------------------------------------------------------------
 
-  let pointed: Level | null = null;
+  let pointed: Item | null = null;
 
-  function point(level: Level | null): void {
-    if (pointed === level) return;
-    pointed = level;
-    for (const stop of stops.values()) toggle(stop.li, 'is-pointed', stop.level === level);
+  function point(item: Item | null): void {
+    const id = item ? itemId(item) : null;
+    if ((pointed ? itemId(pointed) : null) === id) return;
+    pointed = item;
+    for (const stop of stops.values()) toggle(stop.li, 'is-pointed', stop.level.id === id);
+    for (const stop of lessonStops.values()) toggle(stop.li, 'is-pointed', stop.lesson.id === id);
     paintPanel();
     paintTip();
   }
 
   function paintTip(): void {
-    const at = pointed && current ? current.at.get(pointed.id) : undefined;
+    const at = pointed && current ? current.at.get(itemId(pointed)) : undefined;
     tip.hidden = !pointed || !at;
     if (!pointed || !at || !current) return;
-    const state = stateOf(pointed, frontier());
-    setText(tipTitle, `L${pad(pointed.index)} · ${pointed.title}`);
-    setText(
-      tipDetail,
-      `${floorOf(pointed).name} · ${state === 'next' ? 'next' : state} · par ${pointed.par}`,
-    );
+    if (pointed.kind === 'lesson') {
+      const { lesson } = pointed;
+      const state = lessonState(lesson, nextLesson());
+      setText(tipTitle, `Lesson ${lesson.index} · ${lesson.title}`);
+      setText(tipDetail, `learn · ${state === 'solved' ? 'done' : state}`);
+    } else {
+      const { level } = pointed;
+      const state = stateOf(level, nextLevel());
+      setText(tipTitle, `L${pad(level.index)} · ${level.title}`);
+      setText(
+        tipDetail,
+        `${floorOf(level).name} · ${state === 'next' ? 'next' : state} · par ${level.par}`,
+      );
+    }
     const x = Math.max(90, Math.min(current.width - 90, at.x));
     tip.style.left = `${x}px`;
     tip.style.top = `${at.y}px`;
@@ -441,8 +543,8 @@ export function createHomeView(navigate: (hash: string) => void): View {
       ArrowLeft: -1,
       ArrowDown: -1,
     };
-    const open = ORDER.filter(enterable);
-    const at = open.findIndex((level) => stops.get(level.id)?.button === document.activeElement);
+    const open = walkable();
+    const at = open.indexOf(document.activeElement as HTMLButtonElement);
     if (at < 0) return;
     let to = at;
     if (event.key in keys) to = at + (keys[event.key] ?? 0);
@@ -453,19 +555,42 @@ export function createHomeView(navigate: (hash: string) => void): View {
     const target = open[Math.max(0, Math.min(open.length - 1, to))];
     if (!target) return;
     rove(target);
-    stops.get(target.id)?.button.focus();
+    target.focus();
   }
 
+  /** The stops a keyboard can reach, in path order: the lessons, then the open levels. */
+  function walkable(): HTMLButtonElement[] {
+    return [
+      ...[...lessonStops.values()].map((stop) => stop.button),
+      ...ORDER.filter(enterable).map((level) => stops.get(level.id)?.button),
+    ].filter((b): b is HTMLButtonElement => b !== undefined);
+  }
+
+  const buttonOf = (item: Item | undefined): HTMLButtonElement | undefined =>
+    !item
+      ? undefined
+      : item.kind === 'lesson'
+        ? lessonStops.get(item.lesson.id)?.button
+        : stops.get(item.level.id)?.button;
+
   /** Exactly one stop takes Tab. */
-  function rove(level: Level | undefined): void {
-    for (const stop of stops.values()) {
-      stop.button.tabIndex = stop.level === level ? 0 : -1;
-    }
+  function rove(button: HTMLButtonElement | undefined): void {
+    for (const stop of lessonStops.values()) stop.button.tabIndex = stop.button === button ? 0 : -1;
+    for (const stop of stops.values()) stop.button.tabIndex = stop.button === button ? 0 : -1;
   }
 
   // -- painting ---------------------------------------------------------------
 
-  function paintStops(next: Level | undefined): void {
+  function paintStops(): void {
+    const lessonNext = nextLesson();
+    const next = nextLevel();
+    for (const stop of lessonStops.values()) {
+      const { lesson, button, said } = stop;
+      const state = lessonState(lesson, lessonNext);
+      button.className = `level-row is-lesson is-${state}`;
+      const status = state === 'solved' ? 'Done' : state === 'next' ? 'Start here' : 'Open';
+      setText(said, `Lesson ${lesson.index}, ${lesson.title}. ${status}.`);
+    }
     for (const stop of stops.values()) {
       const { level, button, said } = stop;
       const state = stateOf(level, next);
@@ -473,15 +598,23 @@ export function createHomeView(navigate: (hash: string) => void): View {
       button.disabled = state === 'locked';
       setText(said, `Level ${level.index}, ${level.title}. ${statusOf(level)}.`);
     }
-    const focused = ORDER.find((level) => stops.get(level.id)?.button === document.activeElement);
-    rove(focused ?? next ?? ORDER.filter(enterable).at(-1));
+    const focused = walkable().find((b) => b === document.activeElement);
+    rove(focused ?? buttonOf(nextItem()) ?? walkable().at(-1));
   }
 
   function paintPanel(): void {
-    const next = frontier();
-    const level = pointed ?? next ?? ORDER.at(-1);
-    if (!level) return;
-    shown = level;
+    const last = ORDER.at(-1);
+    const item = pointed ?? nextItem() ?? (last ? asLevel(last) : undefined);
+    if (!item) return;
+    shown = item;
+    if (item.kind === 'lesson') {
+      paintLessonPanel(item.lesson);
+      return;
+    }
+    const level = item.level;
+    const next = nextLevel();
+    pSet.hidden = false;
+    pSkip.hidden = true;
     const floor = floorOf(level);
     const state = stateOf(level, next);
     setText(pEyebrow, `L${pad(level.index)} · ${floor.label}`);
@@ -504,6 +637,33 @@ export function createHomeView(navigate: (hash: string) => void): View {
     pReplay.hidden = !canReplay;
     if (canReplay) setText(pReplay, `Watch the crossing into ${floor.name} again`);
     setText(pFloor, `${floor.label}. ${floor.blurb}`);
+  }
+
+  function paintLessonPanel(lesson: Lesson): void {
+    const state = lessonState(lesson, nextLesson());
+    setText(pEyebrow, `Lesson ${lesson.index} of ${LESSONS.length} · Learn`);
+    setText(pTitle, lesson.title);
+    setText(pGoal, lesson.pitch);
+    fill(pSet);
+    pSet.hidden = true;
+    setText(
+      pStatus,
+      state === 'solved'
+        ? 'Done. Its idea is yours.'
+        : state === 'next'
+          ? 'New to finite automata? Start here. A few minutes, one idea.'
+          : 'A few minutes, one idea.',
+    );
+    panel.dataset.state = state;
+    setText(pEnter, state === 'solved' ? 'Again' : 'Start');
+    pEnter.disabled = false;
+    pEnter.setAttribute(
+      'aria-label',
+      `${pEnter.textContent} lesson ${lesson.index}, ${lesson.title}`,
+    );
+    pReplay.hidden = true;
+    pSkip.hidden = state !== 'next';
+    setText(pFloor, 'Learn. What a finite automaton is, one idea at a time, before the climb.');
   }
 
   function panelStatus(level: Level, state: StopState): string {
@@ -557,27 +717,65 @@ export function createHomeView(navigate: (hash: string) => void): View {
     inner.style.height = `${current.height}px`;
     inner.style.transform = scale === 1 ? '' : `scale(${scale.toFixed(3)})`;
     map.style.height = `${Math.ceil(current.height * scale)}px`;
-    for (const stop of stops.values()) {
-      const p = current.at.get(stop.level.id);
+    const placed = [
+      ...[...lessonStops.values()].map((stop) => ({ id: stop.lesson.id, li: stop.li })),
+      ...[...stops.values()].map((stop) => ({ id: stop.level.id, li: stop.li })),
+    ];
+    for (const { id, li } of placed) {
+      const p = current.at.get(id);
       if (!p) continue;
-      stop.li.style.left = `${p.x - STOP / 2}px`;
-      stop.li.style.top = `${p.y - DOT_Y}px`;
+      li.style.left = `${p.x - STOP / 2}px`;
+      li.style.top = `${p.y - DOT_Y}px`;
       // The next level's name rises above its stop. Near an edge it hangs
       // inward instead of off the map.
-      toggle(stop.li, 'is-start', p.x < 96);
-      toggle(stop.li, 'is-end', p.x > current.width - 96);
+      toggle(li, 'is-start', p.x < 96);
+      toggle(li, 'is-end', p.x > current.width - 96);
     }
-    paintArt(frontier());
+    paintArt();
     paintTip();
   }
 
-  function paintArt(next: Level | undefined): void {
+  function paintArt(): void {
     const p = current;
     if (!p) return;
+    const next = nextLevel();
+    const lessonNext = nextLesson();
     art.setAttribute('viewBox', `0 0 ${p.width} ${p.height}`);
     art.setAttribute('width', String(p.width));
     art.setAttribute('height', String(p.height));
     const parts: SVGElement[] = [];
+
+    // The Learn floor, always lit: it is where anyone can start.
+    {
+      const learn = svg('g', { class: 'climb-floor is-reached climb-learn' });
+      learn.append(
+        svg('line', {
+          class: 'climb-ground',
+          x1: 0,
+          x2: p.width,
+          y1: p.learn.bottom + 0.5,
+          y2: p.learn.bottom + 0.5,
+        }),
+      );
+      const count = `lessons · ${LESSONS.filter(lessonDone).length} of ${LESSONS.length}`;
+      if (p.narrow) {
+        learn.append(
+          svg(
+            'text',
+            { class: 'climb-name', x: 0, y: p.learn.top + 17 },
+            svg('tspan', { class: 'climb-kind' }, 'Learn'),
+            ` · ${count}`,
+          ),
+        );
+      } else {
+        const mid = (p.learn.top + p.learn.bottom) / 2;
+        learn.append(
+          svg('text', { class: 'climb-kind', x: 0, y: mid - 1 }, 'Learn'),
+          svg('text', { class: 'climb-name', x: 0, y: mid + 16 }, count),
+        );
+      }
+      parts.push(learn);
+    }
 
     for (const box of p.floors) {
       const { floor } = box;
@@ -613,15 +811,20 @@ export function createHomeView(navigate: (hash: string) => void): View {
       parts.push(g);
     }
 
-    // The path, solid where it has been walked.
-    for (let i = 1; i < ORDER.length; i++) {
-      const from = ORDER[i - 1];
-      const to = ORDER[i];
+    // The path, solid where it has been walked: through the lessons, then up
+    // into the climb.
+    const path: { id: string; done: boolean; next: boolean }[] = [
+      ...LESSONS.map((l) => ({ id: l.id, done: lessonDone(l), next: l === lessonNext })),
+      ...ORDER.map((l) => ({ id: l.id, done: solved(l), next: l === next })),
+    ];
+    for (let i = 1; i < path.length; i++) {
+      const from = path[i - 1];
+      const to = path[i];
       if (!from || !to) continue;
       const a = p.at.get(from.id);
       const b = p.at.get(to.id);
       if (!a || !b) continue;
-      const kind = solved(to) && solved(from) ? ' is-done' : to === next ? ' is-next' : '';
+      const kind = to.done && from.done ? ' is-done' : to.next ? ' is-next' : '';
       parts.push(svg('line', { class: `climb-path${kind}`, x1: a.x, y1: a.y, x2: b.x, y2: b.y }));
     }
 
@@ -718,10 +921,9 @@ export function createHomeView(navigate: (hash: string) => void): View {
     setText(solvedCount, `${game.progress.solved.length}/${LEVELS.length}`);
     for (const { floor, button } of replayButtons) button.hidden = !game.hasCrossed(floor.kind);
     replayRow.hidden = replayButtons.every(({ button }) => button.hidden);
-    const next = frontier();
-    paintStops(next);
+    paintStops();
     paintPanel();
-    paintArt(next);
+    paintArt();
   }
 
   // The map is laid out from its own width, so it follows the panel moving
@@ -734,7 +936,16 @@ export function createHomeView(navigate: (hash: string) => void): View {
 
   const unsubscribe = game.subscribe(render);
   render();
-  requestAnimationFrame(() => relayout());
+  requestAnimationFrame(() => {
+    relayout();
+    // On a phone the map is taller than the screen and the bar covers its
+    // foot, which is where a new player starts. Bring the next stop into view.
+    const next = buttonOf(nextItem());
+    if (!next || window.innerWidth >= 900) return;
+    const limit = window.innerHeight - panel.getBoundingClientRect().height - 24;
+    const bottom = next.getBoundingClientRect().bottom;
+    if (bottom > limit) window.scrollBy({ top: bottom - limit, behavior: 'instant' });
+  });
   document.title = 'automata-k';
 
   return {

@@ -24,6 +24,9 @@ Nothing anywhere stores an expected verdict. Every level carries an `accepts`
 predicate, and both the game and its test suite ask that predicate. A level
 whose solution stopped matching its own language would fail the build.
 
+Before level 1 there are lessons, for anyone who has never met a finite
+automaton: see the Learn floor under Interface.
+
 ## The forty two
 
 | # | Level | Language | Machine | Type | Par |
@@ -225,6 +228,7 @@ by eye, and 48 Playwright tests over two viewports.
     minimize.ts  Hopcroft, reachability, completion, subset construction
     regex.ts     state elimination
     levels.ts    the levels, each with an accepts predicate
+    lessons.ts   the Learn floor: lessons, each a level with a starting machine
     solutions.ts one verified machine per level
     formal.ts    tuple rendering, delta notation, grammars, hierarchy copy
     layout.ts    arranging a machine so the diagram reads
@@ -239,6 +243,9 @@ by eye, and 48 Playwright tests over two viewports.
     theory.ts    symbol by symbol, grammar, hierarchy, and the hint
     trace.ts     the readout, the stepper, and the suite's own run
     results.ts   the card a passing run ends on
+    lessons.ts   what the coach says in each lesson, and what it waits for
+    coach.ts     the coach: one step at a time, under the question
+    predict.ts   predict, then run: a guess before a string plays
     crossing.ts  the scenes between floors of the climb
     motes.ts     the air in the chamber
     fonts/       the three bundled families, subset from the originals
@@ -325,7 +332,17 @@ other, so undo puts the machine back.
 
 Progress is a separate thing and does persist: which levels are solved, the
 smallest state count each was solved with, whether the answer was revealed,
-which crossings have played, the theme and the sound.
+which lessons are finished, which crossings have played, the theme, the sound
+and whether to predict before watching.
+
+**Predict, then run.** Tapping a string asks first what you expect: will your
+machine accept it? Then the string plays with its verdict kept back until the
+last step, and a line under the readout says how the guess went and why ("You
+said accept, but 11 is rejected: it got stuck in odd"). A guess made first is
+what turns watching into checking. It only asks while the answer is not already
+on screen: once the suite has run, each row's mark says it, and a row just
+plays. "Just play" skips it once, "Stop asking" turns it off, and Settings
+turns it back on.
 
 **Home is the climb.** The hierarchy drawn as four floors, finite automata at
 the bottom and Turing machines at the top, with the 42 levels as stops on one
@@ -340,6 +357,21 @@ map in the middle, laid out at a design width and scaled up to fill a large
 window, up to 1.6 times. The stops are real buttons in
 order, labelled for a screen reader; one takes Tab and the arrow keys walk the
 path from there.
+
+**The Learn floor.** Under the finite floor, three lessons teach what a finite
+automaton is before level 1 asks you to build one: watch a machine read a
+string one symbol at a time, choose where a machine says yes, and find and draw
+the arrow a machine is missing. Each lesson is a level with a starting machine,
+graded against its language like any other, on the same screen with the same
+canvas and suite. What changes is a coach under the question, which says one
+thing at a time, offers the one control that does it (keys to feed the machine
+symbols, Accept and Reject to call a string, Run), and moves on by itself once
+it has happened; and the tools, which are only the ones the lesson is about.
+A new player is pointed at the first lesson not done; level 1 stays open beside
+it, and Skip to level 1 is there for anyone who already knows. Lessons are kept
+apart from the forty-two, so the campaign's numbering, the golden fixture and
+the iOS port are unchanged; `tests/lessons.test.ts` holds each lesson's
+machines to its language and each canvas step to its machines.
 
 **Crossings.** Stepping onto the nondeterministic, pushdown or Turing floor for
 the first time plays a short scene: a machine that guesses, lit as a set of

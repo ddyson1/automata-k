@@ -109,7 +109,11 @@ export function buildRuleEditor(into: HTMLElement, options: RuleEditorOptions): 
         ? [...level.alphabet, EPSILON]
         : [...level.alphabet];
 
-  if (draft.read === '') draft.read = readable[0] ?? '';
+  // A finite automaton needs one arrow per symbol from every state, so a new
+  // arrow most likely wants a symbol this state has no arrow for yet.
+  const used = new Set(machine.transitions.filter((t) => t.from === from).map((t) => t.read));
+  const unused = level.type === 'DFA' ? readable.find((symbol) => !used.has(symbol)) : undefined;
+  if (draft.read === '') draft.read = unused ?? readable[0] ?? '';
 
   const read = choices('Read', readable, draft.read, (v) => { draft.read = v; say(); }, 'field-read');
   fields.push(read.el);
