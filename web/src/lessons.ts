@@ -62,8 +62,11 @@ export interface Step {
   done?: (ctx: LessonContext) => boolean;
   /** What to say instead while something the player did is in the way. */
   help?: (ctx: LessonContext) => string | null;
-  /** A state worth looking at while this step is up. */
-  point?: string;
+  /**
+   * A state worth looking at while this step is up: its id, or a way to find
+   * it in what is on the canvas, for a state the player placed themselves.
+   */
+  point?: string | ((ctx: LessonContext) => string | null | undefined);
 }
 
 /** What a lesson lets you do to the machine. Moving states is always allowed. */
@@ -94,6 +97,43 @@ const NOTHING: LessonTools = {
 
 const predicted = (ctx: LessonContext): boolean => ctx.predicted.length > 0;
 const solved = (ctx: LessonContext): boolean => ctx.ran?.solved === true;
+
+/** Whether the canvas has the arrow from `from` to `to` reading `read`. */
+type Id = string | null | undefined;
+
+const has = (ctx: LessonContext, from: Id, to: Id, read: string): boolean =>
+  ctx.machine.transitions.some((t) => t.from === from && t.to === to && t.read === read);
+
+const labelOf = (ctx: LessonContext, id: Id): string =>
+  ctx.machine.states.find((s) => s.id === id)?.label ?? '?';
+
+/** An arrow drawn between the right two states for the wrong symbol, said as a fix. */
+function wrongSymbol(ctx: LessonContext, from: Id, to: Id, want: string): string | null {
+  if (has(ctx, from, to, want)) return null;
+  const drawn = ctx.machine.transitions.find((t) => t.from === from && t.to === to);
+  return drawn ? `That arrow reads ${drawn.read}. Press its label and change it to ${want}.` : null;
+}
+
+/** What a failed run means in a lesson, plainly. */
+function failedRun(ctx: LessonContext, hint: string): string | null {
+  if (!ctx.ran || ctx.ran.solved) return null;
+  if (ctx.ran.error) return `${ctx.ran.error} ${hint}`;
+  return `${ctx.ran.passed} of ${ctx.ran.total} agree. ${hint}`;
+}
+
+// Lesson 5 builds on an empty canvas, so its states are found rather than named.
+const others = (ctx: LessonContext) => ctx.machine.states.filter((s) => s.id !== ctx.machine.start);
+/** Where "a 1 has been seen" lives: wherever the start's 1 goes, or the ringed state. */
+const seenOf = (ctx: LessonContext): string | undefined =>
+  ctx.machine.transitions.find(
+    (t) => t.from === ctx.machine.start && t.read === '1' && t.to !== ctx.machine.start,
+  )?.to ?? ctx.machine.accepting.find((id) => id !== ctx.machine.start);
+
+// Lesson 6 adds one state of the player's own to s and yes.
+const deadOf = (ctx: LessonContext): string | undefined =>
+  ctx.machine.transitions.find(
+    (t) => t.from === 's' && t.read === '0' && t.to !== 's' && t.to !== 'yes',
+  )?.to;
 
 /** What a failed run of the suite means, in a lesson where only the rings can be wrong. */
 function ringsHelp(ctx: LessonContext): string | null {
@@ -237,6 +277,212 @@ export const SCRIPTS: Record<string, LessonScript> = {
             ? `${c.ran.passed} of ${c.ran.total} agree. Each symbol should flip the machine ` +
               'between even and odd.'
             : null,
+      },
+    ],
+  },
+
+  'lesson-memory': {
+    tools: { ...NOTHING, connect: true, editRules: true },
+    steps: [
+      {
+        say:
+          'Each state of a machine stands for something it remembers. Here it is one answer: ' +
+          'does what has been read so far end with 0? no is where it starts, and yes has the ' +
+          'double ring. Reading a 0 makes the answer yes. Draw that arrow: from no to yes, for 0.',
+        offer: { kind: 'canvas' },
+        point: 'no',
+        done: (c) => has(c, 'no', 'yes', '0'),
+        help: (c) => wrongSymbol(c, 'no', 'yes', '0'),
+      },
+      {
+        say:
+          'From yes, a 0 keeps the answer yes, so its arrow loops back. Press on the edge of yes ' +
+          'and let go on yes itself, then choose 0.',
+        offer: { kind: 'canvas' },
+        point: 'yes',
+        done: (c) => has(c, 'yes', 'yes', '0'),
+        help: (c) => wrongSymbol(c, 'yes', 'yes', '0'),
+      },
+      {
+        say:
+          'Reading a 1 makes the answer no, wherever the machine was. Draw both arrows for 1: ' +
+          'one from yes to no, and a loop on no.',
+        offer: { kind: 'canvas' },
+        point: (c) => (has(c, 'yes', 'no', '1') ? 'no' : 'yes'),
+        done: (c) => has(c, 'yes', 'no', '1') && has(c, 'no', 'no', '1'),
+        help: (c) => wrongSymbol(c, 'yes', 'no', '1') ?? wrongSymbol(c, 'no', 'no', '1'),
+      },
+      {
+        say: 'Will it accept 10?',
+        offer: { kind: 'predict', input: '10' },
+        done: predicted,
+      },
+      {
+        say: 'Every arrow says what one symbol does to the answer. Run the suite.',
+        offer: { kind: 'run' },
+        done: solved,
+        help: (c) => failedRun(c, 'After a 0 the answer is yes; after a 1 it is no.'),
+      },
+    ],
+  },
+
+  'lesson-own': {
+    tools: {
+      ...NOTHING,
+      place: true,
+      connect: true,
+      editRules: true,
+      accepting: true,
+      remove: true,
+    },
+    steps: [
+      {
+        say:
+          'This canvas is empty: the machine is yours to build. It should accept the strings ' +
+          'that contain a 1. Double click the canvas, or tap it twice, to place a state. The ' +
+          'first state you place is where the machine starts.',
+        offer: { kind: 'canvas' },
+        done: (c) => c.machine.states.length >= 1,
+      },
+      {
+        say:
+          'What does the machine need to remember to know whether a 1 has turned up? Only yes ' +
+          'or no. Two answers, so two states. Place a second one.',
+        offer: { kind: 'canvas' },
+        done: (c) => c.machine.states.length >= 2,
+      },
+      {
+        say:
+          'Your second state means a 1 has been seen, which is exactly when to accept. Select ' +
+          'it and press Accepting.',
+        offer: { kind: 'canvas' },
+        point: (c) => others(c)[0]?.id,
+        done: (c) =>
+          c.machine.accepting.some((id) => id !== c.machine.start) &&
+          !c.machine.accepting.includes(c.machine.start ?? ''),
+        help: (c) =>
+          c.machine.start !== null && c.machine.accepting.includes(c.machine.start)
+            ? 'The start stands for nothing read yet, so no 1 has been seen: select it and ' +
+              'press Accepting again to take its ring off.'
+            : null,
+      },
+      {
+        say:
+          'Now the arrows. From the start, a 1 means a 1 has been seen: drag from the edge of ' +
+          'the start to your accepting state, and choose 1.',
+        offer: { kind: 'canvas' },
+        point: (c) => c.machine.start,
+        done: (c) =>
+          c.machine.transitions.some(
+            (t) =>
+              t.from === c.machine.start && t.read === '1' && c.machine.accepting.includes(t.to),
+          ),
+        help: (c) => wrongSymbol(c, c.machine.start, c.machine.accepting[0], '1'),
+      },
+      {
+        say:
+          'A 0 changes nothing, so from the start it loops back. Press on the edge of the start ' +
+          'and let go on the start itself, then choose 0.',
+        offer: { kind: 'canvas' },
+        point: (c) => c.machine.start,
+        done: (c) => has(c, c.machine.start, c.machine.start, '0'),
+        help: (c) => wrongSymbol(c, c.machine.start, c.machine.start, '0'),
+      },
+      {
+        say:
+          'Once a 1 has been seen, nothing can unsee it, so the accepting state loops back to ' +
+          'itself on both symbols. Draw a loop on it for 0, then another for 1.',
+        offer: { kind: 'canvas' },
+        point: seenOf,
+        done: (c) => {
+          const seen = seenOf(c);
+          return has(c, seen, seen, '0') && has(c, seen, seen, '1');
+        },
+      },
+      {
+        say: 'Will it accept 000?',
+        offer: { kind: 'predict', input: '000' },
+        done: predicted,
+      },
+      {
+        say: 'You decided what to remember, and the machine followed. Run the suite.',
+        offer: { kind: 'run' },
+        done: solved,
+        help: (c) =>
+          failedRun(c, 'Check each state has an arrow for 0 and for 1, and only the second rings.'),
+      },
+    ],
+  },
+
+  'lesson-trapped': {
+    tools: { ...NOTHING, place: true, connect: true, editRules: true, remove: true },
+    steps: [
+      {
+        say: 'This machine accepts the strings that start with 1. Will it accept 01?',
+        offer: { kind: 'predict', input: '01' },
+        done: predicted,
+      },
+      {
+        say:
+          'Rejected, and rightly: 01 starts with 0. But it was rejected by getting stuck, ' +
+          'because s has no arrow for 0. Give that 0 somewhere to go: a state that never ' +
+          'accepts and never lets go, called a dead state. Place one near s.',
+        offer: { kind: 'canvas' },
+        point: 's',
+        done: (c) => c.machine.states.length >= 3,
+      },
+      {
+        say: 'Draw the arrow s is missing: from s to your new state, for 0.',
+        offer: { kind: 'canvas' },
+        point: 's',
+        done: (c) => deadOf(c) !== undefined,
+        help: (c) => {
+          if (has(c, 's', 'yes', '0')) {
+            return (
+              'That arrow sends 0 to yes, which accepts, so 01 would be accepted. Press its ' +
+              'label, delete it, and draw it to the new state instead.'
+            );
+          }
+          if (has(c, 's', 's', '0')) {
+            return (
+              'That loop keeps the machine in s, where a later 1 would still be accepted. ' +
+              'The 0 should go to the new state.'
+            );
+          }
+          return null;
+        },
+      },
+      {
+        say:
+          'A dead state never lets go: whatever comes next, the string stays rejected. Draw a ' +
+          'loop on it for 0, then another for 1.',
+        offer: { kind: 'canvas' },
+        point: deadOf,
+        done: (c) => {
+          const dead = deadOf(c);
+          return has(c, dead, dead, '0') && has(c, dead, dead, '1');
+        },
+        help: (c) => {
+          const dead = deadOf(c);
+          const out = c.machine.transitions.find((t) => t.from === dead && t.to !== dead);
+          return out
+            ? `An arrow leaves ${labelOf(c, dead)}, but a dead state never lets go. Delete it ` +
+                'and loop back instead.'
+            : null;
+        },
+      },
+      {
+        say: 'Will it accept 01 now?',
+        offer: { kind: 'predict', input: '01' },
+        done: predicted,
+      },
+      {
+        say:
+          'Rejected again, but now by ending somewhere rather than by getting stuck. Run the ' +
+          'suite.',
+        offer: { kind: 'run' },
+        done: solved,
+        help: (c) => failedRun(c, 'Only yes rings, and nothing leaves the dead state.'),
       },
     ],
   },

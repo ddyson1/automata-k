@@ -358,17 +358,23 @@ window, up to 1.6 times. The stops are real buttons in
 order, labelled for a screen reader; one takes Tab and the arrow keys walk the
 path from there.
 
-**The Learn floor.** Under the finite floor, three lessons teach what a finite
+**The Learn floor.** Under the finite floor, six lessons teach what a finite
 automaton is before level 1 asks you to build one: watch a machine read a
-string one symbol at a time, choose where a machine says yes, and find and draw
-the arrow a machine is missing. Each lesson is a level with a starting machine,
+string one symbol at a time; choose where a machine says yes; find and draw the
+arrow a machine is missing; give states meanings ("does it end in 0?") and let
+the arrows follow; build a machine from an empty canvas by deciding what it
+must remember; and turn a missing arrow into a dead state, the place a string
+goes once it can never be accepted. Each lesson is a level with a starting machine,
 graded against its language like any other, on the same screen with the same
 canvas and suite. What changes is a coach under the question, which says one
 thing at a time, offers the one control that does it (keys to feed the machine
 symbols, Accept and Reject to call a string, Run), and moves on by itself once
 it has happened; and the tools, which are only the ones the lesson is about.
-A new player is pointed at the first lesson not done; level 1 stays open beside
-it, and Skip to level 1 is there for anyone who already knows. Lessons are kept
+When a step is done, whatever was selected for it is let go, so its controls
+never sit over the canvas the next step needs. On a phone the lesson's corner
+drops the set-builder line, since the canvas is where the work is. A new
+player is pointed at the first lesson not done; level 1 stays open beside it,
+and Skip to level 1 is there for anyone who already knows. Lessons are kept
 apart from the forty-two, so the campaign's numbering, the golden fixture and
 the iOS port are unchanged; `tests/lessons.test.ts` holds each lesson's
 machines to its language and each canvas step to its machines.
